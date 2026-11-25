@@ -1,0 +1,29 @@
+name: Release draft
+
+# After every push to main: create or update a draft release for the version in manifest.json,
+# with the matching section of CHANGELOG.md as release notes. Publishing stays a manual step.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create or update the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TARGET: ${{ github.sha }}
+        run: python3 .github/scripts/release_draft.py
