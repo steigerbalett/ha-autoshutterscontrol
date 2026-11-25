@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0b1
+
+Stage 5 of the concept.
+
+- Catching up: after a restart (Home Assistant was off when a morning/evening drive was due) or when the
+  cover is available again, the target is driven to; mode never / after a failure (default) / always.
+- Plausibility check of the effective settings of every cover as repair issues (time order, 0:00 as latest
+  closing time, swapped thresholds, empty sun elevation range, wind hysteresis, equal positions, functions
+  without their sensor, entities that do not exist).
+- Logbook entries at the cover for drives, deliberately skipped drives and manual drives, in the language of
+  Home Assistant (can be switched off). New diagnostic sensor "Not driven because".
+- Diagnostics: the last 50 decisions per cover now contain all inputs.
+- Import from FHEM in the options: paste fhem.cfg, map shutters to covers and FHEM devices to entities
+  (suggestions by name), summary with what cannot be transferred.
+- Brand icon in `brand/`, docs: catching up, check/logbook/diagnostics, FHEM import, FAQ, translating.
+
 ## 0.4.0b1
 
 Stage 4 of the concept.

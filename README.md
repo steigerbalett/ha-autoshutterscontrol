@@ -13,11 +13,10 @@ Blueprint-Automationen je Rollladen.
 - 🇬🇧 [Documentation (English)](docs/en/README.md)
 - 🇩🇪 [Dokumentation (Deutsch)](docs/de/README.md)
 
-> **Beta.** Version 0.4 is stage 4 of 5: schedule (time, sun, brightness, sun elevation,
-> calendar, residents, workday), window contacts, residents and self defense, shading with all
-> conditions, slats, privacy, rain (also with an open window), wind, frost, force functions,
-> party, advent, trigger, wiggle, hardware lock, extra conditions and actions. Catching up after a
-> restart, plausibility checks, logbook and FHEM import follow.
+> **Beta.** Version 0.5 contains all five stages of the concept: schedule (time, sun, brightness,
+> sun elevation, calendar, residents, workday), window contacts, residents and self defense, shading,
+> slats, privacy, rain/wind/frost, force functions, party, advent, trigger, wiggle, extra conditions and
+> actions, catching up after a restart, plausibility check, logbook, diagnostics and import from FHEM.
 
 License: GPL-2.0-or-later. No code from FHEM ASC or from the blueprint "Cover Control Automation"
 is used; both served as a list of functions.

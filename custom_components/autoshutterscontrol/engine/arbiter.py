@@ -47,7 +47,8 @@ TRIGGER_PROTECTION = "protection"
 TRIGGER_FORCE = "force"
 TRIGGER_EXTERNAL = "external"
 TRIGGER_RELEASE = "release"
-SCHEDULE_TRIGGERS = frozenset({TRIGGER_SCHEDULE_UP, TRIGGER_SCHEDULE_DOWN})
+TRIGGER_RECOVERY = "recovery"
+SCHEDULE_TRIGGERS = frozenset({TRIGGER_SCHEDULE_UP, TRIGGER_SCHEDULE_DOWN, TRIGGER_RECOVERY})
 
 # Reasons of a wish (stored as keys, translated only for display)
 REASON_DAY_OPEN = "day_open"
@@ -90,6 +91,40 @@ BLOCK_FROST = "frost"
 BLOCK_PARTY = "party"
 BLOCK_ADVENT = "advent"
 BLOCK_CONDITION = "condition"
+# Blocks that mean "deliberately not driven" (logbook)
+LOGGED_BLOCKS = frozenset(
+    {
+        BLOCK_AUTOMATIC_OFF,
+        BLOCK_PAUSED,
+        BLOCK_UNAVAILABLE,
+        BLOCK_OVERRIDE,
+        BLOCK_DONE_BY_MANUAL,
+        BLOCK_DIRECTION,
+        BLOCK_LOCKOUT,
+        BLOCK_NOT_SHADED,
+        BLOCK_FROST,
+        BLOCK_PARTY,
+        BLOCK_ADVENT,
+        BLOCK_CONDITION,
+    }
+)
+BLOCKS = (
+    BLOCK_AUTOMATIC_OFF,
+    BLOCK_PAUSED,
+    BLOCK_UNAVAILABLE,
+    BLOCK_MOVING,
+    BLOCK_NO_WISH,
+    BLOCK_OVERRIDE,
+    BLOCK_DONE_BY_MANUAL,
+    BLOCK_DIRECTION,
+    BLOCK_AT_TARGET,
+    BLOCK_LOCKOUT,
+    BLOCK_NOT_SHADED,
+    BLOCK_FROST,
+    BLOCK_PARTY,
+    BLOCK_ADVENT,
+    BLOCK_CONDITION,
+)
 
 
 @dataclass(frozen=True)
@@ -467,7 +502,13 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
                 return _blocked(situation, wish, BLOCK_DIRECTION)
             if wish.kind == KIND_CLOSE and cfg["close_never_up"] and current < wish.position:
                 return _blocked(situation, wish, BLOCK_DIRECTION)
-            if wish.kind == KIND_SHADING and cfg["shading_only_down"] and current < wish.position:
+            if (
+                wish.kind == KIND_SHADING
+                and cfg["shading_only_down"]
+                and current < wish.position
+                # The morning opening (or catching it up) goes to the shading position
+                and situation.trigger not in (TRIGGER_SCHEDULE_UP, TRIGGER_RECOVERY)
+            ):
                 return _blocked(situation, wish, BLOCK_DIRECTION)
 
     return Decision(

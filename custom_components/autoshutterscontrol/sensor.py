@@ -13,6 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from . import AscConfigEntry
 from .engine.arbiter import (
+    BLOCKS,
     REASON_COMFORT,
     REASON_DAY_OPEN,
     REASON_FORCE,
@@ -79,6 +80,7 @@ async def async_setup_entry(
                 ShadingSensor(controller),
                 LastReasonSensor(controller),
                 TargetSensor(controller),
+                BlockedBySensor(controller),
             ],
             config_subentry_id=controller.subentry_id,
         )
@@ -121,6 +123,29 @@ class LastReasonSensor(AscCoverEntity, SensorEntity):
             "time": last.get("time"),
             "trigger": last.get("trigger"),
         }
+
+
+class BlockedBySensor(AscCoverEntity, SensorEntity):
+    """Why the last decision did not drive (empty after a drive)."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_options = list(BLOCKS)
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "blocked_by")
+
+    @property
+    def native_value(self) -> str | None:
+        last = self.controller.last_decision
+        if last is None or last.drive:
+            return None
+        return last.blocked_by
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        last = self.controller.last_decision
+        return {"reason": last.reason, "trigger": last.trigger} if last else {}
 
 
 class TargetSensor(AscCoverEntity, SensorEntity):

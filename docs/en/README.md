@@ -15,8 +15,8 @@ There is **one** entry for the whole house.
 1. **Main entry**: choose the workday sensors (optional). Without a sensor Monday to Friday are workdays.
 2. **Options** (gear icon of the entry): global settings, one page each for schedule, sensors,
    brightness and sun elevation, residents and self defense, positions, window, shading,
-   slats, privacy,
-   drive behaviour and manual override.
+   slats, privacy, rain/wind/frost, special functions, drive behaviour, manual override, extra
+   conditions and actions, and *Import from FHEM*.
 3. **Profiles** (optional, *Add profile*): settings for a group of covers, e.g. "South side".
 4. **Covers** (*Add covers*): choose one or more covers and a profile. Change only what differs
    with the cover's *Reconfigure* button.
@@ -232,6 +232,46 @@ Page *Extra conditions and actions*, with the editors of Home Assistant:
 - Actions at each drive (variables `cover`, `position`, `reason`, `trigger`), at a manual drive
   (`position`), at the end of the override and at water protection.
 
+## Catching up after a restart or a failure
+
+*Catch up missed drives* (page *Drive behaviour*):
+
+- *After a failure* (default): if Home Assistant was off when a morning or evening drive was due, every
+  cover drives to its target 45 seconds after the start. If the cover itself was unavailable, the missed
+  drive is done as soon as it is back.
+- *Always after a restart*: to the target after every start.
+- *Never*.
+
+Catching up uses all rules (override, lock-out, window …). The state (override, drives done, protections)
+is kept in the storage of Home Assistant and survives every restart.
+
+## Check, logbook and diagnostics
+
+- **Plausibility check**: at the start and after every change AutoShuttersControl checks the effective
+  settings of every cover and reports mistakes under *Settings → Repairs*, e.g. earliest time after the
+  latest, 0:00 as latest closing time, swapped thresholds, rain protection without rain sensor, or entities
+  that do not exist. When fixed, the issue disappears.
+- **Logbook** (*Logbook entries*, on by default): an entry at the cover for every drive with its reason, for
+  every drive deliberately not done (e.g. "did not drive (Evening closing): Pause") and for manual drives.
+- The diagnostic sensor **Not driven because** shows why the last decision did not drive.
+- **Diagnostics** (entry → three dots → *Download diagnostics*): per cover the effective settings and the
+  last 50 decisions with all inputs (situation, wishes, residents, window, shading, protections).
+
+## Import from FHEM
+
+Options → *Import from FHEM*:
+
+1. Paste `fhem.cfg` (or only the lines of the AutoShuttersControl device and of the shutters with
+   `ASC 1/2`). Only `define` and `attr` lines are read.
+2. Choose a Home Assistant cover for each FHEM shutter. Suggestions come from similar names.
+3. Choose entities for the FHEM devices in the attributes (sensors, window contacts, residents).
+4. The summary shows what is imported and what cannot be transferred (Perl code, unknown attributes).
+   Submit creates the covers and saves the global settings.
+
+The attributes of the ASC device become global settings, those of the shutters cover settings. Values all
+shutters share move to the global settings; values that only repeat the default are dropped. Covers that
+are already configured stay unchanged.
+
 ## Manual override
 
 A drive that did not come from AutoShuttersControl (app, button, wall switch, other automation)
@@ -258,7 +298,7 @@ Wind, Frost; buttons Recalculate times, All covers to target, Wiggle all, Releas
 
 **Per cover**: switches Automatic and Pause; binary sensors Day, Manual override, Self defense, Rain
 protection, Water protection, Wind protection, Frost protection and Force function; sensors Next
-opening, Next closing, Next privacy, Last drive reason, Target, Window, Residents, Shading; buttons Drive to target, End manual override and Wiggle;
+opening, Next closing, Next privacy, Last drive reason, Target, Not driven because, Window, Residents, Shading; buttons Drive to target, End manual override and Wiggle;
 selects Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
 
 Pause: nothing is driven, the target is still tracked; when the pause ends the cover drives to its
@@ -289,11 +329,29 @@ window, with `window`, `position`, `driven`, `blocked_by`).
 | 1 | Base, inheritance, arbiter, schedule (time/sun/workday), positions, manual override, delay, EN/DE |
 | 2 | Window contacts (ventilation, comfort, lock-out), brightness, sun elevation, privacy, calendar |
 | 3 | Residents, self defence, shading with all conditions, slats |
-| 4 (this version) | Rain (also with open window), wind, frost, force, pause entity, party, advent, trigger, wiggle, hardware lock, extra conditions and actions |
-| 5 | Recovery after restart, validation, logbook, FHEM import, HACS default |
+| 4 | Rain (also with open window), wind, frost, force, pause entity, party, advent, trigger, wiggle, hardware lock, extra conditions and actions |
+| 5 (this version) | Catching up, plausibility check, logbook, diagnostics, FHEM import, HACS preparation |
+
+## FAQ
+
+**Why does a cover not move?** The sensor *Not driven because* and the logbook of the cover show the reason.
+The sensor *Target* shows what would apply now and, in `effective_config`, where every value comes from.
+
+**After a manual drive the cover no longer moves automatically.** That is the manual override. It ends
+after the configured time or with the button *End manual override*.
+
+**Can I switch AutoShuttersControl off for a while?** Switch *Pause* (the target is tracked and driven to
+afterwards) or *Automatic* (nothing happens, not even when turned on again), globally or per cover.
+
+**Do I need profiles?** No. They save work when several covers share the same deviations, e.g. one facade for
+shading.
+
+**Can FHEM and Home Assistant run in parallel?** Yes, but control a cover from one side only. Otherwise each
+side detects the drives of the other as manual drives.
 
 ## Translating
 
 Each language is one file in `custom_components/autoshutterscontrol/translations/`. Field texts are
 written once in `options.step.<section>`; run `python script/expand_translations.py` to copy them
-into the profile and cover pages. Pull requests with new languages are welcome.
+into the profile and cover pages. Pull requests with new languages are welcome; see
+[translating.md](translating.md).

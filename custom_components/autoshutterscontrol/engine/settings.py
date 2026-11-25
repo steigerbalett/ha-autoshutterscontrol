@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import time
 from typing import Any
 
-ACTIVE_STAGE = 4
+ACTIVE_STAGE = 5
 
 LEVEL_GLOBAL = "global"
 LEVEL_PROFILE = "profile"
@@ -175,6 +175,12 @@ SELF_DEFENSE_OFF = "off"
 SELF_DEFENSE_ABSENT = "absent"
 SELF_DEFENSE_GONE = "gone"
 SELF_DEFENSE_MODES = (SELF_DEFENSE_OFF, SELF_DEFENSE_ABSENT, SELF_DEFENSE_GONE)
+
+# Catching up after a restart or a failure
+RECOVERY_OFF = "off"
+RECOVERY_FAILURE = "failure"
+RECOVERY_ALWAYS = "always"
+RECOVERY_MODES = (RECOVERY_OFF, RECOVERY_FAILURE, RECOVERY_ALWAYS)
 
 # Shading conditions
 COND_AZIMUTH = "azimuth"
@@ -824,6 +830,8 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("drive_time", INT, 60, SEC_DRIVE, minimum=5, maximum=600, unit="s"),
     Setting("open_never_down", BOOL, True, SEC_DRIVE),
     Setting("close_never_up", BOOL, True, SEC_DRIVE),
+    Setting("recovery", SELECT, RECOVERY_FAILURE, SEC_DRIVE, stage=5, options=RECOVERY_MODES),
+    Setting("logbook", BOOL, True, SEC_DRIVE, stage=5),
     # --- manual override ------------------------------------------------
     Setting(
         "override_blocks",

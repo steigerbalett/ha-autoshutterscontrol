@@ -20,7 +20,7 @@ from homeassistant.config_entries import (
     SubentryFlowResult,
 )
 from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.helpers import selector, translation
 import voluptuous as vol
 
 from .const import (
@@ -33,10 +33,12 @@ from .const import (
     SUBENTRY_COVER,
     SUBENTRY_PROFILE,
 )
-from .engine.resolve import inherited_value
+from .engine import fhem
+from .engine.resolve import inherited_value, resolve
 from .engine.settings import (
     ACTION,
     BOOL,
+    BY_KEY,
     CONDITION,
     ENTITIES,
     ENTITY,
@@ -63,6 +65,8 @@ NONE_OPTION = "none"
 STEP_SAVE = "save"
 STEP_RESET = "reset"
 STEP_BASE = "base"
+STEP_FHEM = "fhem_import"
+CONF_FHEM_CFG = "fhem_cfg"
 
 
 # --- form helpers ---------------------------------------------------------
@@ -257,6 +261,12 @@ def _reset_schema(level: str, current: Mapping[str, Any]) -> vol.Schema:
     )
 
 
+def _effective(values: Mapping[str, Any]) -> dict[str, Any]:
+    """Effective global values (python values) of stored settings."""
+    cfg = resolve(values)
+    return {key: cfg[key] for key in BY_KEY}
+
+
 # --- main entry -----------------------------------------------------------
 
 
@@ -296,6 +306,9 @@ class AscOptionsFlow(OptionsFlow):
 
     def __init__(self) -> None:
         self._settings: dict[str, Any] | None = None
+        self._fhem: fhem.FhemImport | None = None
+        self._fhem_covers: dict[str, str | None] = {}
+        self._fhem_plan: fhem.Plan | None = None
 
     @property
     def settings(self) -> dict[str, Any]:
@@ -306,7 +319,8 @@ class AscOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Menu."""
         return self.async_show_menu(
-            step_id="init", menu_options=[*sections_for(LEVEL_GLOBAL), STEP_RESET, STEP_SAVE]
+            step_id="init",
+            menu_options=[*sections_for(LEVEL_GLOBAL), STEP_FHEM, STEP_RESET, STEP_SAVE],
         )
 
     async def _section(self, section: str, user_input: dict[str, Any] | None) -> ConfigFlowResult:
@@ -387,6 +401,135 @@ class AscOptionsFlow(OptionsFlow):
         """Save."""
         return self.async_create_entry(
             data={**self.config_entry.options, CONF_SETTINGS: self.settings}
+        )
+
+    # --- import from FHEM ---------------------------------------------------
+
+    def _candidates(self, domain: str | None = None) -> dict[str, str]:
+        return {
+            state.entity_id: str(state.attributes.get("friendly_name", state.entity_id))
+            for state in self.hass.states.async_all(domain)
+        }
+
+    async def async_step_fhem_import(self, user_input=None) -> ConfigFlowResult:
+        """Paste fhem.cfg (or the lines of the ASC device and the shutters)."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            self._fhem = fhem.convert(user_input.get(CONF_FHEM_CFG, ""))
+            if not self._fhem.shutters and not self._fhem.global_settings:
+                errors[CONF_FHEM_CFG] = "fhem_nothing_found"
+            else:
+                return await self.async_step_fhem_covers()
+        return self.async_show_form(
+            step_id=STEP_FHEM,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_FHEM_CFG): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True)
+                    )
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_fhem_covers(self, user_input=None) -> ConfigFlowResult:
+        """FHEM shutter -> Home Assistant cover."""
+        assert self._fhem is not None
+        if user_input is not None or not self._fhem.shutters:
+            self._fhem_covers = dict(user_input or {})
+            return await self.async_step_fhem_entities()
+        covers = self._candidates("cover")
+        fields: dict[Any, Any] = {}
+        for name in self._fhem.shutters:
+            guess = fhem.suggest(name, covers)
+            key = (
+                vol.Optional(name, description={"suggested_value": guess})
+                if guess
+                else vol.Optional(name)
+            )
+            fields[key] = selector.EntitySelector(selector.EntitySelectorConfig(domain="cover"))
+        return self.async_show_form(
+            step_id="fhem_covers",
+            data_schema=vol.Schema(fields),
+            description_placeholders={"count": str(len(self._fhem.shutters))},
+        )
+
+    async def async_step_fhem_entities(self, user_input=None) -> ConfigFlowResult:
+        """FHEM sensors, contacts, residents -> Home Assistant entities."""
+        assert self._fhem is not None
+        references = self._fhem.references()
+        if user_input is not None or not references:
+            self._fhem_plan = fhem.plan(
+                self._fhem,
+                self._fhem_covers,
+                dict(user_input or {}),
+                self.settings,
+                lambda values: _effective(values),
+            )
+            return await self.async_step_fhem_done()
+        entities = self._candidates()
+        fields: dict[Any, Any] = {}
+        for name in references:
+            guess = fhem.suggest(name, entities)
+            key = (
+                vol.Optional(name, description={"suggested_value": guess})
+                if guess
+                else vol.Optional(name)
+            )
+            fields[key] = selector.EntitySelector()
+        return self.async_show_form(step_id="fhem_entities", data_schema=vol.Schema(fields))
+
+    async def async_step_fhem_done(self, user_input=None) -> ConfigFlowResult:
+        """Summary, then create the covers and save the global settings."""
+        plan = self._fhem_plan
+        assert plan is not None and self._fhem is not None
+        entry = self.config_entry
+        existing = {
+            sub.data.get(CONF_COVER_ENTITY)
+            for sub in entry.subentries.values()
+            if sub.subentry_type == SUBENTRY_COVER
+        }
+        new = [c for c in plan.covers if c[0] not in existing]
+        if user_input is not None:
+            for key, value in plan.global_settings.items():
+                self.settings[key] = to_storage(BY_KEY[key], value)
+            for cover, _name, values in new:
+                state = self.hass.states.get(cover)
+                title = str(state.attributes.get("friendly_name", cover)) if state else cover
+                self.hass.config_entries.async_add_subentry(
+                    entry,
+                    ConfigSubentry(
+                        data={
+                            CONF_COVER_ENTITY: cover,
+                            CONF_PROFILE: None,
+                            CONF_SETTINGS: {k: to_storage(BY_KEY[k], v) for k, v in values.items()},
+                        },
+                        subentry_type=SUBENTRY_COVER,
+                        title=title,
+                        unique_id=cover,
+                    ),
+                )
+            return await self.async_step_save()
+        dash = "–"
+        texts = await translation.async_get_translations(
+            self.hass, self.hass.config.language, "options", [DOMAIN]
+        )
+
+        def label(key: str) -> str:
+            section = BY_KEY[key].section
+            return texts.get(f"component.{DOMAIN}.options.step.{section}.data.{key}", key)
+
+        return self.async_show_form(
+            step_id="fhem_done",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "global": ", ".join(sorted(label(k) for k in plan.global_settings)) or dash,
+                "covers": ", ".join(f"{name} → {cover}" for cover, name, _v in new) or dash,
+                "existing": ", ".join(c for c, _n, _v in plan.covers if c in existing) or dash,
+                "skipped": ", ".join(plan.skipped_shutters) or dash,
+                "unmapped": ", ".join(plan.unmapped) or dash,
+                "not_transferred": ", ".join(self._fhem.not_transferred) or dash,
+            },
         )
 
 

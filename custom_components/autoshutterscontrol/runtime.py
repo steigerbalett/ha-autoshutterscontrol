@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Mapping
+from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from functools import partial
 import logging
@@ -22,9 +23,12 @@ from homeassistant.components.cover import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    ATTR_DOMAIN,
     ATTR_ENTITY_ID,
+    ATTR_NAME,
     ATTR_SUPPORTED_FEATURES,
     EVENT_CORE_CONFIG_UPDATE,
+    EVENT_LOGBOOK_ENTRY,
     SERVICE_CLOSE_COVER,
     SERVICE_OPEN_COVER,
     SERVICE_SET_COVER_POSITION,
@@ -40,8 +44,10 @@ from homeassistant.helpers import (
     condition as ha_condition,
     config_validation as cv,
     device_registry as dr,
+    entity_registry as er,
     issue_registry as ir,
     script as ha_script,
+    translation,
 )
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
@@ -91,6 +97,8 @@ from .const import (
 from .engine.arbiter import (
     BLOCK_AT_TARGET,
     BLOCK_LOCKOUT,
+    BLOCK_UNAVAILABLE,
+    LOGGED_BLOCKS,
     REASON_HEAT,
     REASON_MANUAL,
     REASON_RAIN_WINDOW,
@@ -105,6 +113,7 @@ from .engine.arbiter import (
     TRIGGER_OVERRIDE_END,
     TRIGGER_PRIVACY,
     TRIGGER_PROTECTION,
+    TRIGGER_RECOVERY,
     TRIGGER_RELEASE,
     TRIGGER_RESIDENTS,
     TRIGGER_RESUME,
@@ -120,6 +129,7 @@ from .engine.arbiter import (
     decide,
 )
 from .engine.calendar import calendar_windows
+from .engine.checks import check as check_settings
 from .engine.daynight import (
     DOWN,
     PRIVACY_DOWN,
@@ -159,6 +169,8 @@ from .engine.residents import (
 from .engine.resolve import ResolvedConfig, resolve
 from .engine.schedule import DaySchedule, day_schedule, default_workday, next_events
 from .engine.settings import (
+    ENTITIES,
+    ENTITY,
     FROST_OFF,
     KIND_CLOSE,
     KIND_OPEN,
@@ -167,11 +179,14 @@ from .engine.settings import (
     LOCKOUT_HARD,
     MODE_RESIDENTS,
     PRESENCE_OFF,
+    RECOVERY_ALWAYS,
+    RECOVERY_OFF,
     RES_ABSENT,
     RES_AWOKEN,
     RES_HOME,
     RESET_NEXT_SCHEDULE,
     RETURN_PREVIOUS,
+    SETTINGS,
     TILT_AFTER,
     TILT_FIRST,
     WINDOW_CLOSED,
@@ -201,6 +216,10 @@ _LOGGER = logging.getLogger(__name__)
 
 _UNUSABLE = (None, STATE_UNAVAILABLE, STATE_UNKNOWN)
 STARTUP_GRACE = 30  # seconds after start without manual detection
+ATTR_MESSAGE = "message"
+RECOVERY_WAIT = 45  # seconds after start before missed drives are caught up
+# Triggers whose blocked decision is not worth a logbook entry
+_QUIET_TRIGGERS = frozenset({TRIGGER_APPLY_TARGET})
 
 
 def _never(*_args: Any, **_kwargs: Any) -> bool:
@@ -289,6 +308,8 @@ class AscManager:
         self._forecast_pending: set[str] = set()
         # Rain / wind / frost of the global sensors (central device)
         self.global_protect: dict[str, Protection] = {k: Protection() for k in PROTECTIONS}
+        self.previous_alive: datetime | None = None
+        self.texts: dict[str, str] = {}
 
     # --- configuration ----------------------------------------------------
 
@@ -429,6 +450,10 @@ class AscManager:
             self.data = stored
         self.data.setdefault("global", {})
         self.data.setdefault("covers", {})
+        # Last time Home Assistant ran (for catching up missed drives)
+        self.previous_alive = _parse(self.data["global"].get("alive"))
+        self.data["global"]["alive"] = _iso(dt_util.utcnow())
+        await self.async_load_texts()
         for key, value in self.data["global"].get("switches", {}).items():
             if key in self.switches:
                 self.switches[key] = bool(value)
@@ -446,6 +471,12 @@ class AscManager:
             if sub_id not in self.controllers:
                 self.data["covers"].pop(sub_id)
 
+        # Issues of covers that no longer exist
+        registry = ir.async_get(self.hass)
+        for domain, issue_id in list(registry.issues):
+            if domain == DOMAIN and issue_id.startswith("check_"):
+                if not any(issue_id.endswith(f"_{sub_id}") for sub_id in self.controllers):
+                    ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         for controller in self.controllers.values():
             await controller.async_compile()
             controller.async_start()
@@ -462,6 +493,8 @@ class AscManager:
 
     @callback
     def _tick(self, now: datetime) -> None:
+        self.data["global"]["alive"] = _iso(dt_util.utcnow())
+        self.save()
         self.global_protection(now)
         for controller in self.controllers.values():
             controller.tick()
@@ -513,6 +546,27 @@ class AscManager:
             )
         self._subscribe_residents()
         async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+
+    async def async_load_texts(self) -> None:
+        """Texts of the logbook entries in the language of Home Assistant."""
+        language = self.hass.config.language
+        texts: dict[str, str] = {}
+        for category in ("entity", "exceptions"):
+            texts.update(
+                await translation.async_get_translations(self.hass, language, category, [DOMAIN])
+            )
+        prefix = f"component.{DOMAIN}."
+        self.texts = {k.removeprefix(prefix): v for k, v in texts.items()}
+
+    def text(self, key: str, **values: Any) -> str:
+        """Translated text (falls back to the key)."""
+        template = self.texts.get(key)
+        if template is None:
+            return key.rsplit(".", 1)[-1]
+        try:
+            return template.format(**values)
+        except (KeyError, IndexError, ValueError):
+            return template
 
     @callback
     def _midnight(self, _now: datetime) -> None:
@@ -624,6 +678,10 @@ class CoverController:
         self._rain_window_notified = False
         self._conditions: dict[str, list[Any]] = {}
         self._actions: dict[str, Any] = {}
+        self._unsub_recovery: CALLBACK_TYPE | None = None
+        self._inputs: dict[str, Any] = {}
+        self._last_logged: tuple | None = None
+        self._issues: set[str] = set()
 
     # --- life cycle ---------------------------------------------------------
 
@@ -655,6 +713,7 @@ class CoverController:
             "_unsub_tilt",
             "_unsub_position",
             "_unsub_wiggle",
+            "_unsub_recovery",
         ):
             unsub = getattr(self, name)
             if unsub:
@@ -676,6 +735,8 @@ class CoverController:
         self._force = self.force_kind()
         self._trigger_pos = self.trigger_pos()
         self.apply_hardware_lock()
+        if self._detect_from is not None:
+            self.check_config()
 
     def _subscribe(self) -> None:
         self._unsub_listeners.append(
@@ -769,6 +830,71 @@ class CoverController:
         self._unsub_started = None
         self._detect_from = monotonic_time.monotonic() + STARTUP_GRACE
         self._check_cover_exists(hass)
+        self.check_config()
+        if self.cfg["recovery"] != RECOVERY_OFF:
+            self._unsub_recovery = async_call_later(
+                self.hass, RECOVERY_WAIT, self._recover_after_start
+            )
+
+    @callback
+    def _recover_after_start(self, _now: datetime) -> None:
+        """Catch up a drive missed while Home Assistant was down (or always)."""
+        self._unsub_recovery = None
+        mode = self.cfg["recovery"]
+        if mode == RECOVERY_OFF:
+            return
+        if mode == RECOVERY_ALWAYS or self.missed_while_down(dt_util.utcnow()):
+            self.evaluate(TRIGGER_RECOVERY)
+
+    def missed_while_down(self, now: datetime) -> bool:
+        """Was a morning or evening drive due while Home Assistant was not running?"""
+        since = self.manager.previous_alive
+        if since is None:
+            return False
+        if now - since >= timedelta(days=1):
+            return True
+        return self.is_day(since.astimezone(self.tz)) != self.is_day(now.astimezone(self.tz))
+
+    # --- plausibility check -----------------------------------------------------
+
+    @callback
+    def check_config(self) -> None:
+        """Report implausible settings and missing entities as repair issues."""
+        findings = dict(check_settings(self.cfg))
+        missing = sorted(
+            {
+                entity
+                for setting in SETTINGS
+                if setting.active and setting.kind in (ENTITY, ENTITIES)
+                for entity in _entities(self.cfg[setting.key])
+                if self.hass.states.get(entity) is None
+                and er.async_get(self.hass).async_get(entity) is None
+            }
+        )
+        if missing:
+            findings["entity_missing"] = {"entities": ", ".join(missing)}
+        issues = set()
+        for code, values in findings.items():
+            issue_id = f"check_{code}_{self.subentry_id}"
+            issues.add(issue_id)
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=f"check_{code}",
+                translation_placeholders={"name": self.name, **values},
+            )
+        for issue_id in self._issues - issues:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        self._issues = issues
+
+    def clear_issues(self) -> None:
+        """Remove the issues of this cover (cover removed)."""
+        for issue_id in self._issues:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        self._issues = set()
 
     @callback
     def _check_cover_exists(self, _hass: HomeAssistant | None) -> None:
@@ -1017,6 +1143,9 @@ class CoverController:
         self.hass.bus.async_fire(
             EVENT_MANUAL,
             {"entity_id": self.cover_entity, "name": self.name, "position": position},
+        )
+        self._logbook(
+            "logbook_manual", position=int(round(position)) if position is not None else "?"
         )
         self.run_action("manual", {"position": position})
         self.notify()
@@ -1802,6 +1931,19 @@ class CoverController:
             trigger_pos=self.trigger_pos(),
             **{k: v for k, v in self.protections().items() if k != FROST},
         )
+        self._inputs = {
+            "situation": _plain(asdict(situation)),
+            "wishes": [_plain(asdict(w)) for w in wishes],
+            "house_status": house,
+            "resident_status": self.resident_status(now),
+            "window": self.window_state,
+            "shading_state": self.shading_state,
+            "shaded": shaded,
+            "heat": heat,
+            "protections": self.protections(),
+            "force": self.force_kind(),
+            "trigger_position": self.trigger_pos(),
+        }
         return decide(self.cfg, situation, wishes)
 
     @callback
@@ -1809,6 +1951,12 @@ class CoverController:
         """Ask the arbiter and drive if it says so."""
         decision = self.target(trigger)
         self._record(decision)
+        if decision.blocked_by == BLOCK_UNAVAILABLE and decision.position is not None:
+            # Remember for catching up when the cover is back
+            if not self.state.get("missed"):
+                self.state["missed"] = True
+                self._save()
+        self._log_skipped(decision)
         if decision.reason == REASON_RAIN_WINDOW:
             if not self._rain_window_notified:
                 self._rain_window_notified = True
@@ -1867,6 +2015,7 @@ class CoverController:
         entry["time"] = dt_util.utcnow().isoformat()
         entry["position_now"] = self.current_position()
         entry["override"] = self.override_active
+        entry["inputs"] = self._inputs
         self.decisions.append(entry)
 
     # --- driving ------------------------------------------------------------
@@ -1951,6 +2100,13 @@ class CoverController:
             context=context,
         )
         _LOGGER.debug("%s: drive to %s (%s, %s)", self.cover_entity, position, reason, trigger)
+        self._last_logged = None
+        self._logbook(
+            "logbook_drive",
+            context,
+            position=position,
+            reason=self.manager.text(f"entity.sensor.last_reason.state.{reason}"),
+        )
         self.run_action(
             "drive",
             {"position": position, "tilt": tilt, "reason": reason, "trigger": trigger},
@@ -1987,6 +2143,13 @@ class CoverController:
         new: State | None = event.data.get("new_state")
         old: State | None = event.data.get("old_state")
         if new is None or old is None:
+            return
+        if old.state in _UNUSABLE and new.state not in _UNUSABLE:
+            if self.state.pop("missed", False):
+                self._save()
+                if self.cfg["recovery"] != RECOVERY_OFF:
+                    # The actuator is back: catch up what it missed
+                    self.evaluate(TRIGGER_RECOVERY)
             return
         if new.state in _UNUSABLE or old.state in _UNUSABLE:
             return
@@ -2106,6 +2269,42 @@ class CoverController:
             return
         self.evaluate(TRIGGER_WINDOW_CLOSED)
 
+    # --- logbook ------------------------------------------------------------
+
+    def _logbook(self, key: str, context: Context | None = None, **values: Any) -> None:
+        """Logbook entry at the cover (can be switched off)."""
+        if not self.cfg["logbook"]:
+            return
+        self.hass.bus.async_fire(
+            EVENT_LOGBOOK_ENTRY,
+            {
+                ATTR_NAME: self.name,
+                ATTR_MESSAGE: self.manager.text(f"exceptions.{key}.message", **values),
+                ATTR_DOMAIN: DOMAIN,
+                ATTR_ENTITY_ID: self.cover_entity,
+            },
+            context=context,
+        )
+
+    def _log_skipped(self, decision: Decision) -> None:
+        """A drive that was deliberately not done (once per reason and cause)."""
+        if (
+            decision.drive
+            or decision.blocked_by not in LOGGED_BLOCKS
+            or decision.reason is None
+            or decision.trigger in _QUIET_TRIGGERS
+        ):
+            return
+        key = (decision.reason, decision.blocked_by)
+        if key == self._last_logged:
+            return
+        self._last_logged = key
+        self._logbook(
+            "logbook_skipped",
+            reason=self.manager.text(f"entity.sensor.last_reason.state.{decision.reason}"),
+            blocked=self.manager.text(f"entity.sensor.blocked_by.state.{decision.blocked_by}"),
+        )
+
     # --- diagnostics --------------------------------------------------------
 
     def diagnostics(self) -> dict[str, Any]:
@@ -2128,8 +2327,29 @@ class CoverController:
             "position": self.current_position(),
             "state": self.state,
             "effective_config": self.cfg.as_dict(),
+            "issues": sorted(self._issues),
             "decisions": list(self.decisions),
         }
+
+
+def _entities(value: Any) -> list[str]:
+    if not value:
+        return []
+    if isinstance(value, str):
+        return [value]
+    return [str(v) for v in value]
+
+
+def _plain(value: Any) -> Any:
+    """Make a value JSON friendly (sets, datetimes) for the diagnostics."""
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        items = [_plain(v) for v in value]
+        return sorted(items, key=str) if isinstance(value, (set, frozenset)) else items
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
 
 
 def get_manager(hass: HomeAssistant) -> AscManager | None:

@@ -54,6 +54,7 @@
           "drive": "Fahrverhalten",
           "override": "Manuelle Übersteuerung",
           "extra": "Zusatzbedingungen und -aktionen",
+          "fhem_import": "Aus FHEM übernehmen",
           "reset": "Felder auf Standard zurücksetzen",
           "save": "Speichern"
         }
@@ -163,14 +164,18 @@
           "delay_random": "Zufällige Verzögerung (höchstens)",
           "drive_time": "Fahrzeit",
           "open_never_down": "Öffnen fährt nie nach unten",
-          "close_never_up": "Schließen fährt nie nach oben"
+          "close_never_up": "Schließen fährt nie nach oben",
+          "recovery": "Verpasste Fahrten nachholen",
+          "logbook": "Logbuch-Einträge"
         },
         "data_description": {
           "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.",
           "delay_random": "Bis zu so viele Sekunden kommen zufällig dazu, damit nicht alle Motoren gleichzeitig anlaufen.",
           "drive_time": "Zeit für eine ganze Fahrt. Positionsmeldungen in dieser Zeit nach dem eigenen Befehl zählen als eigene Fahrt.",
           "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.",
-          "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist."
+          "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.",
+          "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.",
+          "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund."
         }
       },
       "override": {
@@ -442,7 +447,29 @@
           "action_manual": "Variable: position.",
           "action_rain_window": "Einmal je Regen bei offenem Fenster, z. B. eine Benachrichtigung."
         }
+      },
+      "fhem_import": {
+        "title": "Aus FHEM übernehmen",
+        "description": "Füge deine fhem.cfg ein (oder die Zeilen des AutoShuttersControl-Geräts und der Rollläden mit dem Attribut ASC 1 oder 2). Gelesen werden nur define- und attr-Zeilen; nichts wird verschickt.",
+        "data": {
+          "fhem_cfg": "fhem.cfg"
+        }
+      },
+      "fhem_covers": {
+        "title": "Rollläden",
+        "description": "{count} FHEM-Rollläden gefunden. Wähle für jeden den Rollladen in Home Assistant; Vorschläge kommen aus ähnlichen Namen. Leer = nicht übernehmen."
+      },
+      "fhem_entities": {
+        "title": "Geräte",
+        "description": "FHEM-Geräte, die AutoShuttersControl nutzt (Sensoren, Fensterkontakte, Bewohner). Wähle für jedes die Entität in Home Assistant. Leer = Einstellung wird nicht übernommen."
+      },
+      "fhem_done": {
+        "title": "Übernehmen",
+        "description": "Absenden legt die Rollläden an und speichert die globalen Einstellungen.\n\n**Globale Einstellungen:** {global}\n\n**Neue Rollläden:** {covers}\n\n**Schon eingerichtet (bleibt unverändert):** {existing}\n\n**FHEM-Rollläden ohne Zuordnung:** {skipped}\n\n**Geräte ohne Entität:** {unmapped}\n\n**Nicht übertragbar:** {not_transferred}"
       }
+    },
+    "error": {
+      "fhem_nothing_found": "Kein AutoShuttersControl-Gerät und kein Rollladen mit dem Attribut ASC gefunden."
     }
   },
   "config_subentries": {
@@ -609,14 +636,18 @@
             "delay_random": "Zufällige Verzögerung (höchstens)",
             "drive_time": "Fahrzeit",
             "open_never_down": "Öffnen fährt nie nach unten",
-            "close_never_up": "Schließen fährt nie nach oben"
+            "close_never_up": "Schließen fährt nie nach oben",
+            "recovery": "Verpasste Fahrten nachholen",
+            "logbook": "Logbuch-Einträge"
           },
           "data_description": {
             "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.\n↳ {inh_delay_fixed}",
             "delay_random": "Bis zu so viele Sekunden kommen zufällig dazu, damit nicht alle Motoren gleichzeitig anlaufen.\n↳ {inh_delay_random}",
             "drive_time": "Zeit für eine ganze Fahrt. Positionsmeldungen in dieser Zeit nach dem eigenen Befehl zählen als eigene Fahrt.\n↳ {inh_drive_time}",
             "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.\n↳ {inh_open_never_down}",
-            "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}"
+            "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}",
+            "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.\n↳ {inh_recovery}",
+            "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}"
           }
         },
         "override": {
@@ -1099,14 +1130,18 @@
             "delay_random": "Zufällige Verzögerung (höchstens)",
             "drive_time": "Fahrzeit",
             "open_never_down": "Öffnen fährt nie nach unten",
-            "close_never_up": "Schließen fährt nie nach oben"
+            "close_never_up": "Schließen fährt nie nach oben",
+            "recovery": "Verpasste Fahrten nachholen",
+            "logbook": "Logbuch-Einträge"
           },
           "data_description": {
             "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.\n↳ {inh_delay_fixed}",
             "delay_random": "Bis zu so viele Sekunden kommen zufällig dazu, damit nicht alle Motoren gleichzeitig anlaufen.\n↳ {inh_delay_random}",
             "drive_time": "Zeit für eine ganze Fahrt. Positionsmeldungen in dieser Zeit nach dem eigenen Befehl zählen als eigene Fahrt.\n↳ {inh_drive_time}",
             "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.\n↳ {inh_open_never_down}",
-            "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}"
+            "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}",
+            "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.\n↳ {inh_recovery}",
+            "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}"
           }
         },
         "override": {
@@ -1694,6 +1729,8 @@
         "drive_time": "Fahrzeit",
         "open_never_down": "Öffnen fährt nie nach unten",
         "close_never_up": "Schließen fährt nie nach oben",
+        "recovery": "Verpasste Fahrten nachholen",
+        "logbook": "Logbuch-Einträge",
         "override_blocks": "Gesperrt während der Übersteuerung",
         "override_reset": "Die Übersteuerung endet",
         "override_minutes": "Dauer",
@@ -1847,6 +1884,14 @@
       "options": {
         "tilted": "Gekippt",
         "open": "Offen"
+      }
+    },
+    "recovery": {
+      "options": {
+        "off": "Nie",
+        "failure": "Nach einem Ausfall (Home Assistant war aus, Rollladen nicht verfügbar)",
+        "always": "Immer nach einem Neustart",
+        "inherit": "Erben"
       }
     }
   },
@@ -2008,6 +2053,26 @@
           "in_reserved": "Beschattung beginnt gleich",
           "in": "Beschattung",
           "out_reserved": "Beschattung endet gleich"
+        }
+      },
+      "blocked_by": {
+        "name": "Nicht gefahren wegen",
+        "state": {
+          "automatic_off": "Automatik aus",
+          "paused": "Pause",
+          "unavailable": "Rollladen nicht verfügbar",
+          "moving": "Rollladen fährt",
+          "no_wish": "Nichts zu tun",
+          "manual_override": "Manuelle Übersteuerung",
+          "done_by_manual": "Schon von Hand erledigt",
+          "direction": "Richtungsregel",
+          "at_target": "Steht schon auf der Position",
+          "lockout": "Aussperrschutz",
+          "not_shaded": "Von der Beschattungsposition weggefahren",
+          "frost": "Frostschutz",
+          "party": "Party",
+          "advent": "Advent",
+          "condition": "Zusatzbedingung"
         }
       }
     },
@@ -2249,12 +2314,85 @@
     },
     "no_target": {
       "message": "Wähle Rollläden oder ein Profil."
+    },
+    "logbook_drive": {
+      "message": "fuhr auf {position} % ({reason})"
+    },
+    "logbook_skipped": {
+      "message": "fuhr nicht ({reason}): {blocked}"
+    },
+    "logbook_manual": {
+      "message": "von Hand auf {position} % gefahren"
     }
   },
   "issues": {
     "cover_missing": {
       "title": "Rollladen von {name} nicht gefunden",
       "description": "AutoShuttersControl steuert {entity_id}, aber diese Entität gibt es nicht. Wähle einen anderen Rollladen oder entferne {name} aus AutoShuttersControl."
+    },
+    "check_time_order": {
+      "title": "{name}: früheste Zeit nach der spätesten",
+      "description": "Die früheste Zeit {early} liegt nach der spätesten Zeit {late}. Bitte die Seite Zeitplan prüfen."
+    },
+    "check_midnight": {
+      "title": "{name}: 0:00 als späteste Schließzeit",
+      "description": "0:00 ist der Beginn des Tages, die Abendfahrt wäre damit sofort fällig. Für „so spät wie möglich“ 23:59 nehmen."
+    },
+    "check_brightness_order": {
+      "title": "{name}: Helligkeitsschwellen vertauscht",
+      "description": "Schließen unter {down} lx liegt über Öffnen ab {up} lx; der Rollladen könnte hin und her fahren. Schließen sollte niedriger sein."
+    },
+    "check_shading_brightness_order": {
+      "title": "{name}: Beschattungsschwellen vertauscht",
+      "description": "Die Beschattung endet unter {end} lx, beginnt aber schon ab {start} lx. Das Ende sollte niedriger sein als der Beginn."
+    },
+    "check_elevation_order": {
+      "title": "{name}: Bereich der Sonnenhöhe leer",
+      "description": "Beschattung von Sonnenhöhe {minimum}° bis {maximum}° kann nie erreicht werden."
+    },
+    "check_wind_hysteresis": {
+      "title": "{name}: Hysterese des Winds zu groß",
+      "description": "Bei Wind ab {threshold} und einer Hysterese von {hysteresis} endet der Windschutz nie."
+    },
+    "check_positions_equal": {
+      "title": "{name}: offen und geschlossen gleich",
+      "description": "Position offen und geschlossen sind beide {position} %."
+    },
+    "check_missing_brightness": {
+      "title": "{name}: Helligkeitssensor fehlt",
+      "description": "Für die Morgen- oder Abendfahrt ist ein Helligkeitsmodus gewählt, aber kein Helligkeitssensor gesetzt (Seite Sensoren). Es gilt die späteste Zeit."
+    },
+    "check_missing_calendar": {
+      "title": "{name}: Kalender fehlt",
+      "description": "Die Zeiten kommen aus einem Kalender, aber es ist keiner gesetzt (Seite Sensoren)."
+    },
+    "check_missing_rain": {
+      "title": "{name}: Regensensor fehlt",
+      "description": "Der Regenschutz ist an, aber kein Regensensor gesetzt (Seite Sensoren)."
+    },
+    "check_missing_wind": {
+      "title": "{name}: Windsensor fehlt",
+      "description": "Der Windschutz ist an, aber kein Windsensor gesetzt (Seite Sensoren)."
+    },
+    "check_missing_temperature": {
+      "title": "{name}: Außentemperatur fehlt",
+      "description": "Frost- oder Hitzeschutz ist an, aber keine Außentemperatur gesetzt (Seite Sensoren)."
+    },
+    "check_missing_window": {
+      "title": "{name}: Fensterkontakt fehlt",
+      "description": "Der Aussperrschutz ist an, aber kein Fensterkontakt gesetzt (Seite Fensterkontakte)."
+    },
+    "check_missing_residents": {
+      "title": "{name}: Bewohnerquellen fehlen",
+      "description": "Der Modus Bewohner wird für die Morgen- oder Abendfahrt genutzt, aber es gibt keine Quellen für den Haus- oder Raum-Status (Seite Bewohner und Selbstschutz)."
+    },
+    "check_missing_trigger_position": {
+      "title": "{name}: Trigger-Position fehlt",
+      "description": "Ein externer Trigger ist gesetzt, aber keine Trigger-Position (Seite Sonderfunktionen)."
+    },
+    "check_entity_missing": {
+      "title": "{name}: Entitäten nicht gefunden",
+      "description": "Diese Entitäten sind eingetragen, existieren aber nicht: {entities}. Die Funktionen, die sie nutzen, ruhen."
     }
   }
 }

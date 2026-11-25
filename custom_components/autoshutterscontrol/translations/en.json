@@ -54,6 +54,7 @@
           "drive": "Drive behaviour",
           "override": "Manual override",
           "extra": "Extra conditions and actions",
+          "fhem_import": "Import from FHEM",
           "reset": "Reset fields to the default",
           "save": "Save"
         }
@@ -163,14 +164,18 @@
           "delay_random": "Random delay (maximum)",
           "drive_time": "Drive time",
           "open_never_down": "Opening never drives down",
-          "close_never_up": "Closing never drives up"
+          "close_never_up": "Closing never drives up",
+          "recovery": "Catch up missed drives",
+          "logbook": "Logbook entries"
         },
         "data_description": {
           "delay_fixed": "Seconds to wait before a scheduled drive.",
           "delay_random": "Up to this many seconds are added at random, so that not all motors start together.",
           "drive_time": "Time for a full run. Position reports during this time after our own command count as our drive.",
           "open_never_down": "No morning drive if the cover is already further open.",
-          "close_never_up": "No evening drive if the cover is already further closed."
+          "close_never_up": "No evening drive if the cover is already further closed.",
+          "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.",
+          "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason."
         }
       },
       "override": {
@@ -442,7 +447,29 @@
           "action_manual": "Variable: position.",
           "action_rain_window": "Once per rain with an open window, e.g. a notification."
         }
+      },
+      "fhem_import": {
+        "title": "Import from FHEM",
+        "description": "Paste your fhem.cfg (or the lines of the AutoShuttersControl device and of the shutters with the attribute ASC 1 or 2). Only define and attr lines are read; nothing is sent anywhere.",
+        "data": {
+          "fhem_cfg": "fhem.cfg"
+        }
+      },
+      "fhem_covers": {
+        "title": "Shutters",
+        "description": "{count} FHEM shutters found. Choose the Home Assistant cover for each; suggestions come from similar names. Empty = not imported."
+      },
+      "fhem_entities": {
+        "title": "Devices",
+        "description": "FHEM devices used by AutoShuttersControl (sensors, window contacts, residents). Choose the Home Assistant entity for each. Empty = setting not imported."
+      },
+      "fhem_done": {
+        "title": "Import",
+        "description": "Submit to create the covers and save the global settings.\n\n**Global settings:** {global}\n\n**New covers:** {covers}\n\n**Already configured (not changed):** {existing}\n\n**Shutters without cover:** {skipped}\n\n**Devices without entity:** {unmapped}\n\n**Not transferable:** {not_transferred}"
       }
+    },
+    "error": {
+      "fhem_nothing_found": "No AutoShuttersControl device and no shutter with the attribute ASC found."
     }
   },
   "config_subentries": {
@@ -609,14 +636,18 @@
             "delay_random": "Random delay (maximum)",
             "drive_time": "Drive time",
             "open_never_down": "Opening never drives down",
-            "close_never_up": "Closing never drives up"
+            "close_never_up": "Closing never drives up",
+            "recovery": "Catch up missed drives",
+            "logbook": "Logbook entries"
           },
           "data_description": {
             "delay_fixed": "Seconds to wait before a scheduled drive.\n↳ {inh_delay_fixed}",
             "delay_random": "Up to this many seconds are added at random, so that not all motors start together.\n↳ {inh_delay_random}",
             "drive_time": "Time for a full run. Position reports during this time after our own command count as our drive.\n↳ {inh_drive_time}",
             "open_never_down": "No morning drive if the cover is already further open.\n↳ {inh_open_never_down}",
-            "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}"
+            "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}",
+            "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.\n↳ {inh_recovery}",
+            "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}"
           }
         },
         "override": {
@@ -1099,14 +1130,18 @@
             "delay_random": "Random delay (maximum)",
             "drive_time": "Drive time",
             "open_never_down": "Opening never drives down",
-            "close_never_up": "Closing never drives up"
+            "close_never_up": "Closing never drives up",
+            "recovery": "Catch up missed drives",
+            "logbook": "Logbook entries"
           },
           "data_description": {
             "delay_fixed": "Seconds to wait before a scheduled drive.\n↳ {inh_delay_fixed}",
             "delay_random": "Up to this many seconds are added at random, so that not all motors start together.\n↳ {inh_delay_random}",
             "drive_time": "Time for a full run. Position reports during this time after our own command count as our drive.\n↳ {inh_drive_time}",
             "open_never_down": "No morning drive if the cover is already further open.\n↳ {inh_open_never_down}",
-            "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}"
+            "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}",
+            "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.\n↳ {inh_recovery}",
+            "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}"
           }
         },
         "override": {
@@ -1694,6 +1729,8 @@
         "drive_time": "Drive time",
         "open_never_down": "Opening never drives down",
         "close_never_up": "Closing never drives up",
+        "recovery": "Catch up missed drives",
+        "logbook": "Logbook entries",
         "override_blocks": "Blocked during the override",
         "override_reset": "The override ends",
         "override_minutes": "Duration",
@@ -1847,6 +1884,14 @@
       "options": {
         "tilted": "Tilted",
         "open": "Open"
+      }
+    },
+    "recovery": {
+      "options": {
+        "off": "Never",
+        "failure": "After a failure (Home Assistant was off, cover unavailable)",
+        "always": "Always after a restart",
+        "inherit": "Inherit"
       }
     }
   },
@@ -2008,6 +2053,26 @@
           "in_reserved": "Shading starts soon",
           "in": "Shading",
           "out_reserved": "Shading ends soon"
+        }
+      },
+      "blocked_by": {
+        "name": "Not driven because",
+        "state": {
+          "automatic_off": "Automatic off",
+          "paused": "Pause",
+          "unavailable": "Cover unavailable",
+          "moving": "Cover moving",
+          "no_wish": "Nothing to do",
+          "manual_override": "Manual override",
+          "done_by_manual": "Already done by hand",
+          "direction": "Direction rule",
+          "at_target": "Already at the position",
+          "lockout": "Lock-out protection",
+          "not_shaded": "Moved away from the shading position",
+          "frost": "Frost protection",
+          "party": "Party",
+          "advent": "Advent",
+          "condition": "Extra condition"
         }
       }
     },
@@ -2249,12 +2314,85 @@
     },
     "no_target": {
       "message": "Choose covers or a profile."
+    },
+    "logbook_drive": {
+      "message": "drove to {position} % ({reason})"
+    },
+    "logbook_skipped": {
+      "message": "did not drive ({reason}): {blocked}"
+    },
+    "logbook_manual": {
+      "message": "moved by hand to {position} %"
     }
   },
   "issues": {
     "cover_missing": {
       "title": "Cover of {name} not found",
       "description": "AutoShuttersControl controls {entity_id}, but this entity does not exist. Choose another cover or remove {name} from AutoShuttersControl."
+    },
+    "check_time_order": {
+      "title": "{name}: earliest time after the latest time",
+      "description": "The earliest time {early} is after the latest time {late}. Check the page Schedule."
+    },
+    "check_midnight": {
+      "title": "{name}: 0:00 as latest closing time",
+      "description": "0:00 is the start of the day, so the evening drive would be due at once. Use 23:59 for \"as late as possible\"."
+    },
+    "check_brightness_order": {
+      "title": "{name}: brightness thresholds swapped",
+      "description": "Closing below {down} lx is above opening from {up} lx; the cover could move up and down. Closing should be lower."
+    },
+    "check_shading_brightness_order": {
+      "title": "{name}: shading thresholds swapped",
+      "description": "Shading ends below {end} lx but starts already from {start} lx. The end should be lower than the start."
+    },
+    "check_elevation_order": {
+      "title": "{name}: sun elevation range empty",
+      "description": "Shading from sun elevation {minimum}° to {maximum}° can never be reached."
+    },
+    "check_wind_hysteresis": {
+      "title": "{name}: wind hysteresis too large",
+      "description": "With wind from {threshold} and a hysteresis of {hysteresis} the wind protection never ends."
+    },
+    "check_positions_equal": {
+      "title": "{name}: open and closed position equal",
+      "description": "Open and closed position are both {position} %."
+    },
+    "check_missing_brightness": {
+      "title": "{name}: brightness sensor missing",
+      "description": "A brightness mode is selected for the morning or evening drive, but no brightness sensor is set (page Sensors). The latest time is used."
+    },
+    "check_missing_calendar": {
+      "title": "{name}: calendar missing",
+      "description": "The times come from a calendar, but no calendar is set (page Sensors)."
+    },
+    "check_missing_rain": {
+      "title": "{name}: rain sensor missing",
+      "description": "Rain protection is on, but no rain sensor is set (page Sensors)."
+    },
+    "check_missing_wind": {
+      "title": "{name}: wind sensor missing",
+      "description": "Wind protection is on, but no wind sensor is set (page Sensors)."
+    },
+    "check_missing_temperature": {
+      "title": "{name}: outdoor temperature missing",
+      "description": "Frost or heat protection is on, but no outdoor temperature is set (page Sensors)."
+    },
+    "check_missing_window": {
+      "title": "{name}: window contact missing",
+      "description": "Lock-out protection is on, but no window contact is set (page Window contacts)."
+    },
+    "check_missing_residents": {
+      "title": "{name}: residents sources missing",
+      "description": "The mode Residents is used for the morning or evening drive, but there are no sources of the house or room status (page Residents and self defense)."
+    },
+    "check_missing_trigger_position": {
+      "title": "{name}: trigger position missing",
+      "description": "An external trigger is set, but no trigger position (page Special functions)."
+    },
+    "check_entity_missing": {
+      "title": "{name}: entities not found",
+      "description": "These entities are set but do not exist: {entities}. The functions using them are inactive."
     }
   }
 }

@@ -15,8 +15,8 @@ Es gibt **einen** Eintrag für das ganze Haus.
 1. **Haupteintrag**: Arbeitstag-Sensoren wählen (optional). Ohne Sensor gelten Montag bis Freitag als Arbeitstage.
 2. **Optionen** (Zahnrad am Eintrag): globale Einstellungen, je eine Seite für Zeitplan, Sensoren,
    Helligkeit und Sonnenhöhe, Bewohner und Selbstschutz, Positionen, Fenster, Beschattung,
-   Lamellen, Sichtschutz,
-   Fahrverhalten und manuelle Übersteuerung.
+   Lamellen, Sichtschutz, Regen/Wind/Frost, Sonderfunktionen, Fahrverhalten, manuelle Übersteuerung,
+   Zusatzbedingungen und -aktionen sowie *Aus FHEM übernehmen*.
 3. **Profile** (optional, *Profil hinzufügen*): Einstellungen für eine Gruppe von Rollläden, z. B. „Südseite“.
 4. **Rollläden** (*Rollläden hinzufügen*): einen oder mehrere Rollläden und ein Profil wählen. Abweichungen
    trägst du über *Neu konfigurieren* am Rollladen ein.
@@ -235,6 +235,47 @@ Seite *Zusatzbedingungen und -aktionen*, mit den Editoren von Home Assistant:
 - Aktionen bei jeder Fahrt (Variablen `cover`, `position`, `reason`, `trigger`), bei einer Handfahrt
   (`position`), am Ende der Übersteuerung und beim Wasserschutz.
 
+## Nachholen nach Neustart oder Ausfall
+
+*Verpasste Fahrten nachholen* (Seite *Fahrverhalten*):
+
+- *Nach einem Ausfall* (Standard): War Home Assistant aus, als eine Morgen- oder Abendfahrt fällig war, fährt
+  jeder Rollladen 45 Sekunden nach dem Start in seinen Zielzustand. War der Rollladen selbst nicht erreichbar,
+  wird die verpasste Fahrt nachgeholt, sobald er wieder da ist.
+- *Immer nach einem Neustart*: nach jedem Start in den Zielzustand.
+- *Nie*.
+
+Nachgeholt wird mit allen Regeln (Übersteuerung, Aussperrschutz, Fenster …). Der Zustand (Übersteuerung,
+erledigte Fahrten, Schutzfunktionen) liegt im Speicher von Home Assistant und überlebt jeden Neustart.
+
+## Prüfung, Logbuch und Diagnose
+
+- **Plausibilitätsprüfung**: Beim Start und nach jeder Änderung prüft AutoShuttersControl die wirksamen
+  Einstellungen jedes Rollladens und meldet Fehler unter *Einstellungen → Reparaturen*, z. B. früheste Zeit nach
+  der spätesten, 0:00 als späteste Schließzeit, vertauschte Schwellen, Regenschutz ohne Regensensor oder
+  eingetragene Entitäten, die es nicht gibt. Ist der Fehler behoben, verschwindet der Hinweis.
+- **Logbuch** (*Logbuch-Einträge*, Standard an): je Fahrt ein Eintrag am Rollladen mit Grund, ebenso für
+  jede bewusst unterlassene Fahrt (z. B. „fuhr nicht (Abendfahrt): Pause“) und für Handfahrten.
+- Der Diagnose-Sensor **Nicht gefahren wegen** zeigt, warum die letzte Entscheidung nicht gefahren ist.
+- **Diagnose** (Eintrag → drei Punkte → *Diagnose herunterladen*): je Rollladen die wirksamen Einstellungen
+  und die letzten 50 Entscheidungen mit allen Eingangswerten (Lage, Wünsche, Bewohner, Fenster, Beschattung,
+  Schutzfunktionen).
+
+## Aus FHEM übernehmen
+
+Optionen → *Aus FHEM übernehmen*:
+
+1. `fhem.cfg` einfügen (oder nur die Zeilen des AutoShuttersControl-Geräts und der Rollläden mit `ASC 1/2`).
+   Gelesen werden nur `define`- und `attr`-Zeilen.
+2. Jedem FHEM-Rollladen einen Rollladen in Home Assistant zuordnen. Vorschläge kommen aus ähnlichen Namen.
+3. Den FHEM-Geräten in den Attributen (Sensoren, Fensterkontakte, Bewohner) Entitäten zuordnen.
+4. Die Übersicht zeigt, was übernommen wird und was nicht übertragbar ist (Perl-Code, unbekannte Attribute).
+   Absenden legt die Rollläden an und speichert die globalen Einstellungen.
+
+Übernommen werden die Attribute des ASC-Geräts als globale Einstellungen und die der Rollläden je Rollladen.
+Werte, die alle Rollläden gleich haben, wandern in die globalen Einstellungen; Werte, die nur den Standard
+wiederholen, entfallen. Schon eingerichtete Rollläden bleiben unverändert.
+
 ## Manuelle Übersteuerung
 
 Eine Fahrt, die nicht von AutoShuttersControl kommt (App, Taster, Wandschalter, andere Automation), startet
@@ -262,7 +303,7 @@ Fahrten freigeben.
 
 **Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
 Regenschutz, Wasserschutz, Windschutz, Frostschutz und Zwangsfunktion; Sensoren
-Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Fenster, Bewohner, Beschattung; Knöpfe Zielzustand anfahren,
+Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Nicht gefahren wegen, Fenster, Bewohner, Beschattung; Knöpfe Zielzustand anfahren,
 Übersteuerung beenden und Wackeln; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.
 
@@ -294,11 +335,28 @@ Fenster, mit `window`, `position`, `driven`, `blocked_by`).
 | 1 | Grundgerüst, Erben, Entscheider, Zeitplan (Zeit/Sonne/Arbeitstag), Positionen, Übersteuerung, Verzögerung, EN/DE |
 | 2 | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
 | 3 | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
-| 4 (diese Version) | Regen (auch bei offenem Fenster), Wind, Frost, Zwang, Pause-Entität, Party, Advent, Trigger, Wackeln, Hardware-Sperre, Zusatzbedingungen und -aktionen |
-| 5 | Nachholen nach Neustart, Plausibilitätsprüfung, Logbuch, FHEM-Import, HACS-Standard |
+| 4 | Regen (auch bei offenem Fenster), Wind, Frost, Zwang, Pause-Entität, Party, Advent, Trigger, Wackeln, Hardware-Sperre, Zusatzbedingungen und -aktionen |
+| 5 (diese Version) | Nachholen, Plausibilitätsprüfung, Logbuch, Diagnose, FHEM-Import, Vorbereitung HACS |
+
+## Häufige Fragen
+
+**Warum fährt ein Rollladen nicht?** Sensor *Nicht gefahren wegen* und das Logbuch am Rollladen zeigen den
+Grund. Der Sensor *Zielzustand* zeigt, was gerade gelten würde, und in `effective_config`, woher jeder Wert kommt.
+
+**Der Rollladen fährt nach einer Handfahrt nicht mehr automatisch.** Das ist die manuelle Übersteuerung. Sie
+endet nach der eingestellten Zeit oder mit der Taste *Übersteuerung beenden*.
+
+**Kann ich AutoShuttersControl kurz abschalten?** Schalter *Pause* (Zielzustand läuft mit und wird danach
+angefahren) oder *Automatik* (nichts passiert, auch nicht beim Einschalten), global oder je Rollladen.
+
+**Brauche ich Profile?** Nein. Sie sparen Arbeit, wenn mehrere Rollläden dieselben Abweichungen haben,
+z. B. eine Fassade für die Beschattung.
+
+**Laufen FHEM und Home Assistant parallel?** Ja, aber steuere einen Rollladen nur von einer Seite. Sonst
+erkennt jede Seite die Fahrten der anderen als Handfahrt.
 
 ## Übersetzen
 
 Jede Sprache ist eine Datei in `custom_components/autoshutterscontrol/translations/`. Feldtexte stehen einmal
 in `options.step.<Bereich>`; `python script/expand_translations.py` kopiert sie in die Seiten von Profil und
-Rollladen. Pull Requests mit neuen Sprachen sind willkommen.
+Rollladen. Pull Requests mit neuen Sprachen sind willkommen; Anleitung: [translating.md](../en/translating.md).
