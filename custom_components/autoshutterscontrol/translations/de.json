@@ -1,0 +1,793 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AutoShuttersControl for HA",
+        "description": "Eine Einrichtung für alle Rollläden. Wähle jetzt die globalen Sensoren; alles Weitere steht in den Optionen. Rollläden und Profile fügst du danach über die Knöpfe der Integration hinzu.",
+        "data": {
+          "workday_sensor": "Arbeitstag-Sensor (heute)",
+          "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+        },
+        "data_description": {
+          "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
+          "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "AutoShuttersControl ist schon eingerichtet. Füge Rollläden und Profile zum vorhandenen Eintrag hinzu."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Globale Einstellungen",
+        "description": "Diese Werte gelten für alle Rollläden, solange ein Profil oder der Rollladen keinen eigenen Wert setzt.",
+        "menu_options": {
+          "schedule": "Zeitplan",
+          "sensors": "Sensoren",
+          "positions": "Positionen",
+          "drive": "Fahrverhalten",
+          "override": "Manuelle Übersteuerung",
+          "reset": "Felder auf Standard zurücksetzen",
+          "save": "Speichern"
+        }
+      },
+      "schedule": {
+        "title": "Zeitplan",
+        "description": "Morgen- und Abendfahrt. Sonne: Sonnenereignis plus Versatz, begrenzt auf früheste und späteste Zeit. Zeit: zur frühesten Zeit.",
+        "data": {
+          "up_mode": "Morgens fahren nach",
+          "down_mode": "Abends fahren nach",
+          "twilight_up": "Sonnenereignis morgens",
+          "twilight_down": "Sonnenereignis abends",
+          "horizon_up": "Eigene Sonnenhöhe morgens",
+          "horizon_down": "Eigene Sonnenhöhe abends",
+          "offset_up": "Versatz morgens",
+          "offset_down": "Versatz abends",
+          "time_up_early_workday": "Früheste Öffnung an Arbeitstagen",
+          "time_up_late_workday": "Späteste Öffnung an Arbeitstagen",
+          "time_up_early_free": "Früheste Öffnung an freien Tagen",
+          "time_up_late_free": "Späteste Öffnung an freien Tagen",
+          "time_down_early_workday": "Frühestes Schließen an Arbeitstagen",
+          "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
+          "time_down_early_free": "Frühestes Schließen an freien Tagen",
+          "time_down_late_free": "Spätestes Schließen an freien Tagen",
+          "down_tomorrow_workday": "Abends nach dem morgigen Tag richten"
+        },
+        "data_description": {
+          "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.",
+          "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis.",
+          "horizon_up": "Nur bei „Eigene Sonnenhöhe“.",
+          "horizon_down": "Nur bei „Eigene Sonnenhöhe“.",
+          "offset_up": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.",
+          "offset_down": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.",
+          "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages."
+        }
+      },
+      "sensors": {
+        "title": "Sensoren",
+        "description": "Sensoren für alle Rollläden. Ein Profil oder ein Rollladen kann stattdessen einen eigenen Sensor nutzen.",
+        "data": {
+          "workday_sensor": "Arbeitstag-Sensor (heute)",
+          "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+        },
+        "data_description": {
+          "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
+          "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage."
+        }
+      },
+      "positions": {
+        "title": "Positionen",
+        "description": "0 % ist geschlossen, 100 % ist offen.",
+        "data": {
+          "pos_open": "Position offen",
+          "pos_closed": "Position geschlossen",
+          "tolerance": "Toleranz"
+        },
+        "data_description": {
+          "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht."
+        }
+      },
+      "drive": {
+        "title": "Fahrverhalten",
+        "description": "Verzögerungen und Regeln für jede Fahrt.",
+        "data": {
+          "delay_fixed": "Feste Verzögerung",
+          "delay_random": "Zufällige Verzögerung (höchstens)",
+          "drive_time": "Fahrzeit",
+          "open_never_down": "Öffnen fährt nie nach unten",
+          "close_never_up": "Schließen fährt nie nach oben"
+        },
+        "data_description": {
+          "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.",
+          "delay_random": "Bis zu so viele Sekunden kommen zufällig dazu, damit nicht alle Motoren gleichzeitig anlaufen.",
+          "drive_time": "Zeit für eine ganze Fahrt. Positionsmeldungen in dieser Zeit nach dem eigenen Befehl zählen als eigene Fahrt.",
+          "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.",
+          "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist."
+        }
+      },
+      "override": {
+        "title": "Manuelle Übersteuerung",
+        "description": "Eine Fahrt, die nicht von AutoShuttersControl kommt (Taster, App, Wandschalter), startet eine manuelle Übersteuerung.",
+        "data": {
+          "override_blocks": "Gesperrt während der Übersteuerung",
+          "override_reset": "Die Übersteuerung endet",
+          "override_minutes": "Dauer",
+          "override_reset_time": "Uhrzeit",
+          "override_return": "Danach den Zielzustand anfahren",
+          "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
+          "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+        },
+        "data_description": {
+          "override_blocks": "Diese Fahrten warten, bis die Übersteuerung endet.",
+          "override_minutes": "Bei „nach einer Dauer“.",
+          "override_reset_time": "Bei „zu einer festen Uhrzeit“.",
+          "override_return": "Wenn die Übersteuerung endet, fährt der Rollladen seinen aktuellen Zielzustand an.",
+          "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.",
+          "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt."
+        }
+      },
+      "reset": {
+        "title": "Felder zurücksetzen",
+        "description": "Die gewählten Felder bekommen wieder den Standardwert.",
+        "data": {
+          "keys": "Felder"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "profile": {
+      "entry_type": "Profil",
+      "initiate_flow": {
+        "user": "Profil hinzufügen"
+      },
+      "step": {
+        "base": {
+          "title": "Profil",
+          "description": "Ein Profil enthält Einstellungen für eine Gruppe von Rollläden, z. B. „Südseite“ oder „Schlafzimmer“.",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "menu": {
+          "title": "Profil {name}",
+          "description": "Nur eintragen, was von den globalen Einstellungen abweicht. Leere Felder erben.",
+          "menu_options": {
+            "base": "Name",
+            "schedule": "Zeitplan",
+            "sensors": "Sensoren",
+            "positions": "Positionen",
+            "drive": "Fahrverhalten",
+            "override": "Manuelle Übersteuerung",
+            "reset": "Auf geerbten Wert zurücksetzen",
+            "save": "Speichern"
+          }
+        },
+        "reset": {
+          "title": "Felder zurücksetzen",
+          "description": "Die gewählten Felder bekommen wieder den Standardwert.",
+          "data": {
+            "keys": "Felder"
+          }
+        },
+        "schedule": {
+          "title": "Zeitplan",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "up_mode": "Morgens fahren nach",
+            "down_mode": "Abends fahren nach",
+            "twilight_up": "Sonnenereignis morgens",
+            "twilight_down": "Sonnenereignis abends",
+            "horizon_up": "Eigene Sonnenhöhe morgens",
+            "horizon_down": "Eigene Sonnenhöhe abends",
+            "offset_up": "Versatz morgens",
+            "offset_down": "Versatz abends",
+            "time_up_early_workday": "Früheste Öffnung an Arbeitstagen",
+            "time_up_late_workday": "Späteste Öffnung an Arbeitstagen",
+            "time_up_early_free": "Früheste Öffnung an freien Tagen",
+            "time_up_late_free": "Späteste Öffnung an freien Tagen",
+            "time_down_early_workday": "Frühestes Schließen an Arbeitstagen",
+            "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
+            "time_down_early_free": "Frühestes Schließen an freien Tagen",
+            "time_down_late_free": "Spätestes Schließen an freien Tagen",
+            "down_tomorrow_workday": "Abends nach dem morgigen Tag richten"
+          },
+          "data_description": {
+            "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.\n↳ {inh_up_mode}",
+            "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis.\n↳ {inh_down_mode}",
+            "twilight_up": "↳ {inh_twilight_up}",
+            "twilight_down": "↳ {inh_twilight_down}",
+            "horizon_up": "Nur bei „Eigene Sonnenhöhe“.\n↳ {inh_horizon_up}",
+            "horizon_down": "Nur bei „Eigene Sonnenhöhe“.\n↳ {inh_horizon_down}",
+            "offset_up": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.\n↳ {inh_offset_up}",
+            "offset_down": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.\n↳ {inh_offset_down}",
+            "time_up_early_workday": "↳ {inh_time_up_early_workday}",
+            "time_up_late_workday": "↳ {inh_time_up_late_workday}",
+            "time_up_early_free": "↳ {inh_time_up_early_free}",
+            "time_up_late_free": "↳ {inh_time_up_late_free}",
+            "time_down_early_workday": "↳ {inh_time_down_early_workday}",
+            "time_down_late_workday": "↳ {inh_time_down_late_workday}",
+            "time_down_early_free": "↳ {inh_time_down_early_free}",
+            "time_down_late_free": "↳ {inh_time_down_late_free}",
+            "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}"
+          }
+        },
+        "sensors": {
+          "title": "Sensoren",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "workday_sensor": "Arbeitstag-Sensor (heute)",
+            "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+          },
+          "data_description": {
+            "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_sensor}",
+            "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}"
+          }
+        },
+        "positions": {
+          "title": "Positionen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "pos_open": "Position offen",
+            "pos_closed": "Position geschlossen",
+            "tolerance": "Toleranz"
+          },
+          "data_description": {
+            "pos_open": "↳ {inh_pos_open}",
+            "pos_closed": "↳ {inh_pos_closed}",
+            "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}"
+          }
+        },
+        "drive": {
+          "title": "Fahrverhalten",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "delay_fixed": "Feste Verzögerung",
+            "delay_random": "Zufällige Verzögerung (höchstens)",
+            "drive_time": "Fahrzeit",
+            "open_never_down": "Öffnen fährt nie nach unten",
+            "close_never_up": "Schließen fährt nie nach oben"
+          },
+          "data_description": {
+            "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.\n↳ {inh_delay_fixed}",
+            "delay_random": "Bis zu so viele Sekunden kommen zufällig dazu, damit nicht alle Motoren gleichzeitig anlaufen.\n↳ {inh_delay_random}",
+            "drive_time": "Zeit für eine ganze Fahrt. Positionsmeldungen in dieser Zeit nach dem eigenen Befehl zählen als eigene Fahrt.\n↳ {inh_drive_time}",
+            "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.\n↳ {inh_open_never_down}",
+            "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}"
+          }
+        },
+        "override": {
+          "title": "Manuelle Übersteuerung",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "override_blocks": "Gesperrt während der Übersteuerung",
+            "override_reset": "Die Übersteuerung endet",
+            "override_minutes": "Dauer",
+            "override_reset_time": "Uhrzeit",
+            "override_return": "Danach den Zielzustand anfahren",
+            "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
+            "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+          },
+          "data_description": {
+            "override_blocks": "Diese Fahrten warten, bis die Übersteuerung endet.\n↳ {inh_override_blocks}",
+            "override_reset": "↳ {inh_override_reset}",
+            "override_minutes": "Bei „nach einer Dauer“.\n↳ {inh_override_minutes}",
+            "override_reset_time": "Bei „zu einer festen Uhrzeit“.\n↳ {inh_override_reset_time}",
+            "override_return": "Wenn die Übersteuerung endet, fährt der Rollladen seinen aktuellen Zielzustand an.\n↳ {inh_override_return}",
+            "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.\n↳ {inh_manual_counts_open}",
+            "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}"
+          }
+        }
+      }
+    },
+    "cover": {
+      "entry_type": "Rollladen",
+      "initiate_flow": {
+        "user": "Rollläden hinzufügen"
+      },
+      "step": {
+        "user": {
+          "title": "Rollläden hinzufügen",
+          "description": "Wähle einen oder mehrere Rollläden. Sie starten mit den Einstellungen des Profils bzw. den globalen Einstellungen; danach nur Abweichungen eintragen.",
+          "data": {
+            "cover_entity": "Rollläden",
+            "profile": "Profil"
+          }
+        },
+        "base": {
+          "title": "Rollladen",
+          "description": "Cover-Entität: {entity_id}",
+          "data": {
+            "name": "Name",
+            "profile": "Profil"
+          }
+        },
+        "menu": {
+          "title": "Rollladen {name}",
+          "description": "Nur eintragen, was vom Profil oder den globalen Einstellungen abweicht. Leere Felder erben.",
+          "menu_options": {
+            "base": "Name und Profil",
+            "schedule": "Zeitplan",
+            "sensors": "Sensoren",
+            "positions": "Positionen",
+            "drive": "Fahrverhalten",
+            "override": "Manuelle Übersteuerung",
+            "reset": "Auf geerbten Wert zurücksetzen",
+            "save": "Speichern"
+          }
+        },
+        "schedule": {
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "title": "Zeitplan",
+          "data": {
+            "up_mode": "Morgens fahren nach",
+            "down_mode": "Abends fahren nach",
+            "twilight_up": "Sonnenereignis morgens",
+            "twilight_down": "Sonnenereignis abends",
+            "horizon_up": "Eigene Sonnenhöhe morgens",
+            "horizon_down": "Eigene Sonnenhöhe abends",
+            "offset_up": "Versatz morgens",
+            "offset_down": "Versatz abends",
+            "time_up_early_workday": "Früheste Öffnung an Arbeitstagen",
+            "time_up_late_workday": "Späteste Öffnung an Arbeitstagen",
+            "time_up_early_free": "Früheste Öffnung an freien Tagen",
+            "time_up_late_free": "Späteste Öffnung an freien Tagen",
+            "time_down_early_workday": "Frühestes Schließen an Arbeitstagen",
+            "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
+            "time_down_early_free": "Frühestes Schließen an freien Tagen",
+            "time_down_late_free": "Spätestes Schließen an freien Tagen",
+            "down_tomorrow_workday": "Abends nach dem morgigen Tag richten"
+          },
+          "data_description": {
+            "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.\n↳ {inh_up_mode}",
+            "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis.\n↳ {inh_down_mode}",
+            "twilight_up": "↳ {inh_twilight_up}",
+            "twilight_down": "↳ {inh_twilight_down}",
+            "horizon_up": "Nur bei „Eigene Sonnenhöhe“.\n↳ {inh_horizon_up}",
+            "horizon_down": "Nur bei „Eigene Sonnenhöhe“.\n↳ {inh_horizon_down}",
+            "offset_up": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.\n↳ {inh_offset_up}",
+            "offset_down": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.\n↳ {inh_offset_down}",
+            "time_up_early_workday": "↳ {inh_time_up_early_workday}",
+            "time_up_late_workday": "↳ {inh_time_up_late_workday}",
+            "time_up_early_free": "↳ {inh_time_up_early_free}",
+            "time_up_late_free": "↳ {inh_time_up_late_free}",
+            "time_down_early_workday": "↳ {inh_time_down_early_workday}",
+            "time_down_late_workday": "↳ {inh_time_down_late_workday}",
+            "time_down_early_free": "↳ {inh_time_down_early_free}",
+            "time_down_late_free": "↳ {inh_time_down_late_free}",
+            "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}"
+          }
+        },
+        "positions": {
+          "data": {
+            "pos_open": "Position offen",
+            "pos_closed": "Position geschlossen",
+            "tolerance": "Toleranz",
+            "invert": "Richtung umkehren",
+            "position_entity": "Position aus anderer Entität"
+          },
+          "data_description": {
+            "pos_open": "↳ {inh_pos_open}",
+            "pos_closed": "↳ {inh_pos_closed}",
+            "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}",
+            "invert": "Für Rollläden, die 0 % als offen melden.\n↳ {inh_invert}",
+            "position_entity": "Sensor oder Zahl mit der Position, falls der Rollladen sie nicht selbst meldet.\n↳ {inh_position_entity}"
+          },
+          "title": "Positionen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert."
+        },
+        "reset": {
+          "title": "Felder zurücksetzen",
+          "description": "Die gewählten Felder bekommen wieder den Standardwert.",
+          "data": {
+            "keys": "Felder"
+          }
+        },
+        "sensors": {
+          "title": "Sensoren",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "workday_sensor": "Arbeitstag-Sensor (heute)",
+            "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+          },
+          "data_description": {
+            "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_sensor}",
+            "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}"
+          }
+        },
+        "drive": {
+          "title": "Fahrverhalten",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "delay_fixed": "Feste Verzögerung",
+            "delay_random": "Zufällige Verzögerung (höchstens)",
+            "drive_time": "Fahrzeit",
+            "open_never_down": "Öffnen fährt nie nach unten",
+            "close_never_up": "Schließen fährt nie nach oben"
+          },
+          "data_description": {
+            "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.\n↳ {inh_delay_fixed}",
+            "delay_random": "Bis zu so viele Sekunden kommen zufällig dazu, damit nicht alle Motoren gleichzeitig anlaufen.\n↳ {inh_delay_random}",
+            "drive_time": "Zeit für eine ganze Fahrt. Positionsmeldungen in dieser Zeit nach dem eigenen Befehl zählen als eigene Fahrt.\n↳ {inh_drive_time}",
+            "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.\n↳ {inh_open_never_down}",
+            "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}"
+          }
+        },
+        "override": {
+          "title": "Manuelle Übersteuerung",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "override_blocks": "Gesperrt während der Übersteuerung",
+            "override_reset": "Die Übersteuerung endet",
+            "override_minutes": "Dauer",
+            "override_reset_time": "Uhrzeit",
+            "override_return": "Danach den Zielzustand anfahren",
+            "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
+            "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+          },
+          "data_description": {
+            "override_blocks": "Diese Fahrten warten, bis die Übersteuerung endet.\n↳ {inh_override_blocks}",
+            "override_reset": "↳ {inh_override_reset}",
+            "override_minutes": "Bei „nach einer Dauer“.\n↳ {inh_override_minutes}",
+            "override_reset_time": "Bei „zu einer festen Uhrzeit“.\n↳ {inh_override_reset_time}",
+            "override_return": "Wenn die Übersteuerung endet, fährt der Rollladen seinen aktuellen Zielzustand an.\n↳ {inh_override_return}",
+            "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.\n↳ {inh_manual_counts_open}",
+            "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}"
+          }
+        }
+      },
+      "error": {
+        "no_new_cover": "Alle gewählten Rollläden sind schon eingerichtet."
+      }
+    }
+  },
+  "selector": {
+    "tristate": {
+      "options": {
+        "inherit": "Erben",
+        "on": "An",
+        "off": "Aus"
+      }
+    },
+    "up_mode": {
+      "options": {
+        "time": "Zeit",
+        "astro": "Sonne",
+        "inherit": "Erben"
+      }
+    },
+    "down_mode": {
+      "options": {
+        "time": "Zeit",
+        "astro": "Sonne",
+        "inherit": "Erben"
+      }
+    },
+    "twilight_up": {
+      "options": {
+        "real": "Sonnenaufgang",
+        "civil": "Bürgerliche Dämmerung",
+        "nautical": "Nautische Dämmerung",
+        "astronomical": "Astronomische Dämmerung",
+        "horizon": "Eigene Sonnenhöhe",
+        "inherit": "Erben"
+      }
+    },
+    "twilight_down": {
+      "options": {
+        "real": "Sonnenuntergang",
+        "civil": "Bürgerliche Dämmerung",
+        "nautical": "Nautische Dämmerung",
+        "astronomical": "Astronomische Dämmerung",
+        "horizon": "Eigene Sonnenhöhe",
+        "inherit": "Erben"
+      }
+    },
+    "override_blocks": {
+      "options": {
+        "open": "Öffnen",
+        "close": "Schließen",
+        "ventilate": "Lüften",
+        "shading": "Beschattung",
+        "none": "Nichts"
+      }
+    },
+    "override_reset": {
+      "options": {
+        "minutes": "Nach einer Dauer",
+        "time": "Zu einer festen Uhrzeit",
+        "next_schedule": "Bei der nächsten geplanten Fahrt",
+        "manual": "Nur von Hand",
+        "inherit": "Erben"
+      }
+    },
+    "setting_key": {
+      "options": {
+        "up_mode": "Morgens fahren nach",
+        "down_mode": "Abends fahren nach",
+        "twilight_up": "Sonnenereignis morgens",
+        "twilight_down": "Sonnenereignis abends",
+        "horizon_up": "Eigene Sonnenhöhe morgens",
+        "horizon_down": "Eigene Sonnenhöhe abends",
+        "offset_up": "Versatz morgens",
+        "offset_down": "Versatz abends",
+        "time_up_early_workday": "Früheste Öffnung an Arbeitstagen",
+        "time_up_late_workday": "Späteste Öffnung an Arbeitstagen",
+        "time_up_early_free": "Früheste Öffnung an freien Tagen",
+        "time_up_late_free": "Späteste Öffnung an freien Tagen",
+        "time_down_early_workday": "Frühestes Schließen an Arbeitstagen",
+        "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
+        "time_down_early_free": "Frühestes Schließen an freien Tagen",
+        "time_down_late_free": "Spätestes Schließen an freien Tagen",
+        "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+        "workday_sensor": "Arbeitstag-Sensor (heute)",
+        "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
+        "pos_open": "Position offen",
+        "pos_closed": "Position geschlossen",
+        "tolerance": "Toleranz",
+        "invert": "Richtung umkehren",
+        "position_entity": "Position aus anderer Entität",
+        "delay_fixed": "Feste Verzögerung",
+        "delay_random": "Zufällige Verzögerung (höchstens)",
+        "drive_time": "Fahrzeit",
+        "open_never_down": "Öffnen fährt nie nach unten",
+        "close_never_up": "Schließen fährt nie nach oben",
+        "override_blocks": "Gesperrt während der Übersteuerung",
+        "override_reset": "Die Übersteuerung endet",
+        "override_minutes": "Dauer",
+        "override_reset_time": "Uhrzeit",
+        "override_return": "Danach den Zielzustand anfahren",
+        "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
+        "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+      }
+    }
+  },
+  "entity": {
+    "switch": {
+      "global_automatic": {
+        "name": "Automatik"
+      },
+      "global_weekend_times": {
+        "name": "Wochenend- und Feiertagszeiten"
+      },
+      "global_morning": {
+        "name": "Morgenfahrt"
+      },
+      "global_evening": {
+        "name": "Abendfahrt"
+      },
+      "global_pause": {
+        "name": "Pause"
+      },
+      "cover_automatic": {
+        "name": "Automatik"
+      },
+      "cover_pause": {
+        "name": "Pause"
+      }
+    },
+    "binary_sensor": {
+      "is_day": {
+        "name": "Tag"
+      },
+      "manual_override": {
+        "name": "Manuelle Übersteuerung"
+      }
+    },
+    "sensor": {
+      "next_up": {
+        "name": "Nächste Öffnung"
+      },
+      "next_down": {
+        "name": "Nächstes Schließen"
+      },
+      "last_reason": {
+        "name": "Letzter Fahrgrund",
+        "state": {
+          "day_open": "Morgenfahrt",
+          "night_close": "Abendfahrt",
+          "service": "Aktion",
+          "manual": "Von Hand"
+        }
+      },
+      "target": {
+        "name": "Zielzustand",
+        "state": {
+          "open": "Offen",
+          "close": "Geschlossen",
+          "ventilate": "Lüften",
+          "shading": "Beschattung"
+        }
+      }
+    },
+    "button": {
+      "global_recalculate": {
+        "name": "Zeiten neu berechnen"
+      },
+      "global_apply_target": {
+        "name": "Alle Rollläden in den Zielzustand"
+      },
+      "apply_target": {
+        "name": "Zielzustand anfahren"
+      },
+      "clear_override": {
+        "name": "Übersteuerung beenden"
+      }
+    },
+    "select": {
+      "up_mode": {
+        "name": "Morgens fahren nach",
+        "state": {
+          "inherit": "Erben",
+          "time": "Zeit",
+          "astro": "Sonne"
+        }
+      },
+      "down_mode": {
+        "name": "Abends fahren nach",
+        "state": {
+          "inherit": "Erben",
+          "time": "Zeit",
+          "astro": "Sonne"
+        }
+      }
+    },
+    "time": {
+      "time_up_early_workday": {
+        "name": "Früheste Öffnung an Arbeitstagen"
+      },
+      "time_up_late_workday": {
+        "name": "Späteste Öffnung an Arbeitstagen"
+      },
+      "time_up_early_free": {
+        "name": "Früheste Öffnung an freien Tagen"
+      },
+      "time_up_late_free": {
+        "name": "Späteste Öffnung an freien Tagen"
+      },
+      "time_down_early_workday": {
+        "name": "Frühestes Schließen an Arbeitstagen"
+      },
+      "time_down_late_workday": {
+        "name": "Spätestes Schließen an Arbeitstagen"
+      },
+      "time_down_early_free": {
+        "name": "Frühestes Schließen an freien Tagen"
+      },
+      "time_down_late_free": {
+        "name": "Spätestes Schließen an freien Tagen"
+      }
+    },
+    "number": {
+      "pos_open": {
+        "name": "Position offen"
+      },
+      "pos_closed": {
+        "name": "Position geschlossen"
+      }
+    }
+  },
+  "services": {
+    "drive": {
+      "name": "Fahren",
+      "description": "Fährt Rollläden auf eine Position.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Zu fahrende Rollläden. Leer: alle."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
+        },
+        "position": {
+          "name": "Position",
+          "description": "Position in %, 0 ist geschlossen."
+        },
+        "named_position": {
+          "name": "Benannte Position",
+          "description": "Eine der eingestellten Positionen."
+        },
+        "respect_rules": {
+          "name": "Automatik und Pause beachten",
+          "description": "Rollläden mit Automatik aus, in Pause oder nicht erreichbar nicht fahren."
+        }
+      }
+    },
+    "recalculate": {
+      "name": "Neu berechnen",
+      "description": "Berechnet die Fahrzeiten neu.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Leer: alle Rollläden."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
+        }
+      }
+    },
+    "apply_target": {
+      "name": "Zielzustand anfahren",
+      "description": "Fährt Rollläden in ihren aktuellen Zielzustand (tags offen, nachts zu), mit allen Regeln.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Leer: alle Rollläden."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
+        }
+      }
+    },
+    "clear_override": {
+      "name": "Übersteuerung beenden",
+      "description": "Beendet die manuelle Übersteuerung von Rollläden.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Leer: alle Rollläden."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
+        }
+      }
+    },
+    "set_option": {
+      "name": "Einstellung setzen",
+      "description": "Setzt eine Einstellung von Rollläden oder einem Profil. Ohne Wert erbt die Einstellung wieder.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Rollläden, deren Einstellung geändert wird."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Profil, dessen Einstellung geändert wird (nur ohne Rollläden)."
+        },
+        "option": {
+          "name": "Einstellung",
+          "description": "Schlüssel der Einstellung, z. B. up_mode."
+        },
+        "value": {
+          "name": "Wert",
+          "description": "Neuer Wert. Zeiten als HH:MM, Listen als Liste."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "AutoShuttersControl ist nicht geladen."
+    },
+    "unknown_profile": {
+      "message": "Es gibt kein Profil {profile}."
+    },
+    "unknown_cover": {
+      "message": "Nicht von AutoShuttersControl gesteuert: {entity_id}."
+    },
+    "no_position": {
+      "message": "Gib eine Position oder eine benannte Position an."
+    },
+    "invalid_value": {
+      "message": "Ungültiger Wert für {option}."
+    },
+    "wrong_level": {
+      "message": "{option} kann hier nicht gesetzt werden."
+    },
+    "no_target": {
+      "message": "Wähle Rollläden oder ein Profil."
+    }
+  },
+  "issues": {
+    "cover_missing": {
+      "title": "Rollladen von {name} nicht gefunden",
+      "description": "AutoShuttersControl steuert {entity_id}, aber diese Entität gibt es nicht. Wähle einen anderen Rollladen oder entferne {name} aus AutoShuttersControl."
+    }
+  }
+}

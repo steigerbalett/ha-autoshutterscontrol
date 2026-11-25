@@ -1,0 +1,78 @@
+drive:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+    position:
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+    named_position:
+      selector:
+        select:
+          options:
+            - open
+            - closed
+            - sleep
+            - ventilate
+            - comfort
+            - shading
+            - privacy
+    respect_rules:
+      default: true
+      selector:
+        boolean:
+recalculate:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+apply_target:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+clear_override:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+set_option:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+    option:
+      required: true
+      selector:
+        text:
+    value:
+      selector:
+        object:

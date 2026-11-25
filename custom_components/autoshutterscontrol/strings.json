@@ -1,0 +1,793 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AutoShuttersControl for HA",
+        "description": "One setup for all covers. Choose the global sensors now; everything else is in the options. Add covers and profiles afterwards with the buttons of the integration.",
+        "data": {
+          "workday_sensor": "Workday sensor (today)",
+          "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+        },
+        "data_description": {
+          "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.",
+          "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "AutoShuttersControl is already set up. Add covers and profiles to the existing entry."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Global settings",
+        "description": "These values apply to all covers unless a profile or the cover sets its own value.",
+        "menu_options": {
+          "schedule": "Schedule",
+          "sensors": "Sensors",
+          "positions": "Positions",
+          "drive": "Drive behaviour",
+          "override": "Manual override",
+          "reset": "Reset fields to the default",
+          "save": "Save"
+        }
+      },
+      "schedule": {
+        "title": "Schedule",
+        "description": "Morning and evening drive. Sun: the sun event plus offset, kept between the earliest and the latest time. Time: at the earliest time.",
+        "data": {
+          "up_mode": "Morning drive by",
+          "down_mode": "Evening drive by",
+          "twilight_up": "Sun event in the morning",
+          "twilight_down": "Sun event in the evening",
+          "horizon_up": "Own sun elevation in the morning",
+          "horizon_down": "Own sun elevation in the evening",
+          "offset_up": "Offset in the morning",
+          "offset_down": "Offset in the evening",
+          "time_up_early_workday": "Earliest opening on workdays",
+          "time_up_late_workday": "Latest opening on workdays",
+          "time_up_early_free": "Earliest opening on days off",
+          "time_up_late_free": "Latest opening on days off",
+          "time_down_early_workday": "Earliest closing on workdays",
+          "time_down_late_workday": "Latest closing on workdays",
+          "time_down_early_free": "Earliest closing on days off",
+          "time_down_late_free": "Latest closing on days off",
+          "down_tomorrow_workday": "Evening by tomorrow's day type"
+        },
+        "data_description": {
+          "up_mode": "Time: at the earliest opening time. Sun: at the sun event.",
+          "down_mode": "Time: at the earliest closing time. Sun: at the sun event.",
+          "horizon_up": "Only used with \"Own sun elevation\".",
+          "horizon_down": "Only used with \"Own sun elevation\".",
+          "offset_up": "Minutes added to the sun event; negative is earlier.",
+          "offset_down": "Minutes added to the sun event; negative is earlier.",
+          "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening."
+        }
+      },
+      "sensors": {
+        "title": "Sensors",
+        "description": "Sensors used by all covers. A profile or a cover can use its own sensor instead.",
+        "data": {
+          "workday_sensor": "Workday sensor (today)",
+          "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+        },
+        "data_description": {
+          "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.",
+          "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays."
+        }
+      },
+      "positions": {
+        "title": "Positions",
+        "description": "0 % is closed, 100 % is open.",
+        "data": {
+          "pos_open": "Open position",
+          "pos_closed": "Closed position",
+          "tolerance": "Tolerance"
+        },
+        "data_description": {
+          "tolerance": "A cover within this distance of a position counts as being there."
+        }
+      },
+      "drive": {
+        "title": "Drive behaviour",
+        "description": "Delays and rules for every drive.",
+        "data": {
+          "delay_fixed": "Fixed delay",
+          "delay_random": "Random delay (maximum)",
+          "drive_time": "Drive time",
+          "open_never_down": "Opening never drives down",
+          "close_never_up": "Closing never drives up"
+        },
+        "data_description": {
+          "delay_fixed": "Seconds to wait before a scheduled drive.",
+          "delay_random": "Up to this many seconds are added at random, so that not all motors start together.",
+          "drive_time": "Time for a full run. Position reports during this time after our own command count as our drive.",
+          "open_never_down": "No morning drive if the cover is already further open.",
+          "close_never_up": "No evening drive if the cover is already further closed."
+        }
+      },
+      "override": {
+        "title": "Manual override",
+        "description": "A drive that did not come from AutoShuttersControl (button, app, wall switch) starts a manual override.",
+        "data": {
+          "override_blocks": "Blocked during the override",
+          "override_reset": "The override ends",
+          "override_minutes": "Duration",
+          "override_reset_time": "End time",
+          "override_return": "Drive to the target afterwards",
+          "manual_counts_open": "Opening by hand counts as morning drive",
+          "manual_counts_close": "Closing by hand counts as evening drive"
+        },
+        "data_description": {
+          "override_blocks": "These drives wait until the override ends.",
+          "override_minutes": "Used with \"after a duration\".",
+          "override_reset_time": "Used with \"at a fixed time\".",
+          "override_return": "When the override ends the cover drives to its current target.",
+          "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.",
+          "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day."
+        }
+      },
+      "reset": {
+        "title": "Reset fields",
+        "description": "The chosen fields go back to the default value.",
+        "data": {
+          "keys": "Fields"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "profile": {
+      "entry_type": "Profile",
+      "initiate_flow": {
+        "user": "Add profile"
+      },
+      "step": {
+        "base": {
+          "title": "Profile",
+          "description": "A profile holds settings for a group of covers, e.g. \"South side\" or \"Bedrooms\".",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "menu": {
+          "title": "Profile {name}",
+          "description": "Only set what differs from the global settings. Empty fields inherit.",
+          "menu_options": {
+            "base": "Name",
+            "schedule": "Schedule",
+            "sensors": "Sensors",
+            "positions": "Positions",
+            "drive": "Drive behaviour",
+            "override": "Manual override",
+            "reset": "Back to the inherited value",
+            "save": "Save"
+          }
+        },
+        "reset": {
+          "title": "Reset fields",
+          "description": "The chosen fields go back to the default value.",
+          "data": {
+            "keys": "Fields"
+          }
+        },
+        "schedule": {
+          "title": "Schedule",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "up_mode": "Morning drive by",
+            "down_mode": "Evening drive by",
+            "twilight_up": "Sun event in the morning",
+            "twilight_down": "Sun event in the evening",
+            "horizon_up": "Own sun elevation in the morning",
+            "horizon_down": "Own sun elevation in the evening",
+            "offset_up": "Offset in the morning",
+            "offset_down": "Offset in the evening",
+            "time_up_early_workday": "Earliest opening on workdays",
+            "time_up_late_workday": "Latest opening on workdays",
+            "time_up_early_free": "Earliest opening on days off",
+            "time_up_late_free": "Latest opening on days off",
+            "time_down_early_workday": "Earliest closing on workdays",
+            "time_down_late_workday": "Latest closing on workdays",
+            "time_down_early_free": "Earliest closing on days off",
+            "time_down_late_free": "Latest closing on days off",
+            "down_tomorrow_workday": "Evening by tomorrow's day type"
+          },
+          "data_description": {
+            "up_mode": "Time: at the earliest opening time. Sun: at the sun event.\n↳ {inh_up_mode}",
+            "down_mode": "Time: at the earliest closing time. Sun: at the sun event.\n↳ {inh_down_mode}",
+            "twilight_up": "↳ {inh_twilight_up}",
+            "twilight_down": "↳ {inh_twilight_down}",
+            "horizon_up": "Only used with \"Own sun elevation\".\n↳ {inh_horizon_up}",
+            "horizon_down": "Only used with \"Own sun elevation\".\n↳ {inh_horizon_down}",
+            "offset_up": "Minutes added to the sun event; negative is earlier.\n↳ {inh_offset_up}",
+            "offset_down": "Minutes added to the sun event; negative is earlier.\n↳ {inh_offset_down}",
+            "time_up_early_workday": "↳ {inh_time_up_early_workday}",
+            "time_up_late_workday": "↳ {inh_time_up_late_workday}",
+            "time_up_early_free": "↳ {inh_time_up_early_free}",
+            "time_up_late_free": "↳ {inh_time_up_late_free}",
+            "time_down_early_workday": "↳ {inh_time_down_early_workday}",
+            "time_down_late_workday": "↳ {inh_time_down_late_workday}",
+            "time_down_early_free": "↳ {inh_time_down_early_free}",
+            "time_down_late_free": "↳ {inh_time_down_late_free}",
+            "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}"
+          }
+        },
+        "sensors": {
+          "title": "Sensors",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "workday_sensor": "Workday sensor (today)",
+            "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+          },
+          "data_description": {
+            "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_sensor}",
+            "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}"
+          }
+        },
+        "positions": {
+          "title": "Positions",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "pos_open": "Open position",
+            "pos_closed": "Closed position",
+            "tolerance": "Tolerance"
+          },
+          "data_description": {
+            "pos_open": "↳ {inh_pos_open}",
+            "pos_closed": "↳ {inh_pos_closed}",
+            "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}"
+          }
+        },
+        "drive": {
+          "title": "Drive behaviour",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "delay_fixed": "Fixed delay",
+            "delay_random": "Random delay (maximum)",
+            "drive_time": "Drive time",
+            "open_never_down": "Opening never drives down",
+            "close_never_up": "Closing never drives up"
+          },
+          "data_description": {
+            "delay_fixed": "Seconds to wait before a scheduled drive.\n↳ {inh_delay_fixed}",
+            "delay_random": "Up to this many seconds are added at random, so that not all motors start together.\n↳ {inh_delay_random}",
+            "drive_time": "Time for a full run. Position reports during this time after our own command count as our drive.\n↳ {inh_drive_time}",
+            "open_never_down": "No morning drive if the cover is already further open.\n↳ {inh_open_never_down}",
+            "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}"
+          }
+        },
+        "override": {
+          "title": "Manual override",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "override_blocks": "Blocked during the override",
+            "override_reset": "The override ends",
+            "override_minutes": "Duration",
+            "override_reset_time": "End time",
+            "override_return": "Drive to the target afterwards",
+            "manual_counts_open": "Opening by hand counts as morning drive",
+            "manual_counts_close": "Closing by hand counts as evening drive"
+          },
+          "data_description": {
+            "override_blocks": "These drives wait until the override ends.\n↳ {inh_override_blocks}",
+            "override_reset": "↳ {inh_override_reset}",
+            "override_minutes": "Used with \"after a duration\".\n↳ {inh_override_minutes}",
+            "override_reset_time": "Used with \"at a fixed time\".\n↳ {inh_override_reset_time}",
+            "override_return": "When the override ends the cover drives to its current target.\n↳ {inh_override_return}",
+            "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.\n↳ {inh_manual_counts_open}",
+            "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}"
+          }
+        }
+      }
+    },
+    "cover": {
+      "entry_type": "Cover",
+      "initiate_flow": {
+        "user": "Add covers"
+      },
+      "step": {
+        "user": {
+          "title": "Add covers",
+          "description": "Choose one or more covers. They start with the settings of the profile or the global settings; change only what differs afterwards.",
+          "data": {
+            "cover_entity": "Covers",
+            "profile": "Profile"
+          }
+        },
+        "base": {
+          "title": "Cover",
+          "description": "Cover entity: {entity_id}",
+          "data": {
+            "name": "Name",
+            "profile": "Profile"
+          }
+        },
+        "menu": {
+          "title": "Cover {name}",
+          "description": "Only set what differs from the profile or the global settings. Empty fields inherit.",
+          "menu_options": {
+            "base": "Name and profile",
+            "schedule": "Schedule",
+            "sensors": "Sensors",
+            "positions": "Positions",
+            "drive": "Drive behaviour",
+            "override": "Manual override",
+            "reset": "Back to the inherited value",
+            "save": "Save"
+          }
+        },
+        "schedule": {
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "title": "Schedule",
+          "data": {
+            "up_mode": "Morning drive by",
+            "down_mode": "Evening drive by",
+            "twilight_up": "Sun event in the morning",
+            "twilight_down": "Sun event in the evening",
+            "horizon_up": "Own sun elevation in the morning",
+            "horizon_down": "Own sun elevation in the evening",
+            "offset_up": "Offset in the morning",
+            "offset_down": "Offset in the evening",
+            "time_up_early_workday": "Earliest opening on workdays",
+            "time_up_late_workday": "Latest opening on workdays",
+            "time_up_early_free": "Earliest opening on days off",
+            "time_up_late_free": "Latest opening on days off",
+            "time_down_early_workday": "Earliest closing on workdays",
+            "time_down_late_workday": "Latest closing on workdays",
+            "time_down_early_free": "Earliest closing on days off",
+            "time_down_late_free": "Latest closing on days off",
+            "down_tomorrow_workday": "Evening by tomorrow's day type"
+          },
+          "data_description": {
+            "up_mode": "Time: at the earliest opening time. Sun: at the sun event.\n↳ {inh_up_mode}",
+            "down_mode": "Time: at the earliest closing time. Sun: at the sun event.\n↳ {inh_down_mode}",
+            "twilight_up": "↳ {inh_twilight_up}",
+            "twilight_down": "↳ {inh_twilight_down}",
+            "horizon_up": "Only used with \"Own sun elevation\".\n↳ {inh_horizon_up}",
+            "horizon_down": "Only used with \"Own sun elevation\".\n↳ {inh_horizon_down}",
+            "offset_up": "Minutes added to the sun event; negative is earlier.\n↳ {inh_offset_up}",
+            "offset_down": "Minutes added to the sun event; negative is earlier.\n↳ {inh_offset_down}",
+            "time_up_early_workday": "↳ {inh_time_up_early_workday}",
+            "time_up_late_workday": "↳ {inh_time_up_late_workday}",
+            "time_up_early_free": "↳ {inh_time_up_early_free}",
+            "time_up_late_free": "↳ {inh_time_up_late_free}",
+            "time_down_early_workday": "↳ {inh_time_down_early_workday}",
+            "time_down_late_workday": "↳ {inh_time_down_late_workday}",
+            "time_down_early_free": "↳ {inh_time_down_early_free}",
+            "time_down_late_free": "↳ {inh_time_down_late_free}",
+            "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}"
+          }
+        },
+        "positions": {
+          "data": {
+            "pos_open": "Open position",
+            "pos_closed": "Closed position",
+            "tolerance": "Tolerance",
+            "invert": "Invert direction",
+            "position_entity": "Position from another entity"
+          },
+          "data_description": {
+            "pos_open": "↳ {inh_pos_open}",
+            "pos_closed": "↳ {inh_pos_closed}",
+            "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}",
+            "invert": "For covers that report 0 % as open.\n↳ {inh_invert}",
+            "position_entity": "Sensor or number with the position, if the cover itself does not report it.\n↳ {inh_position_entity}"
+          },
+          "title": "Positions",
+          "description": "Empty fields inherit. ↳ shows the inherited value."
+        },
+        "reset": {
+          "title": "Reset fields",
+          "description": "The chosen fields go back to the default value.",
+          "data": {
+            "keys": "Fields"
+          }
+        },
+        "sensors": {
+          "title": "Sensors",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "workday_sensor": "Workday sensor (today)",
+            "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+          },
+          "data_description": {
+            "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_sensor}",
+            "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}"
+          }
+        },
+        "drive": {
+          "title": "Drive behaviour",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "delay_fixed": "Fixed delay",
+            "delay_random": "Random delay (maximum)",
+            "drive_time": "Drive time",
+            "open_never_down": "Opening never drives down",
+            "close_never_up": "Closing never drives up"
+          },
+          "data_description": {
+            "delay_fixed": "Seconds to wait before a scheduled drive.\n↳ {inh_delay_fixed}",
+            "delay_random": "Up to this many seconds are added at random, so that not all motors start together.\n↳ {inh_delay_random}",
+            "drive_time": "Time for a full run. Position reports during this time after our own command count as our drive.\n↳ {inh_drive_time}",
+            "open_never_down": "No morning drive if the cover is already further open.\n↳ {inh_open_never_down}",
+            "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}"
+          }
+        },
+        "override": {
+          "title": "Manual override",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "override_blocks": "Blocked during the override",
+            "override_reset": "The override ends",
+            "override_minutes": "Duration",
+            "override_reset_time": "End time",
+            "override_return": "Drive to the target afterwards",
+            "manual_counts_open": "Opening by hand counts as morning drive",
+            "manual_counts_close": "Closing by hand counts as evening drive"
+          },
+          "data_description": {
+            "override_blocks": "These drives wait until the override ends.\n↳ {inh_override_blocks}",
+            "override_reset": "↳ {inh_override_reset}",
+            "override_minutes": "Used with \"after a duration\".\n↳ {inh_override_minutes}",
+            "override_reset_time": "Used with \"at a fixed time\".\n↳ {inh_override_reset_time}",
+            "override_return": "When the override ends the cover drives to its current target.\n↳ {inh_override_return}",
+            "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.\n↳ {inh_manual_counts_open}",
+            "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}"
+          }
+        }
+      },
+      "error": {
+        "no_new_cover": "All chosen covers are already set up."
+      }
+    }
+  },
+  "selector": {
+    "tristate": {
+      "options": {
+        "inherit": "Inherit",
+        "on": "On",
+        "off": "Off"
+      }
+    },
+    "up_mode": {
+      "options": {
+        "time": "Time",
+        "astro": "Sun",
+        "inherit": "Inherit"
+      }
+    },
+    "down_mode": {
+      "options": {
+        "time": "Time",
+        "astro": "Sun",
+        "inherit": "Inherit"
+      }
+    },
+    "twilight_up": {
+      "options": {
+        "real": "Sunrise",
+        "civil": "Civil twilight",
+        "nautical": "Nautical twilight",
+        "astronomical": "Astronomical twilight",
+        "horizon": "Own sun elevation",
+        "inherit": "Inherit"
+      }
+    },
+    "twilight_down": {
+      "options": {
+        "real": "Sunset",
+        "civil": "Civil twilight",
+        "nautical": "Nautical twilight",
+        "astronomical": "Astronomical twilight",
+        "horizon": "Own sun elevation",
+        "inherit": "Inherit"
+      }
+    },
+    "override_blocks": {
+      "options": {
+        "open": "Opening",
+        "close": "Closing",
+        "ventilate": "Ventilation",
+        "shading": "Shading",
+        "none": "Nothing"
+      }
+    },
+    "override_reset": {
+      "options": {
+        "minutes": "After a duration",
+        "time": "At a fixed time",
+        "next_schedule": "At the next scheduled drive",
+        "manual": "Only by hand",
+        "inherit": "Inherit"
+      }
+    },
+    "setting_key": {
+      "options": {
+        "up_mode": "Morning drive by",
+        "down_mode": "Evening drive by",
+        "twilight_up": "Sun event in the morning",
+        "twilight_down": "Sun event in the evening",
+        "horizon_up": "Own sun elevation in the morning",
+        "horizon_down": "Own sun elevation in the evening",
+        "offset_up": "Offset in the morning",
+        "offset_down": "Offset in the evening",
+        "time_up_early_workday": "Earliest opening on workdays",
+        "time_up_late_workday": "Latest opening on workdays",
+        "time_up_early_free": "Earliest opening on days off",
+        "time_up_late_free": "Latest opening on days off",
+        "time_down_early_workday": "Earliest closing on workdays",
+        "time_down_late_workday": "Latest closing on workdays",
+        "time_down_early_free": "Earliest closing on days off",
+        "time_down_late_free": "Latest closing on days off",
+        "down_tomorrow_workday": "Evening by tomorrow's day type",
+        "workday_sensor": "Workday sensor (today)",
+        "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
+        "pos_open": "Open position",
+        "pos_closed": "Closed position",
+        "tolerance": "Tolerance",
+        "invert": "Invert direction",
+        "position_entity": "Position from another entity",
+        "delay_fixed": "Fixed delay",
+        "delay_random": "Random delay (maximum)",
+        "drive_time": "Drive time",
+        "open_never_down": "Opening never drives down",
+        "close_never_up": "Closing never drives up",
+        "override_blocks": "Blocked during the override",
+        "override_reset": "The override ends",
+        "override_minutes": "Duration",
+        "override_reset_time": "End time",
+        "override_return": "Drive to the target afterwards",
+        "manual_counts_open": "Opening by hand counts as morning drive",
+        "manual_counts_close": "Closing by hand counts as evening drive"
+      }
+    }
+  },
+  "entity": {
+    "switch": {
+      "global_automatic": {
+        "name": "Automatic"
+      },
+      "global_weekend_times": {
+        "name": "Weekend and holiday times"
+      },
+      "global_morning": {
+        "name": "Morning drive"
+      },
+      "global_evening": {
+        "name": "Evening drive"
+      },
+      "global_pause": {
+        "name": "Pause"
+      },
+      "cover_automatic": {
+        "name": "Automatic"
+      },
+      "cover_pause": {
+        "name": "Pause"
+      }
+    },
+    "binary_sensor": {
+      "is_day": {
+        "name": "Day"
+      },
+      "manual_override": {
+        "name": "Manual override"
+      }
+    },
+    "sensor": {
+      "next_up": {
+        "name": "Next opening"
+      },
+      "next_down": {
+        "name": "Next closing"
+      },
+      "last_reason": {
+        "name": "Last drive reason",
+        "state": {
+          "day_open": "Morning opening",
+          "night_close": "Evening closing",
+          "service": "Action",
+          "manual": "By hand"
+        }
+      },
+      "target": {
+        "name": "Target",
+        "state": {
+          "open": "Open",
+          "close": "Closed",
+          "ventilate": "Ventilation",
+          "shading": "Shading"
+        }
+      }
+    },
+    "button": {
+      "global_recalculate": {
+        "name": "Recalculate times"
+      },
+      "global_apply_target": {
+        "name": "All covers to target"
+      },
+      "apply_target": {
+        "name": "Drive to target"
+      },
+      "clear_override": {
+        "name": "End manual override"
+      }
+    },
+    "select": {
+      "up_mode": {
+        "name": "Morning drive by",
+        "state": {
+          "inherit": "Inherit",
+          "time": "Time",
+          "astro": "Sun"
+        }
+      },
+      "down_mode": {
+        "name": "Evening drive by",
+        "state": {
+          "inherit": "Inherit",
+          "time": "Time",
+          "astro": "Sun"
+        }
+      }
+    },
+    "time": {
+      "time_up_early_workday": {
+        "name": "Earliest opening on workdays"
+      },
+      "time_up_late_workday": {
+        "name": "Latest opening on workdays"
+      },
+      "time_up_early_free": {
+        "name": "Earliest opening on days off"
+      },
+      "time_up_late_free": {
+        "name": "Latest opening on days off"
+      },
+      "time_down_early_workday": {
+        "name": "Earliest closing on workdays"
+      },
+      "time_down_late_workday": {
+        "name": "Latest closing on workdays"
+      },
+      "time_down_early_free": {
+        "name": "Earliest closing on days off"
+      },
+      "time_down_late_free": {
+        "name": "Latest closing on days off"
+      }
+    },
+    "number": {
+      "pos_open": {
+        "name": "Open position"
+      },
+      "pos_closed": {
+        "name": "Closed position"
+      }
+    }
+  },
+  "services": {
+    "drive": {
+      "name": "Drive",
+      "description": "Drives covers to a position.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Covers to drive. Empty: all covers."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
+        },
+        "position": {
+          "name": "Position",
+          "description": "Position in %, 0 is closed."
+        },
+        "named_position": {
+          "name": "Named position",
+          "description": "One of the configured positions."
+        },
+        "respect_rules": {
+          "name": "Respect automatic and pause",
+          "description": "Do not drive covers with automatic off, in pause or unavailable."
+        }
+      }
+    },
+    "recalculate": {
+      "name": "Recalculate",
+      "description": "Recalculates the drive times.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Empty: all covers."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
+        }
+      }
+    },
+    "apply_target": {
+      "name": "Drive to target",
+      "description": "Drives covers to their current target (open by day, closed by night) using all rules.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Empty: all covers."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
+        }
+      }
+    },
+    "clear_override": {
+      "name": "End manual override",
+      "description": "Ends the manual override of covers.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Empty: all covers."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
+        }
+      }
+    },
+    "set_option": {
+      "name": "Set option",
+      "description": "Sets one setting of covers or of a profile. Without value the setting inherits again.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Covers whose setting is changed."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Profile whose setting is changed (only without covers)."
+        },
+        "option": {
+          "name": "Option",
+          "description": "Key of the setting, e.g. up_mode."
+        },
+        "value": {
+          "name": "Value",
+          "description": "New value. Times as HH:MM, lists as a list."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "AutoShuttersControl is not loaded."
+    },
+    "unknown_profile": {
+      "message": "There is no profile {profile}."
+    },
+    "unknown_cover": {
+      "message": "Not controlled by AutoShuttersControl: {entity_id}."
+    },
+    "no_position": {
+      "message": "Give a position or a named position."
+    },
+    "invalid_value": {
+      "message": "Invalid value for {option}."
+    },
+    "wrong_level": {
+      "message": "{option} cannot be set here."
+    },
+    "no_target": {
+      "message": "Choose covers or a profile."
+    }
+  },
+  "issues": {
+    "cover_missing": {
+      "title": "Cover of {name} not found",
+      "description": "AutoShuttersControl controls {entity_id}, but this entity does not exist. Choose another cover or remove {name} from AutoShuttersControl."
+    }
+  }
+}
