@@ -28,6 +28,14 @@ Rollladen erbt ein leeres Feld; die Zeile `↳` unter dem Feld zeigt den geerbte
 zurücksetzen* leert Felder. Der Sensor *Zielzustand* jedes Rollladens zeigt im Attribut `effective_config`
 alle wirksamen Werte und ihre Herkunft.
 
+### Alternatives Profil (z. B. Sommer/Winter)
+
+Am Rollladen auf der Seite *Rollladen*: *Alternatives Profil*, eine *Entität für das alternative Profil* und
+ihr *Wert* (Standard `on`). Solange die Entität den Wert zeigt, erbt der Rollladen vom alternativen Profil statt
+vom normalen, z. B. mit einem Input Boolean „Winter“ oder einer Auswahl „Jahreszeit“. Beim Umschalten fährt der
+Rollladen in den neuen Zielzustand, in jede Richtung. Ist die Entität kurz nicht verfügbar, gilt ihr letzter
+Zustand. Der Sensor *Zielzustand* zeigt das aktive Profil im Attribut `profile`.
+
 ## Zeitplan
 
 | Einstellung | Bedeutung |

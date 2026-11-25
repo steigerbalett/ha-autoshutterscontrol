@@ -12,6 +12,10 @@ SUBENTRY_COVER: Final = "cover"
 # Keys inside subentry data
 CONF_COVER_ENTITY: Final = "cover_entity"
 CONF_PROFILE: Final = "profile"
+# Alternative profile while an entity shows a value (e.g. summer/winter)
+CONF_PROFILE_ALT: Final = "profile_alt"
+CONF_PROFILE_SWITCH: Final = "profile_switch_entity"
+CONF_PROFILE_SWITCH_VALUE: Final = "profile_switch_value"
 CONF_SETTINGS: Final = "settings"
 CONF_NAME: Final = "name"
 

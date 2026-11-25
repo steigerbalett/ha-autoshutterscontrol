@@ -28,6 +28,14 @@ an empty field inherits; the line `↳` below a field shows the inherited value.
 inherited value* empties fields. The sensor *Target* of each cover shows all effective values and
 where they come from in the attribute `effective_config`.
 
+### Alternative profile (e.g. summer/winter)
+
+On the cover, page *Cover*: *Alternative profile*, an *Entity for the alternative profile* and its *Value*
+(default `on`). While the entity shows the value, the cover inherits from the alternative profile instead of
+the normal one, e.g. with an input boolean "Winter" or an input select "Season". When it switches, the cover
+drives to the new target, in any direction. If the entity is briefly unavailable, its last state counts. The
+sensor *Target* shows the active profile in the attribute `profile`.
+
 ## Schedule
 
 | Setting | Meaning |

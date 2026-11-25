@@ -973,7 +973,16 @@
           "description": "Cover-Entität: {entity_id}",
           "data": {
             "name": "Name",
-            "profile": "Profil"
+            "profile": "Profil",
+            "profile_alt": "Alternatives Profil",
+            "profile_switch_entity": "Entität für das alternative Profil",
+            "profile_switch_value": "Wert für das alternative Profil"
+          },
+          "data_description": {
+            "profile": "Die Einstellungen des Rollladens erben von diesem Profil.",
+            "profile_alt": "Gilt statt des Profils, solange die Entität den Wert zeigt, z. B. ein Winterprofil.",
+            "profile_switch_entity": "Beliebige Entität, z. B. ein Input Boolean „Winter“ oder eine Auswahl „Jahreszeit“.",
+            "profile_switch_value": "Zustand der Entität (Groß-/Kleinschreibung egal). Leer = on."
           }
         },
         "menu": {

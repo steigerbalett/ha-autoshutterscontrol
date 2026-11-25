@@ -13,7 +13,7 @@ Blueprint-Automationen je Rollladen.
 - 🇬🇧 [Documentation (English)](docs/en/README.md)
 - 🇩🇪 [Dokumentation (Deutsch)](docs/de/README.md)
 
-> **Beta.** Version 0.5 contains all five stages of the concept: schedule (time, sun, brightness,
+> **Beta.** Version 0.6 contains all five stages of the concept and switching profiles by an entity: schedule (time, sun, brightness,
 > sun elevation, calendar, residents, workday), window contacts, residents and self defense, shading,
 > slats, privacy, rain/wind/frost, force functions, party, advent, trigger, wiggle, extra conditions and
 > actions, catching up after a restart, plausibility check, logbook, diagnostics and import from FHEM.

@@ -65,6 +65,9 @@ import voluptuous as vol
 from .const import (
     CONF_COVER_ENTITY,
     CONF_PROFILE,
+    CONF_PROFILE_ALT,
+    CONF_PROFILE_SWITCH,
+    CONF_PROFILE_SWITCH_VALUE,
     CONF_SETTINGS,
     COVER_SWITCHES,
     DECISION_HISTORY,
@@ -112,6 +115,7 @@ from .engine.arbiter import (
     TRIGGER_FORCE,
     TRIGGER_OVERRIDE_END,
     TRIGGER_PRIVACY,
+    TRIGGER_PROFILE,
     TRIGGER_PROTECTION,
     TRIGGER_RECOVERY,
     TRIGGER_RELEASE,
@@ -309,6 +313,8 @@ class AscManager:
         # Rain / wind / frost of the global sensors (central device)
         self.global_protect: dict[str, Protection] = {k: Protection() for k in PROTECTIONS}
         self.previous_alive: datetime | None = None
+        # Last usable state of the entities that switch profiles
+        self.profile_switch_states: dict[str, str] = {}
         self.texts: dict[str, str] = {}
 
     # --- configuration ----------------------------------------------------
@@ -327,12 +333,27 @@ class AscManager:
             return None
         return sub.data.get(CONF_SETTINGS, {})
 
+    def active_profile(self, subentry_id: str) -> str | None:
+        """Profile of a cover now: the alternative one while its entity shows the value."""
+        data = self.entry.subentries[subentry_id].data
+        alt = data.get(CONF_PROFILE_ALT)
+        entity = data.get(CONF_PROFILE_SWITCH)
+        if alt and entity:
+            state = self.hass.states.get(entity)
+            if state is not None and state.state not in _UNUSABLE:
+                self.profile_switch_states[entity] = state.state
+            value = self.profile_switch_states.get(entity)
+            wanted = str(data.get(CONF_PROFILE_SWITCH_VALUE) or STATE_ON)
+            if value is not None and value.strip().lower() == wanted.strip().lower():
+                return alt
+        return data.get(CONF_PROFILE)
+
     def resolve_cover(self, subentry_id: str) -> ResolvedConfig:
         """Resolve the settings of one cover subentry."""
         sub = self.entry.subentries[subentry_id]
         return resolve(
             self.global_settings,
-            self.profile_settings(sub.data.get(CONF_PROFILE)),
+            self.profile_settings(self.active_profile(subentry_id)),
             sub.data.get(CONF_SETTINGS, {}),
         )
 
@@ -641,6 +662,7 @@ class CoverController:
         state.setdefault("switches", dict(COVER_SWITCHES))
         for key, value in COVER_SWITCHES.items():
             state["switches"].setdefault(key, value)
+        self._profile: str | None = manager.active_profile(subentry_id)
         self.cfg: ResolvedConfig = manager.resolve_cover(subentry_id)
         self.next_up: datetime | None = None
         self.next_down: datetime | None = None
@@ -721,8 +743,35 @@ class CoverController:
                 setattr(self, name, None)
 
     @callback
+    def _on_profile_switch(self, _event: Event) -> None:
+        profile = self.manager.active_profile(self.subentry_id)
+        if profile == self.profile:
+            return
+        _LOGGER.debug("%s: profile switched to %s", self.cover_entity, profile)
+        self.async_reconfigure(self.cover_entity)
+        self.manager.entry.async_create_background_task(
+            self.hass, self._after_profile_switch(), f"{DOMAIN} profile {self.cover_entity}"
+        )
+
+    async def _after_profile_switch(self) -> None:
+        await self.async_compile()
+        self.evaluate(TRIGGER_PROFILE)
+
+    @property
+    def profile(self) -> str | None:
+        """Profile in use (subentry id)."""
+        return self._profile
+
+    @property
+    def profile_name(self) -> str | None:
+        """Title of the profile in use."""
+        sub = self.manager.entry.subentries.get(self._profile or "")
+        return sub.title if sub is not None else None
+
+    @callback
     def async_reconfigure(self, cover_entity: str) -> None:
         """Settings changed."""
+        self._profile = self.manager.active_profile(self.subentry_id)
         self.cover_entity = cover_entity
         self.cfg = self.manager.resolve_cover(self.subentry_id)
         self._unsubscribe()
@@ -806,6 +855,11 @@ class CoverController:
         if weather:
             self._unsub_listeners.append(
                 async_track_state_change_event(self.hass, weather, self._on_weather_change)
+            )
+        switch = self.manager.entry.subentries[self.subentry_id].data.get(CONF_PROFILE_SWITCH)
+        if switch:
+            self._unsub_listeners.append(
+                async_track_state_change_event(self.hass, [switch], self._on_profile_switch)
             )
         if self.cfg["shading_alt_entity"]:
             self._unsub_listeners.append(
@@ -2326,6 +2380,7 @@ class CoverController:
             "is_day": self.is_day(),
             "position": self.current_position(),
             "state": self.state,
+            "profile": self.profile_name,
             "effective_config": self.cfg.as_dict(),
             "issues": sorted(self._issues),
             "decisions": list(self.decisions),

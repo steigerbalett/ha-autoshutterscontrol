@@ -973,7 +973,16 @@
           "description": "Cover entity: {entity_id}",
           "data": {
             "name": "Name",
-            "profile": "Profile"
+            "profile": "Profile",
+            "profile_alt": "Alternative profile",
+            "profile_switch_entity": "Entity for the alternative profile",
+            "profile_switch_value": "Value for the alternative profile"
+          },
+          "data_description": {
+            "profile": "Settings of the cover inherit from this profile.",
+            "profile_alt": "Used instead of the profile while the entity shows the value, e.g. a winter profile.",
+            "profile_switch_entity": "Any entity, e.g. an input boolean \"Winter\" or an input select \"Season\".",
+            "profile_switch_value": "State of the entity (not case sensitive). Empty = on."
           }
         },
         "menu": {

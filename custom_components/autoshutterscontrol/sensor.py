@@ -171,6 +171,7 @@ class TargetSensor(AscCoverEntity, SensorEntity):
             "target_position": decision.position,
             "reason": decision.reason,
             "blocked_by": decision.blocked_by,
+            "profile": self.controller.profile_name,
             "last_decision": last.as_dict() if last else None,
             "evaluated": dt_util.utcnow().isoformat(),
             "effective_config": self.controller.cfg.as_dict(),

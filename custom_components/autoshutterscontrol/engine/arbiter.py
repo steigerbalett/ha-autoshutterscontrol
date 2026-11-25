@@ -48,6 +48,7 @@ TRIGGER_FORCE = "force"
 TRIGGER_EXTERNAL = "external"
 TRIGGER_RELEASE = "release"
 TRIGGER_RECOVERY = "recovery"
+TRIGGER_PROFILE = "profile"
 SCHEDULE_TRIGGERS = frozenset({TRIGGER_SCHEDULE_UP, TRIGGER_SCHEDULE_DOWN, TRIGGER_RECOVERY})
 
 # Reasons of a wish (stored as keys, translated only for display)
@@ -490,7 +491,13 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
     if current is not None:
         if abs(current - wish.position) <= tol:
             return _blocked(situation, wish, BLOCK_AT_TARGET)
-        if not wish.bypass_rules and not protective and not situation.after_temporary:
+        if (
+            not wish.bypass_rules
+            and not protective
+            and not situation.after_temporary
+            # A profile switch moves to the new target in any direction
+            and situation.trigger != TRIGGER_PROFILE
+        ):
             if (
                 wish.kind == KIND_VENTILATE
                 and situation.trigger == TRIGGER_WINDOW

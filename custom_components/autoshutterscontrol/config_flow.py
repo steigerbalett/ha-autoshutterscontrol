@@ -27,6 +27,9 @@ from .const import (
     CONF_COVER_ENTITY,
     CONF_NAME,
     CONF_PROFILE,
+    CONF_PROFILE_ALT,
+    CONF_PROFILE_SWITCH,
+    CONF_PROFILE_SWITCH_VALUE,
     CONF_SETTINGS,
     DOMAIN,
     INHERIT,
@@ -259,6 +262,13 @@ def _reset_schema(level: str, current: Mapping[str, Any]) -> vol.Schema:
             )
         }
     )
+
+
+def _optional(key: str, value: Any) -> vol.Optional:
+    """Optional field that shows the stored value (and can be cleared)."""
+    if value in (None, ""):
+        return vol.Optional(key)
+    return vol.Optional(key, description={"suggested_value": value})
 
 
 def _effective(values: Mapping[str, Any]) -> dict[str, Any]:
@@ -772,8 +782,13 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
         """Name and profile of the cover."""
         if user_input is not None:
             self._title = user_input[CONF_NAME]
-            profile = user_input.get(CONF_PROFILE)
-            self._data[CONF_PROFILE] = None if profile in (None, NO_PROFILE) else profile
+            for key in (CONF_PROFILE, CONF_PROFILE_ALT):
+                profile = user_input.get(key)
+                self._data[key] = None if profile in (None, NO_PROFILE) else profile
+            self._data[CONF_PROFILE_SWITCH] = user_input.get(CONF_PROFILE_SWITCH) or None
+            self._data[CONF_PROFILE_SWITCH_VALUE] = (
+                user_input.get(CONF_PROFILE_SWITCH_VALUE) or None
+            )
             return self._menu()
         schema = vol.Schema(
             {
@@ -783,6 +798,15 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
                 vol.Optional(
                     CONF_PROFILE, default=self._data.get(CONF_PROFILE) or NO_PROFILE
                 ): self._profile_selector(),
+                vol.Optional(
+                    CONF_PROFILE_ALT, default=self._data.get(CONF_PROFILE_ALT) or NO_PROFILE
+                ): self._profile_selector(),
+                _optional(CONF_PROFILE_SWITCH, self._data.get(CONF_PROFILE_SWITCH)): (
+                    selector.EntitySelector()
+                ),
+                _optional(
+                    CONF_PROFILE_SWITCH_VALUE, self._data.get(CONF_PROFILE_SWITCH_VALUE)
+                ): selector.TextSelector(),
             }
         )
         return self.async_show_form(

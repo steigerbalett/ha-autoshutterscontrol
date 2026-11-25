@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0b1
+
+- Alternative profile per cover while an entity shows a value (e.g. summer/winter, CCA `instance_active`,
+  concept 6.7). Switching drives to the new target in any direction; the last state counts while the entity
+  is unavailable. The sensor Target shows the active profile.
+
 ## 0.5.0b1
 
 Stage 5 of the concept.
