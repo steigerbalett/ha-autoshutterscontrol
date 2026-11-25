@@ -62,5 +62,6 @@ Download `autoshutterscontrol.zip` from the [releases](https://github.com/steige
 `config/custom_components/autoshutterscontrol` and restart Home Assistant. / `autoshutterscontrol.zip` aus den
 Releases laden, nach `config/custom_components/autoshutterscontrol` entpacken und Home Assistant neu starten.
 
-License: GPL-2.0-or-later. No code from FHEM ASC or from the blueprint "Cover Control Automation"
+License: GPL-2.0-or-later. The icon shows a shutter from the OpenAutomation icon set of FHEM
+(CC BY-SA 3.0 DE) and the FHEM logo, see [NOTICE.md](NOTICE.md). No code from FHEM ASC or from the blueprint "Cover Control Automation"
 is used; both served as a list of functions.

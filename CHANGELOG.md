@@ -7,7 +7,11 @@
   override). New setting *Back after the rain* (previous position / target state, default previous
   position). New drive reason "After the rain".
 - Workflow "Release draft": after every push to main a draft release for the version in manifest.json, with
-  the CHANGELOG section as notes. Versions 0.x and betas are marked as pre-release.
+  the CHANGELOG section as notes. Versions 0.x and betas are marked as pre-release. The draft gets
+  `autoshutterscontrol.zip`, which HACS/the Marketplace installs.
+- README: badges and installation via the Marketplace.
+- New icon: a shutter from the OpenAutomation icon set of FHEM with the FHEM logo as a badge, black with a
+  white variant for the dark theme (CC BY-SA 3.0 DE, see NOTICE.md).
 
 ## 0.6.0b1
 
