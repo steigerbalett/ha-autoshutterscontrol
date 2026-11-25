@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.autoshutterscontrol.const import DOMAIN
 
@@ -104,3 +105,88 @@ async def test_base_page_stores_switch(hass: HomeAssistant) -> None:
     assert data["profile_alt"] == "p_winter"
     assert data["profile_switch_entity"] == WINTER
     assert data["profile_switch_value"] is None
+
+
+async def test_switch_profile_by_period(hass: HomeAssistant, freezer) -> None:
+    await setup_hass(hass)
+    freezer.move_to(local(2026, 10, 31, 12, 0))
+    set_cover(hass, position=100)
+    mock_cover_services(hass)
+    cover = cover_subentry(profile="p_summer")
+    cover["data"].update(
+        {"profile_alt": "p_winter", "profile_alt_from": "1.11.", "profile_alt_to": "31.03"}
+    )
+    await setup_entry(
+        hass,
+        {"up_mode": "time", "down_mode": "time", "time_down_early_workday": "23:00"},
+        [
+            profile_subentry("Summer", {"pos_open": 100}, sub_id="p_summer"),
+            profile_subentry("Winter", {"pos_open": 60}, sub_id="p_winter"),
+            cover,
+        ],
+    )
+    assert target(hass).attributes["profile"] == "Summer"
+    # Midnight: the winter period begins
+    when = local(2026, 11, 1, 0, 0, 5)
+    freezer.move_to(when)
+    async_fire_time_changed(hass, when)
+    await hass.async_block_till_done()
+    assert target(hass).attributes["profile"] == "Winter"
+    assert target(hass).attributes["effective_config"]["pos_open"]["value"] == 60
+
+
+async def test_period_across_new_year(hass: HomeAssistant, freezer) -> None:
+    await setup_hass(hass)
+    freezer.move_to(local(2027, 3, 31, 12, 0))
+    set_cover(hass, position=100)
+    mock_cover_services(hass)
+    cover = cover_subentry(profile="p_summer")
+    cover["data"].update(
+        {"profile_alt": "p_winter", "profile_alt_from": "01.11.", "profile_alt_to": "31.03."}
+    )
+    await setup_entry(
+        hass,
+        {"up_mode": "time", "down_mode": "time"},
+        [
+            profile_subentry("Summer", {}, sub_id="p_summer"),
+            profile_subentry("Winter", {}, sub_id="p_winter"),
+            cover,
+        ],
+    )
+    assert target(hass).attributes["profile"] == "Winter"
+
+
+async def test_base_page_checks_period(hass: HomeAssistant) -> None:
+    await setup_hass(hass)
+    set_cover(hass)
+    entry = await setup_entry(
+        hass,
+        {},
+        [
+            profile_subentry("Summer", {}, sub_id="p_summer"),
+            profile_subentry("Winter", {}, sub_id="p_winter"),
+            cover_subentry(profile="p_summer"),
+        ],
+    )
+    result = await entry.start_subentry_reconfigure_flow(hass, "sub_cover")
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "base"}
+    )
+    base = {"name": "Living room", "profile": "p_summer", "profile_alt": "p_winter"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**base, "profile_alt_from": "31.02.", "profile_alt_to": "1.4."}
+    )
+    assert result["errors"] == {"profile_alt_from": "invalid_day"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**base, "profile_alt_from": "1.11."}
+    )
+    assert result["errors"] == {"profile_alt_to": "period_incomplete"}
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {**base, "profile_alt_from": "1.11.", "profile_alt_to": "31.3."}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "save"}
+    )
+    data = entry.subentries["sub_cover"].data
+    assert data["profile_alt_from"] == "1.11."
+    assert data["profile_alt_to"] == "31.3."

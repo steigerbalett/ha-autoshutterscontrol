@@ -66,6 +66,8 @@ from .const import (
     CONF_COVER_ENTITY,
     CONF_PROFILE,
     CONF_PROFILE_ALT,
+    CONF_PROFILE_ALT_FROM,
+    CONF_PROFILE_ALT_TO,
     CONF_PROFILE_SWITCH,
     CONF_PROFILE_SWITCH_VALUE,
     CONF_SETTINGS,
@@ -154,6 +156,7 @@ from .engine.daynight import (
     privacy_times,
 )
 from .engine.override import manual_counts_as_scheduled, override_until
+from .engine.period import in_period, parse_day
 from .engine.protection import (
     FROST,
     PROTECTIONS,
@@ -355,10 +358,18 @@ class AscManager:
         return sub.data.get(CONF_SETTINGS, {})
 
     def active_profile(self, subentry_id: str) -> str | None:
-        """Profile of a cover now: the alternative one while its entity shows the value."""
+        """Profile of a cover now.
+
+        The alternative one while its entity shows the value or while today lies
+        in its period (either is enough).
+        """
         data = self.entry.subentries[subentry_id].data
         alt = data.get(CONF_PROFILE_ALT)
         entity = data.get(CONF_PROFILE_SWITCH)
+        start = parse_day(data.get(CONF_PROFILE_ALT_FROM))
+        end = parse_day(data.get(CONF_PROFILE_ALT_TO))
+        if alt and start and end and in_period(dt_util.now().date(), start, end):
+            return alt
         if alt and entity:
             state = self.hass.states.get(entity)
             if state is not None and state.state not in _UNUSABLE:
@@ -612,6 +623,9 @@ class AscManager:
 
     @callback
     def _midnight(self, _now: datetime) -> None:
+        for controller in list(self.controllers.values()):
+            # A period of the alternative profile may begin or end today
+            controller.check_profile()
         self.recalculate()
 
     @callback
@@ -766,6 +780,11 @@ class CoverController:
 
     @callback
     def _on_profile_switch(self, _event: Event) -> None:
+        self.check_profile()
+
+    @callback
+    def check_profile(self) -> None:
+        """Switch to the profile that applies now (entity or period)."""
         profile = self.manager.active_profile(self.subentry_id)
         if profile == self.profile:
             return

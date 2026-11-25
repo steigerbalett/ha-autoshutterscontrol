@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 
 import pytest
 
-from custom_components.autoshutterscontrol.engine import protection as p, special
+from custom_components.autoshutterscontrol.engine import period, protection as p, special
 
 NOW = datetime(2026, 11, 25, 12, 0)
 
@@ -115,3 +115,53 @@ def test_wiggle_target() -> None:
     cfg = {"wiggle_value": 5}
     assert special.wiggle_target(cfg, 80) == 75
     assert special.wiggle_target(cfg, 3) == 8
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("1.11.", (11, 1)),
+        ("01.11", (11, 1)),
+        ("31-03", (3, 31)),
+        ("29.2.", (2, 29)),
+        ("31.2.", None),
+        ("1.13.", None),
+        ("x", None),
+        ("", None),
+        (None, None),
+    ],
+)
+def test_parse_day(text, expected) -> None:
+    assert period.parse_day(text) == expected
+
+
+def test_in_period() -> None:
+    assert period.in_period(date(2026, 12, 31), (11, 1), (3, 31))
+    assert period.in_period(date(2027, 1, 1), (11, 1), (3, 31))
+    assert not period.in_period(date(2027, 4, 1), (11, 1), (3, 31))
+    assert period.in_period(date(2026, 6, 1), (5, 1), (9, 30))
+    assert not period.in_period(date(2026, 10, 1), (5, 1), (9, 30))
+
+
+def test_advent_own_days() -> None:
+    cfg = {
+        "advent_start": "date",
+        "advent_start_date": "1.12.",
+        "advent_end": "date",
+        "advent_end_date": "15.1.",
+    }
+    assert not special.advent_active(cfg, date(2026, 11, 30))
+    assert special.advent_active(cfg, date(2026, 12, 1))
+    assert special.advent_active(cfg, date(2027, 1, 15))
+    assert not special.advent_active(cfg, date(2027, 1, 16))
+    # First Sunday of Advent until Christmas Eve
+    cfg = {"advent_start": "first_advent", "advent_end": "date", "advent_end_date": "24.12."}
+    assert not special.advent_active(cfg, date(2026, 11, 28))
+    assert special.advent_active(cfg, date(2026, 11, 29))
+    assert not special.advent_active(cfg, date(2026, 12, 25))
+    assert not special.advent_active(cfg, date(2027, 1, 2))
+    # Invalid own day: the default applies
+    cfg = {"advent_start": "date", "advent_start_date": "xx", "advent_end": "date"}
+    assert special.advent_active(cfg, date(2026, 11, 29))
+    assert special.advent_active(cfg, date(2027, 1, 6))
+    assert not special.advent_active(cfg, date(2027, 1, 7))

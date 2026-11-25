@@ -39,6 +39,11 @@ vom normalen, z. B. mit einem Input Boolean „Winter“ oder einer Auswahl „J
 Rollladen in den neuen Zielzustand, in jede Richtung. Ist die Entität kurz nicht verfügbar, gilt ihr letzter
 Zustand. Der Sensor *Zielzustand* zeigt das aktive Profil im Attribut `profile`.
 
+Statt oder zusätzlich zur Entität geht ein Zeitraum im Jahr: *Alternatives Profil ab* und *bis* als TT.MM.,
+z. B. `1.11.` bis `31.3.` für den Winter (über den Jahreswechsel, beide Tage eingeschlossen). Um Mitternacht
+wird geprüft, ob der Zeitraum beginnt oder endet. Mit Entität und Zeitraum gilt das alternative Profil, sobald
+eins von beiden zutrifft.
+
 ## Zeitplan
 
 | Einstellung | Bedeutung |
@@ -235,6 +240,10 @@ Seite *Sonderfunktionen*; Felder mit Entitäten gibt es nur am Rollladen.
 - **Advent**: Schalter *Advent* am zentralen Gerät (Standard aus). Vom 1. Advent bis 6. Januar (oder 2. Februar)
   wartet das abendliche Schließen, bis die Taste *Aufgeschobene Fahrten freigeben* oder die Aktion
   `autoshutterscontrol.release_deferred` es freigibt; die Freigabe gilt bis zum Ende des Tages.
+  - Zeitraum: *Adventsmodus ab* = 1. Advent (Standard) oder *Eigener Tag* mit *Eigener Beginn*, z. B. `1.12.`.
+    *Adventsmodus bis* = 6. Januar (Standard), 2. Februar oder *Eigener Tag* mit *Eigenes Ende*, z. B. `24.12.`
+    oder `15.1.`. Tage als TT.MM., der Zeitraum darf über den Jahreswechsel gehen.
+  - Fehlt ein eigener Tag oder ist er ungültig, gilt der Standard, und unter *Reparaturen* erscheint ein Hinweis.
 - **Externer Trigger**: eine beliebige Entität mit bis zu zwei Werten und je einer Position, z. B. eine
   Auswahl *Kino* → 0 %. Endet der Wert, fährt der Rollladen in den Zielzustand.
 - **Wackeln**: Taste *Wackeln* je Rollladen, *Alle wackeln* am zentralen Gerät, oder Aktion

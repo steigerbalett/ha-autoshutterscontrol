@@ -42,6 +42,13 @@ def test_threshold_checks() -> None:
     assert codes(pos_closed=100) == ["positions_equal"]
 
 
+def test_advent_date_check() -> None:
+    assert codes(advent_start="date") == ["advent_date"]
+    assert codes(advent_end="date", advent_end_date="31.2.") == ["advent_date"]
+    assert codes(advent_start="date", advent_start_date="1.12.") == []
+    assert codes(advent=False, advent_start="date") == []
+
+
 def test_missing_sensors() -> None:
     assert codes(up_mode="brightness") == ["missing_brightness"]
     assert codes(rain_protection=True) == ["missing_rain"]

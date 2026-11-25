@@ -39,6 +39,11 @@ the normal one, e.g. with an input boolean "Winter" or an input select "Season".
 drives to the new target, in any direction. If the entity is briefly unavailable, its last state counts. The
 sensor *Target* shows the active profile in the attribute `profile`.
 
+Instead of or in addition to the entity, a period of the year works: *Alternative profile from* and *until* as
+DD.MM., e.g. `1.11.` to `31.3.` for winter (across the new year, both days included). At midnight it is checked
+whether the period begins or ends. With both entity and period, the alternative profile applies as soon as
+either one applies.
+
 ## Schedule
 
 | Setting | Meaning |
@@ -231,6 +236,10 @@ Page *Special functions*; fields with entities exist only on the cover.
 - **Advent**: switch *Advent* of the central device (off by default). From the 1st Sunday of Advent until
   6 January (or 2 February) the evening closing waits until the button *Release deferred drives* or the action
   `autoshutterscontrol.release_deferred` releases it; the release lasts until the end of the day.
+  - Period: *Advent mode from* = first Sunday of Advent (default) or *Own day* with *Own start*, e.g. `1.12.`.
+    *Advent mode until* = 6 January (default), 2 February or *Own day* with *Own end*, e.g. `24.12.` or
+    `15.1.`. Days as DD.MM., the period may span the new year.
+  - If an own day is missing or invalid, the default applies and a repair issue appears.
 - **External trigger**: any entity with up to two values and one position each, e.g. a select *Cinema* → 0 %.
   When the value ends, the cover drives to its target.
 - **Wiggle**: button *Wiggle* per cover, *Wiggle all* on the central device, or the action

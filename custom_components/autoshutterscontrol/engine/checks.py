@@ -10,7 +10,9 @@ from collections.abc import Mapping
 from datetime import time
 from typing import Any
 
+from .period import parse_day
 from .settings import (
+    ADVENT_DATE,
     FROST_OFF,
     LOCKOUT_OFF,
     MODE_BRIGHTNESS,
@@ -70,6 +72,12 @@ def check(cfg: Mapping[str, Any]) -> list[tuple[str, dict[str, str]]]:
         add("wind_hysteresis", threshold=cfg["wind_threshold"], hysteresis=cfg["wind_hysteresis"])
     if cfg["pos_open"] == cfg["pos_closed"]:
         add("positions_equal", position=cfg["pos_open"])
+
+    # Advent with an own day: the day must be valid
+    if cfg["advent"]:
+        for mode, day in (("advent_start", "advent_start_date"), ("advent_end", "advent_end_date")):
+            if cfg[mode] == ADVENT_DATE and parse_day(cfg[day]) is None:
+                add("advent_date", setting=day)
 
     # Functions without the sensor they need
     def needs(code: str, enabled: bool, *sources: str) -> None:

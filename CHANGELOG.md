@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.2
+
+- Advent: own period. *Advent mode from* first Sunday of Advent or an own day, *Advent mode until* 6 January,
+  2 February or an own day (DD.MM., across the new year). Repair issue for a missing or invalid own day.
+- Alternative profile: period of the year (*from*/*until* as DD.MM., e.g. 1.11. to 31.3. for winter),
+  checked at midnight, in addition to the entity (either is enough).
+
 ## 0.7.1
 
 - Water protection: when it is dry again or the window is closed, the cover goes back to its position from

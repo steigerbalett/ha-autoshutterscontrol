@@ -417,7 +417,10 @@
           "force_return": "Nach einer Zwangsfunktion zurückfahren",
           "party": "Nimmt am Partymodus teil",
           "advent": "Nimmt am Adventsmodus teil",
+          "advent_start": "Adventsmodus ab",
+          "advent_start_date": "Eigener Beginn (TT.MM.)",
           "advent_end": "Adventsmodus bis",
+          "advent_end_date": "Eigenes Ende (TT.MM.)",
           "wiggle_value": "Wackeln um",
           "wiggle_wait": "Wartezeit beim Wackeln"
         },
@@ -425,6 +428,9 @@
           "force_return": "Geht die Zwangs-Entität aus, fährt der Rollladen in den Zielzustand.",
           "party": "Solange der Schalter Party am zentralen Gerät an ist, fährt der Rollladen nicht automatisch (außer Schutzfunktionen).",
           "advent": "Solange der Schalter Advent am zentralen Gerät an ist, wartet das abendliche Schließen vom 1. Advent bis zum Enddatum, bis die Taste Aufgeschobene Fahrten freigeben gedrückt wird.",
+          "advent_start": "1. Advent (jedes Jahr neu berechnet) oder ein fester Tag.",
+          "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.",
+          "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.",
           "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).",
           "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt."
         }
@@ -917,7 +923,10 @@
             "force_return": "Nach einer Zwangsfunktion zurückfahren",
             "party": "Nimmt am Partymodus teil",
             "advent": "Nimmt am Adventsmodus teil",
+            "advent_start": "Adventsmodus ab",
+            "advent_start_date": "Eigener Beginn (TT.MM.)",
             "advent_end": "Adventsmodus bis",
+            "advent_end_date": "Eigenes Ende (TT.MM.)",
             "wiggle_value": "Wackeln um",
             "wiggle_wait": "Wartezeit beim Wackeln"
           },
@@ -925,7 +934,10 @@
             "force_return": "Geht die Zwangs-Entität aus, fährt der Rollladen in den Zielzustand.\n↳ {inh_force_return}",
             "party": "Solange der Schalter Party am zentralen Gerät an ist, fährt der Rollladen nicht automatisch (außer Schutzfunktionen).\n↳ {inh_party}",
             "advent": "Solange der Schalter Advent am zentralen Gerät an ist, wartet das abendliche Schließen vom 1. Advent bis zum Enddatum, bis die Taste Aufgeschobene Fahrten freigeben gedrückt wird.\n↳ {inh_advent}",
+            "advent_start": "1. Advent (jedes Jahr neu berechnet) oder ein fester Tag.\n↳ {inh_advent_start}",
+            "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
+            "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.\n↳ {inh_advent_end_date}",
             "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}"
           }
@@ -980,13 +992,17 @@
             "profile": "Profil",
             "profile_alt": "Alternatives Profil",
             "profile_switch_entity": "Entität für das alternative Profil",
-            "profile_switch_value": "Wert für das alternative Profil"
+            "profile_switch_value": "Wert für das alternative Profil",
+            "profile_alt_from": "Alternatives Profil ab (TT.MM.)",
+            "profile_alt_to": "Alternatives Profil bis (TT.MM.)"
           },
           "data_description": {
             "profile": "Die Einstellungen des Rollladens erben von diesem Profil.",
             "profile_alt": "Gilt statt des Profils, solange die Entität den Wert zeigt, z. B. ein Winterprofil.",
             "profile_switch_entity": "Beliebige Entität, z. B. ein Input Boolean „Winter“ oder eine Auswahl „Jahreszeit“.",
-            "profile_switch_value": "Zustand der Entität (Groß-/Kleinschreibung egal). Leer = on."
+            "profile_switch_value": "Zustand der Entität (Groß-/Kleinschreibung egal). Leer = on.",
+            "profile_alt_from": "Zeitraum im Jahr, in dem das alternative Profil gilt, z. B. 1.11. bis 31.3. für den Winter. Darf über den Jahreswechsel gehen. Gilt zusätzlich zur Entität: Eins von beiden reicht.",
+            "profile_alt_to": "Letzter Tag des Zeitraums (einschließlich)."
           }
         },
         "menu": {
@@ -1391,7 +1407,10 @@
             "pause_entity": "Pause-Entität",
             "party": "Nimmt am Partymodus teil",
             "advent": "Nimmt am Adventsmodus teil",
+            "advent_start": "Adventsmodus ab",
+            "advent_start_date": "Eigener Beginn (TT.MM.)",
             "advent_end": "Adventsmodus bis",
+            "advent_end_date": "Eigenes Ende (TT.MM.)",
             "trigger_entity": "Externer Trigger",
             "trigger_value": "Trigger-Wert",
             "trigger_position": "Trigger-Position",
@@ -1411,7 +1430,10 @@
             "pause_entity": "Solange an, fährt dieser Rollladen nicht automatisch.\n↳ {inh_pause_entity}",
             "party": "Solange der Schalter Party am zentralen Gerät an ist, fährt der Rollladen nicht automatisch (außer Schutzfunktionen).\n↳ {inh_party}",
             "advent": "Solange der Schalter Advent am zentralen Gerät an ist, wartet das abendliche Schließen vom 1. Advent bis zum Enddatum, bis die Taste Aufgeschobene Fahrten freigeben gedrückt wird.\n↳ {inh_advent}",
+            "advent_start": "1. Advent (jedes Jahr neu berechnet) oder ein fester Tag.\n↳ {inh_advent_start}",
+            "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
+            "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.\n↳ {inh_advent_end_date}",
             "trigger_entity": "Beliebige Entität, z. B. eine Auswahl oder ein Taster-Helfer.\n↳ {inh_trigger_entity}",
             "trigger_value": "Zustand, der auf die Trigger-Position fährt.\n↳ {inh_trigger_value}",
             "trigger_position": "Prozent.\n↳ {inh_trigger_position}",
@@ -1497,7 +1519,9 @@
         }
       },
       "error": {
-        "no_new_cover": "Alle gewählten Rollläden sind schon eingerichtet."
+        "no_new_cover": "Alle gewählten Rollläden sind schon eingerichtet.",
+        "invalid_day": "Bitte als Tag und Monat eingeben, z. B. 1.11. oder 31.03.",
+        "period_incomplete": "Für einen Zeitraum braucht es Beginn und Ende."
       }
     }
   },
@@ -1718,7 +1742,10 @@
         "pause_entity": "Pause-Entität",
         "party": "Nimmt am Partymodus teil",
         "advent": "Nimmt am Adventsmodus teil",
+        "advent_start": "Adventsmodus ab",
+        "advent_start_date": "Eigener Beginn (TT.MM.)",
         "advent_end": "Adventsmodus bis",
+        "advent_end_date": "Eigenes Ende (TT.MM.)",
         "trigger_entity": "Externer Trigger",
         "trigger_value": "Trigger-Wert",
         "trigger_position": "Trigger-Position",
@@ -1900,6 +1927,14 @@
       "options": {
         "epiphany": "Heilige Drei Könige (6. Januar)",
         "candlemas": "Mariä Lichtmess (2. Februar)",
+        "date": "Eigener Tag",
+        "inherit": "Erben"
+      }
+    },
+    "advent_start": {
+      "options": {
+        "first_advent": "1. Advent",
+        "date": "Eigener Tag",
         "inherit": "Erben"
       }
     },
@@ -2361,6 +2396,10 @@
     "check_midnight": {
       "title": "{name}: 0:00 als späteste Schließzeit",
       "description": "0:00 ist der Beginn des Tages, die Abendfahrt wäre damit sofort fällig. Für „so spät wie möglich“ 23:59 nehmen."
+    },
+    "check_advent_date": {
+      "title": "{name}: Tag für den Adventsmodus fehlt oder ist ungültig",
+      "description": "Beim Adventsmodus ist „Eigener Tag“ gewählt, aber der eigene Beginn oder das eigene Ende fehlt oder ist kein gültiger Tag (TT.MM.). Bis dahin gilt der Standard (1. Advent bzw. 6. Januar). Seite Sonderfunktionen."
     },
     "check_brightness_order": {
       "title": "{name}: Helligkeitsschwellen vertauscht",

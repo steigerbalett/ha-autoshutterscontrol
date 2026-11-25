@@ -28,6 +28,8 @@ from .const import (
     CONF_NAME,
     CONF_PROFILE,
     CONF_PROFILE_ALT,
+    CONF_PROFILE_ALT_FROM,
+    CONF_PROFILE_ALT_TO,
     CONF_PROFILE_SWITCH,
     CONF_PROFILE_SWITCH_VALUE,
     CONF_SETTINGS,
@@ -37,6 +39,7 @@ from .const import (
     SUBENTRY_PROFILE,
 )
 from .engine import fhem
+from .engine.period import valid_day
 from .engine.resolve import inherited_value, resolve
 from .engine.settings import (
     ACTION,
@@ -780,8 +783,23 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
 
     async def async_step_base(self, user_input=None) -> SubentryFlowResult:
         """Name and profile of the cover."""
+        errors: dict[str, str] = {}
         if user_input is not None:
+            for key in (CONF_PROFILE_ALT_FROM, CONF_PROFILE_ALT_TO):
+                if not valid_day(user_input.get(key)):
+                    errors[key] = "invalid_day"
+            if bool(user_input.get(CONF_PROFILE_ALT_FROM)) != bool(
+                user_input.get(CONF_PROFILE_ALT_TO)
+            ):
+                errors[
+                    CONF_PROFILE_ALT_TO
+                    if user_input.get(CONF_PROFILE_ALT_FROM)
+                    else CONF_PROFILE_ALT_FROM
+                ] = "period_incomplete"
+        if user_input is not None and not errors:
             self._title = user_input[CONF_NAME]
+            for key in (CONF_PROFILE_ALT_FROM, CONF_PROFILE_ALT_TO):
+                self._data[key] = (user_input.get(key) or "").strip() or None
             for key in (CONF_PROFILE, CONF_PROFILE_ALT):
                 profile = user_input.get(key)
                 self._data[key] = None if profile in (None, NO_PROFILE) else profile
@@ -807,10 +825,19 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
                 _optional(
                     CONF_PROFILE_SWITCH_VALUE, self._data.get(CONF_PROFILE_SWITCH_VALUE)
                 ): selector.TextSelector(),
+                _optional(CONF_PROFILE_ALT_FROM, self._data.get(CONF_PROFILE_ALT_FROM)): (
+                    selector.TextSelector()
+                ),
+                _optional(CONF_PROFILE_ALT_TO, self._data.get(CONF_PROFILE_ALT_TO)): (
+                    selector.TextSelector()
+                ),
             }
         )
+        if user_input is not None:
+            schema = self.add_suggested_values_to_schema(schema, user_input)
         return self.async_show_form(
             step_id=STEP_BASE,
             data_schema=schema,
+            errors=errors,
             description_placeholders={"entity_id": self._data.get(CONF_COVER_ENTITY, "")},
         )

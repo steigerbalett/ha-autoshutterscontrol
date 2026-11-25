@@ -140,9 +140,12 @@ FROST_PM = "pm"
 FROST_HARD = "hard"
 FROST_MODES = (FROST_OFF, FROST_SOFT, FROST_AM, FROST_PM, FROST_HARD)
 
+ADVENT_FIRST_SUNDAY = "first_advent"
+ADVENT_DATE = "date"
+ADVENT_STARTS = (ADVENT_FIRST_SUNDAY, ADVENT_DATE)
 ADVENT_EPIPHANY = "epiphany"
 ADVENT_CANDLEMAS = "candlemas"
-ADVENT_ENDS = (ADVENT_EPIPHANY, ADVENT_CANDLEMAS)
+ADVENT_ENDS = (ADVENT_EPIPHANY, ADVENT_CANDLEMAS, ADVENT_DATE)
 
 # Residents (ASC states, highest priority first)
 RES_ASLEEP = "asleep"
@@ -777,7 +780,12 @@ SETTINGS: tuple[Setting, ...] = (
     ),
     Setting("party", BOOL, True, SEC_SPECIAL, stage=4),
     Setting("advent", BOOL, True, SEC_SPECIAL, stage=4),
+    Setting(
+        "advent_start", SELECT, ADVENT_FIRST_SUNDAY, SEC_SPECIAL, stage=4, options=ADVENT_STARTS
+    ),
+    Setting("advent_start_date", TEXT, None, SEC_SPECIAL, stage=4),
     Setting("advent_end", SELECT, ADVENT_EPIPHANY, SEC_SPECIAL, stage=4, options=ADVENT_ENDS),
+    Setting("advent_end_date", TEXT, None, SEC_SPECIAL, stage=4),
     Setting("trigger_entity", ENTITY, None, SEC_SPECIAL, stage=4, levels=COVER_ONLY),
     Setting("trigger_value", TEXT, "on", SEC_SPECIAL, stage=4, levels=COVER_ONLY),
     Setting(

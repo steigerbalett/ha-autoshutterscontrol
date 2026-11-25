@@ -417,7 +417,10 @@
           "force_return": "Go back after a force function",
           "party": "Takes part in the party mode",
           "advent": "Takes part in the advent mode",
+          "advent_start": "Advent mode from",
+          "advent_start_date": "Own start (DD.MM.)",
           "advent_end": "Advent mode until",
+          "advent_end_date": "Own end (DD.MM.)",
           "wiggle_value": "Wiggle by",
           "wiggle_wait": "Wiggle wait"
         },
@@ -425,6 +428,9 @@
           "force_return": "When the force entity turns off, the cover goes to its target.",
           "party": "While the switch Party of the central device is on, the cover does not move automatically (except protections).",
           "advent": "While the switch Advent of the central device is on, the evening closing waits from the 1st Sunday of Advent until the end date, until the button Release deferred drives is pressed.",
+          "advent_start": "First Sunday of Advent (calculated every year) or a fixed day.",
+          "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.",
+          "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.",
           "wiggle_value": "Percent for the function check (button Wiggle).",
           "wiggle_wait": "Seconds before the cover goes back."
         }
@@ -917,7 +923,10 @@
             "force_return": "Go back after a force function",
             "party": "Takes part in the party mode",
             "advent": "Takes part in the advent mode",
+            "advent_start": "Advent mode from",
+            "advent_start_date": "Own start (DD.MM.)",
             "advent_end": "Advent mode until",
+            "advent_end_date": "Own end (DD.MM.)",
             "wiggle_value": "Wiggle by",
             "wiggle_wait": "Wiggle wait"
           },
@@ -925,7 +934,10 @@
             "force_return": "When the force entity turns off, the cover goes to its target.\n↳ {inh_force_return}",
             "party": "While the switch Party of the central device is on, the cover does not move automatically (except protections).\n↳ {inh_party}",
             "advent": "While the switch Advent of the central device is on, the evening closing waits from the 1st Sunday of Advent until the end date, until the button Release deferred drives is pressed.\n↳ {inh_advent}",
+            "advent_start": "First Sunday of Advent (calculated every year) or a fixed day.\n↳ {inh_advent_start}",
+            "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
+            "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.\n↳ {inh_advent_end_date}",
             "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}"
           }
@@ -980,13 +992,17 @@
             "profile": "Profile",
             "profile_alt": "Alternative profile",
             "profile_switch_entity": "Entity for the alternative profile",
-            "profile_switch_value": "Value for the alternative profile"
+            "profile_switch_value": "Value for the alternative profile",
+            "profile_alt_from": "Alternative profile from (DD.MM.)",
+            "profile_alt_to": "Alternative profile until (DD.MM.)"
           },
           "data_description": {
             "profile": "Settings of the cover inherit from this profile.",
             "profile_alt": "Used instead of the profile while the entity shows the value, e.g. a winter profile.",
             "profile_switch_entity": "Any entity, e.g. an input boolean \"Winter\" or an input select \"Season\".",
-            "profile_switch_value": "State of the entity (not case sensitive). Empty = on."
+            "profile_switch_value": "State of the entity (not case sensitive). Empty = on.",
+            "profile_alt_from": "Period of the year in which the alternative profile applies, e.g. 1.11. to 31.3. for winter. May span the new year. Works in addition to the entity: either is enough.",
+            "profile_alt_to": "Last day of the period (included)."
           }
         },
         "menu": {
@@ -1391,7 +1407,10 @@
             "pause_entity": "Pause entity",
             "party": "Takes part in the party mode",
             "advent": "Takes part in the advent mode",
+            "advent_start": "Advent mode from",
+            "advent_start_date": "Own start (DD.MM.)",
             "advent_end": "Advent mode until",
+            "advent_end_date": "Own end (DD.MM.)",
             "trigger_entity": "External trigger",
             "trigger_value": "Trigger value",
             "trigger_position": "Trigger position",
@@ -1411,7 +1430,10 @@
             "pause_entity": "While on, this cover does not move automatically.\n↳ {inh_pause_entity}",
             "party": "While the switch Party of the central device is on, the cover does not move automatically (except protections).\n↳ {inh_party}",
             "advent": "While the switch Advent of the central device is on, the evening closing waits from the 1st Sunday of Advent until the end date, until the button Release deferred drives is pressed.\n↳ {inh_advent}",
+            "advent_start": "First Sunday of Advent (calculated every year) or a fixed day.\n↳ {inh_advent_start}",
+            "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
+            "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.\n↳ {inh_advent_end_date}",
             "trigger_entity": "Any entity, e.g. an input select or a button helper.\n↳ {inh_trigger_entity}",
             "trigger_value": "State that drives to the trigger position.\n↳ {inh_trigger_value}",
             "trigger_position": "Percent.\n↳ {inh_trigger_position}",
@@ -1497,7 +1519,9 @@
         }
       },
       "error": {
-        "no_new_cover": "All chosen covers are already set up."
+        "no_new_cover": "All chosen covers are already set up.",
+        "invalid_day": "Please enter day and month, e.g. 1.11. or 31.03.",
+        "period_incomplete": "A period needs a start and an end."
       }
     }
   },
@@ -1718,7 +1742,10 @@
         "pause_entity": "Pause entity",
         "party": "Takes part in the party mode",
         "advent": "Takes part in the advent mode",
+        "advent_start": "Advent mode from",
+        "advent_start_date": "Own start (DD.MM.)",
         "advent_end": "Advent mode until",
+        "advent_end_date": "Own end (DD.MM.)",
         "trigger_entity": "External trigger",
         "trigger_value": "Trigger value",
         "trigger_position": "Trigger position",
@@ -1900,6 +1927,14 @@
       "options": {
         "epiphany": "Epiphany (6 January)",
         "candlemas": "Candlemas (2 February)",
+        "date": "Own day",
+        "inherit": "Inherit"
+      }
+    },
+    "advent_start": {
+      "options": {
+        "first_advent": "First Sunday of Advent",
+        "date": "Own day",
         "inherit": "Inherit"
       }
     },
@@ -2361,6 +2396,10 @@
     "check_midnight": {
       "title": "{name}: 0:00 as latest closing time",
       "description": "0:00 is the start of the day, so the evening drive would be due at once. Use 23:59 for \"as late as possible\"."
+    },
+    "check_advent_date": {
+      "title": "{name}: day for the Advent mode missing or invalid",
+      "description": "The Advent mode is set to \"Own day\", but the own start or end is missing or not a valid day (DD.MM.). Until then the default applies (first Sunday of Advent or 6 January). Page Special functions."
     },
     "check_brightness_order": {
       "title": "{name}: brightness thresholds swapped",

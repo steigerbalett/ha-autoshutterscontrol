@@ -16,6 +16,8 @@ CONF_PROFILE: Final = "profile"
 CONF_PROFILE_ALT: Final = "profile_alt"
 CONF_PROFILE_SWITCH: Final = "profile_switch_entity"
 CONF_PROFILE_SWITCH_VALUE: Final = "profile_switch_value"
+CONF_PROFILE_ALT_FROM: Final = "profile_alt_from"
+CONF_PROFILE_ALT_TO: Final = "profile_alt_to"
 CONF_SETTINGS: Final = "settings"
 CONF_NAME: Final = "name"
 
