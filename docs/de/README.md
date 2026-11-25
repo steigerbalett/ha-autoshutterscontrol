@@ -14,7 +14,8 @@ Es gibt **einen** Eintrag für das ganze Haus.
 
 1. **Haupteintrag**: Arbeitstag-Sensoren wählen (optional). Ohne Sensor gelten Montag bis Freitag als Arbeitstage.
 2. **Optionen** (Zahnrad am Eintrag): globale Einstellungen, je eine Seite für Zeitplan, Sensoren,
-   Helligkeit und Sonnenhöhe, Positionen, Fenster, Sichtschutz,
+   Helligkeit und Sonnenhöhe, Bewohner und Selbstschutz, Positionen, Fenster, Beschattung,
+   Lamellen, Sichtschutz,
    Fahrverhalten und manuelle Übersteuerung.
 3. **Profile** (optional, *Profil hinzufügen*): Einstellungen für eine Gruppe von Rollläden, z. B. „Südseite“.
 4. **Rollläden** (*Rollläden hinzufügen*): einen oder mehrere Rollläden und ein Profil wählen. Abweichungen
@@ -89,6 +90,94 @@ geschlossen, gekippt oder offen.
 
 Der Sensor *Nächster Sichtschutz* zeigt die nächste Sichtschutzfahrt.
 
+## Bewohner
+
+Seite *Bewohner und Selbstschutz*. *Quellen des Haus-Status* (global, Profil oder Rollladen) und je Rollladen
+*Quellen des Raum-Status*. Jede Quelle wird auf einen Zustand abgebildet:
+
+| Quelle | Zustand |
+|---|---|
+| Person, Device Tracker | `home` = zu Hause, sonst abwesend; länger weg als *Länger weg als (verreist)* = verreist |
+| Zone (z. B. `zone.home`) | 0 = abwesend, ab 1 = zu Hause |
+| Binärsensor, Input Boolean (Bett, Schlafmodus) | an = schläft, aus = wach |
+| Alarmanlage | abwesend/Urlaub = verreist, Nacht = schläft, zu Hause/entschärft = zu Hause |
+| Sensor, Auswahl | Zustände `asleep`, `gotosleep`, `awoken`, `home`, `absent`, `gone` |
+
+Mit *Eigene Zuordnung von Quellwerten* lassen sich weitere Werte zuordnen, z. B.
+`Schlafen:asleep, Urlaub:gone`. Mehrere Quellen: schläft > geht schlafen > wach > zu Hause > abwesend >
+verreist. Ist eine Quelle nicht erreichbar, gilt ihr letzter bekannter Zustand.
+
+Für jeden Rollladen zählt der Raum-Status, falls er Quellen hat, sonst der Haus-Status:
+
+- **Schlafen**: Mit *Schließen, wenn die Bewohner schlafen gehen* (Standard an) fährt der Rollladen auf
+  *Position Schlafen* (leer = geschlossen), auch am Tag. Solange geschlafen wird, gibt es keine Morgenfahrt,
+  kein Lüften und keine Beschattung, außer es ist erlaubt (*… trotz Schlaf*).
+- **Aufwachen**: Mit *Öffnen, wenn die Bewohner aufwachen* (Standard an) fährt der Rollladen am Tag in den
+  Zielzustand.
+- **Morgenfahrt / Abendfahrt**: *Immer*, *nur wenn jemand zu Hause ist*, *nur wenn niemand zu Hause ist* oder
+  *nie* (ASC `ASC_Mode_Up`/`_Down`, gilt für den Haus-Status).
+- Neuer Modus *Bewohner* für *Morgens/Abends fahren nach*: morgens öffnen, sobald die Bewohner wach sind,
+  abends schließen, sobald sie schlafen, jeweils zwischen frühester und spätester Zeit (späteste Zeit ist die
+  Frist).
+
+## Selbstschutz
+
+Ist der Schalter *Selbstschutz* am zentralen Gerät an (Standard aus), schließen Rollläden mit offenem oder
+gekipptem Fenster, sobald niemand zu Hause ist: bei *verreist* sofort, bei *abwesend* nach der Verzögerung
+(Modus *Wenn niemand zu Hause ist*). Mit *Selbstschutz schließt jeden Rollladen* auch die ohne offenes
+Fenster. Der Selbstschutz geht vor Aussperrschutz und Übersteuerung. Kommt jemand heim oder wird das Fenster
+geschlossen, fährt der Rollladen wieder in den Zielzustand. Binärsensor *Selbstschutz* je Rollladen.
+
+## Beschattung
+
+Seite *Beschattung*, Standard *aus*. Einschalten mit *Beschattung* = *Immer* (oder nur bei An-/Abwesenheit),
+am besten im Profil der Fassade. Der Schalter *Beschattung* am zentralen Gerät schaltet sie für alle ab.
+
+**Bedingungen** (nur, wenn ihr Sensor bzw. Schwellwert eingestellt ist):
+
+| Bedingung | Beginn | Ende (Hysterese) |
+|---|---|---|
+| Sonnenrichtung | zwischen *von* und *bis* (Standard 105–255°, auch über Nord) | außerhalb |
+| Sonnenhöhe | zwischen *ab* und *bis* (Standard 25–90°) | außerhalb |
+| Helligkeit | ab *Beginn ab Helligkeit* (35000 lx), optional gemittelt | unter *Ende unter Helligkeit* (20000 lx) |
+| Außentemperatur | ab 18 °C | unter 18 °C minus Hysterese (1 K) |
+| Innentemperatur | ab Schwelle (leer = aus) | unter Schwelle minus Hysterese |
+| Vorhersage-Temperatur | Höchstwert heute ab Schwelle (Sensor oder Tagesvorhersage der Wetter-Entität) | unter Schwelle minus Hysterese |
+| Wetterlage | Zustand der Wetter-Entität in der Liste (Standard sonnig, teilweise bewölkt) | nicht in der Liste |
+| Eigener Binärsensor | an | aus |
+
+*Muss (alle)* (Standard: alle) und *Oder (mindestens eine)*: Beginn, wenn alle Muss-Bedingungen und, falls
+die Oder-Liste eingestellte Bedingungen hat, eine davon erfüllt sind. Ein nicht erreichbarer Sensor startet
+keine Beschattung, beendet aber auch keine.
+
+**Ablauf** wie ASC: keine → *beginnt gleich* (*Wartezeit vor der Beschattung*, Standard 10 min) →
+Beschattung → *endet gleich* (*Wartezeit vor dem Ende*, Standard 20 min) → keine. Verlässt die Sonne den
+Bereich, endet sie sofort (abschaltbar). Geprüft wird jede Minute, nur am Tag und im Zeitfenster
+*Beschattung ab/bis*.
+
+**Fahren**: auf *Position Beschattung* (30 %), solange *Entität für die alternative Position* an ist auf die
+alternative Position. *Beschattung fährt nur nach unten* (Standard an). Am Ende fährt der Rollladen zurück in
+den Zielzustand, aber nur, wenn er noch auf der Beschattungsposition steht (nicht nach einer Handfahrt oder
+wenn er geschlossen ist); *Nach der Beschattung wieder öffnen* aus lässt ihn bis zum Abend stehen. Ein offenes
+Fenster geht vor (Lüftungsposition).
+
+**Hitzeschutz**: ab *Hitzeschutz ab* (Außentemperatur) wird beschattet, auch ohne Sonne, und bis zum Abend
+gehalten.
+
+Der Sensor *Beschattung* je Rollladen zeigt den Zustand und in den Attributen alle Eingangswerte
+(Sonnenrichtung, Sonnenhöhe, Helligkeit, Temperaturen, Vorhersage, Wetterlage).
+
+## Lamellen
+
+Seite *Lamellen*, für Rollläden mit Lamellenposition (oder eine eigene Lamellen-Entität je Rollladen).
+Je Fahrt eine Lamellenstellung (offen, geschlossen, Schlafen, Lüften, Komfort, Beschattung, Sichtschutz);
+leer = Lamellen bleiben. *Beschattungsstufen nach Sonnenhöhe*: bis zu 4 Stufen `Sonnenhöhe:Lamelle`, z. B.
+`20:70, 35:50, 50:30`; ändert sich die Stufe während der Beschattung, werden nur die Lamellen nachgestellt.
+
+*Reihenfolge*: Position, dann Lamellen bei Stillstand (Standard, mit Zeitlimit) oder nach der Wartezeit,
+oder erst Lamellen, dann Position (Z-Wave). *Lamellen vor neuer Einstellung erst schließen* und eine eigene
+*Toleranz der Lamellen* gibt es ebenfalls. Lamellen von Hand verstellen zählt als Handfahrt (nicht bei einer eigenen Lamellen-Entität).
+
 ## Manuelle Übersteuerung
 
 Eine Fahrt, die nicht von AutoShuttersControl kommt (App, Taster, Wandschalter, andere Automation), startet
@@ -110,11 +199,11 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 ## Entitäten
 
 **Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause,
-Komfort;
+Komfort, Beschattung, Selbstschutz; Sensor Haus-Status;
 Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand.
 
-**Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag und Manuelle Übersteuerung; Sensoren
-Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Fenster; Knöpfe Zielzustand anfahren und
+**Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag, Manuelle Übersteuerung und Selbstschutz; Sensoren
+Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Fenster, Bewohner, Beschattung; Knöpfe Zielzustand anfahren und
 Übersteuerung beenden; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.
 
@@ -141,8 +230,8 @@ Ereignisse: `autoshutterscontrol_drive` (jede Fahrt, mit `reason` und `trigger`)
 | Stufe | Inhalt |
 |---|---|
 | 1 | Grundgerüst, Erben, Entscheider, Zeitplan (Zeit/Sonne/Arbeitstag), Positionen, Übersteuerung, Verzögerung, EN/DE |
-| 2 (diese Version) | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
-| 3 | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
+| 2 | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
+| 3 (diese Version) | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
 | 4 | Regen (auch bei offenem Fenster), Wind, Frost, Force, Party, Advent, Trigger, Wackeln |
 | 5 | Nachholen nach Neustart, Plausibilitätsprüfung, Logbuch, FHEM-Import, HACS-Standard |
 

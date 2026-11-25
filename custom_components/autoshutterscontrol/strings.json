@@ -8,13 +8,21 @@
           "workday_sensor": "Workday sensor (today)",
           "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
           "calendar": "Calendar",
-          "brightness_sensor": "Brightness sensor"
+          "brightness_sensor": "Brightness sensor",
+          "outdoor_temperature_sensor": "Outdoor temperature",
+          "indoor_temperature_sensor": "Indoor temperature",
+          "weather_entity": "Weather",
+          "forecast_sensor": "Forecast temperature sensor"
         },
         "data_description": {
           "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.",
           "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.",
           "calendar": "Used when the times come from the calendar.",
-          "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness."
+          "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.",
+          "outdoor_temperature_sensor": "For shading and heat protection.",
+          "indoor_temperature_sensor": "For shading, usually set per cover or profile.",
+          "weather_entity": "Weather condition and daily forecast for shading.",
+          "forecast_sensor": "Today's maximum temperature; used instead of the forecast of the weather entity."
         }
       }
     },
@@ -31,8 +39,11 @@
           "schedule": "Schedule",
           "light": "Brightness and sun elevation",
           "sensors": "Sensors",
+          "residents": "Residents and self defense",
           "positions": "Positions",
           "window": "Window contacts",
+          "shading": "Shading",
+          "tilt": "Slats",
           "privacy": "Privacy",
           "drive": "Drive behaviour",
           "override": "Manual override",
@@ -85,13 +96,21 @@
           "workday_sensor": "Workday sensor (today)",
           "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
           "calendar": "Calendar",
-          "brightness_sensor": "Brightness sensor"
+          "brightness_sensor": "Brightness sensor",
+          "outdoor_temperature_sensor": "Outdoor temperature",
+          "indoor_temperature_sensor": "Indoor temperature",
+          "weather_entity": "Weather",
+          "forecast_sensor": "Forecast temperature sensor"
         },
         "data_description": {
           "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.",
           "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.",
           "calendar": "Used when the times come from the calendar.",
-          "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness."
+          "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.",
+          "outdoor_temperature_sensor": "For shading and heat protection.",
+          "indoor_temperature_sensor": "For shading, usually set per cover or profile.",
+          "weather_entity": "Weather condition and daily forecast for shading.",
+          "forecast_sensor": "Today's maximum temperature; used instead of the forecast of the weather entity."
         }
       },
       "positions": {
@@ -100,14 +119,19 @@
         "data": {
           "pos_open": "Open position",
           "pos_closed": "Closed position",
+          "pos_sleep": "Sleep position",
           "pos_ventilate": "Ventilation position",
           "pos_comfort": "Comfort position",
+          "pos_shading": "Shading position",
+          "pos_shading_alt": "Alternative shading position",
           "pos_privacy": "Privacy position (evening)",
           "pos_privacy_up": "Privacy position (morning)",
           "tolerance": "Tolerance"
         },
         "data_description": {
+          "pos_sleep": "While residents sleep. Empty = closed position.",
           "pos_comfort": "Used for a fully open window while the switch Comfort is on.",
+          "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.",
           "pos_privacy_up": "Empty: same as the evening privacy position.",
           "tolerance": "A cover within this distance of a position counts as being there."
         }
@@ -216,6 +240,111 @@
           "privacy_down_minutes": "0 = off.",
           "privacy_brightness": "Empty = off. Starts the evening privacy after the earliest closing time as soon as it is this dark."
         }
+      },
+      "residents": {
+        "title": "Residents and self defense",
+        "description": "The house status comes from persons, device trackers, zones, bed or sleep sensors, alarm panels or helpers. Several sources: asleep > going to sleep > awake > at home > absent > gone.",
+        "data": {
+          "residents_house": "Sources of the house status",
+          "residents_map": "Own mapping of source values",
+          "residents_gone_hours": "Away longer than (gone)",
+          "presence_up": "Morning drive",
+          "presence_down": "Evening drive",
+          "sleep_close": "Close when the residents go to sleep",
+          "wake_open": "Open when the residents wake up",
+          "sleep_allow_open": "Morning drive while asleep",
+          "sleep_allow_ventilate": "Ventilation while asleep",
+          "sleep_allow_shading": "Shading while asleep",
+          "self_defense_mode": "Self defense",
+          "self_defense_delay": "Self defense delay when absent",
+          "self_defense_all": "Self defense closes every cover"
+        },
+        "data_description": {
+          "residents_house": "Person: home = at home, otherwise absent. Zone: number of persons. Binary sensor / input boolean: on = asleep, off = awake. Alarm panel: away = gone, night = asleep, home = at home. Sensors and selects with the state names asleep, gotosleep, awoken, home, absent, gone.",
+          "residents_map": "Example: armed_night:asleep, Schlafen:asleep, Urlaub:gone",
+          "residents_gone_hours": "A person who is away longer counts as gone. 0 = off.",
+          "presence_up": "Drive in the morning only when someone is at home, or only when nobody is.",
+          "presence_down": "Drive in the evening only when someone is at home, or only when nobody is.",
+          "sleep_close": "Drives to the sleep position.",
+          "wake_open": "When it is day, the cover goes to its target (open, shading).",
+          "sleep_allow_open": "Open in the morning even if the residents still sleep.",
+          "self_defense_mode": "Closes covers with an open or tilted window when nobody is at home. Also needs the switch Self defense of the central device.",
+          "self_defense_all": "Also covers without an open window."
+        }
+      },
+      "shading": {
+        "title": "Shading",
+        "description": "Shading starts when all conditions of the list Must and one of the list Or are met, and ends with hysteresis. Conditions without a sensor are ignored.",
+        "data": {
+          "shading_mode": "Shading",
+          "shading_azimuth_start": "Sun direction from",
+          "shading_azimuth_end": "Sun direction to",
+          "shading_elevation_min": "Sun elevation from",
+          "shading_elevation_max": "Sun elevation to",
+          "shading_brightness_sensor": "Brightness sensor for shading",
+          "shading_brightness_start": "Start from brightness",
+          "shading_brightness_end": "End below brightness",
+          "shading_brightness_average": "Average of the brightness over",
+          "shading_temp_out_min": "Outdoor temperature from",
+          "shading_temp_in_min": "Indoor temperature from",
+          "shading_forecast_min": "Forecast temperature from",
+          "shading_temp_hysteresis": "Hysteresis of the temperatures",
+          "shading_weather_conditions": "Weather conditions for shading",
+          "shading_sensor": "Own binary sensor",
+          "shading_must": "Must (all)",
+          "shading_any": "Or (at least one)",
+          "shading_delay_start": "Wait before shading",
+          "shading_delay_end": "Wait before ending",
+          "shading_end_sun_leaves": "End at once when the sun leaves the area",
+          "shading_end_open": "Open again after shading",
+          "shading_only_down": "Shading only drives down",
+          "shading_time_start": "Shading from",
+          "shading_time_end": "Shading until",
+          "heat_protection_temp": "Heat protection from",
+          "shading_alt_entity": "Entity for the alternative position"
+        },
+        "data_description": {
+          "shading_mode": "Off by default. Always, or only when someone / nobody is at home.",
+          "shading_azimuth_start": "Compass degrees: 90 east, 180 south, 270 west. The window faces the range between these values.",
+          "shading_brightness_sensor": "Empty = the brightness sensor of the page Sensors.",
+          "shading_brightness_average": "Minutes; 0 = current value.",
+          "shading_temp_in_min": "Empty = not used.",
+          "shading_forecast_min": "Empty = not used. From the forecast sensor or the daily forecast of the weather entity.",
+          "shading_temp_hysteresis": "Shading ends only below the threshold minus this value.",
+          "shading_sensor": "On = shade.",
+          "shading_must": "Default: all conditions (as ASC).",
+          "shading_any": "A condition in both lists counts as Must.",
+          "shading_end_open": "Off: the cover stays at the shading position until the evening.",
+          "shading_only_down": "A cover that is lower than the shading position stays where it is.",
+          "shading_time_start": "Empty = the whole day.",
+          "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.",
+          "shading_alt_entity": "While on, the alternative shading position is used."
+        }
+      },
+      "tilt": {
+        "title": "Slats",
+        "description": "For venetian blinds: slat position per drive. Empty = the slats are not changed. Only for covers that support a tilt position.",
+        "data": {
+          "tilt_open": "Slats when open",
+          "tilt_closed": "Slats when closed",
+          "tilt_sleep": "Slats in the sleep position",
+          "tilt_ventilate": "Slats when ventilating",
+          "tilt_comfort": "Slats in the comfort position",
+          "tilt_shading": "Slats when shading",
+          "tilt_privacy": "Slats for privacy",
+          "tilt_shading_steps": "Shading steps by sun elevation",
+          "tilt_mode": "Order",
+          "tilt_delay": "Wait between position and slats",
+          "tilt_timeout": "Time limit for standstill",
+          "tilt_close_first": "Close the slats before a new setting",
+          "tilt_tolerance": "Tolerance of the slats"
+        },
+        "data_description": {
+          "tilt_sleep": "Empty = slats when closed.",
+          "tilt_shading_steps": "Up to 4 steps sun elevation:slats, e.g. 20:70, 35:50, 50:30. Below the first step the slats when shading are used.",
+          "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).",
+          "tilt_timeout": "After this time the slats are set even if no standstill was reported."
+        }
       }
     }
   },
@@ -241,8 +370,11 @@
             "schedule": "Schedule",
             "light": "Brightness and sun elevation",
             "sensors": "Sensors",
+            "residents": "Residents and self defense",
             "positions": "Positions",
             "window": "Window contacts",
+            "shading": "Shading",
+            "tilt": "Slats",
             "privacy": "Privacy",
             "drive": "Drive behaviour",
             "override": "Manual override",
@@ -312,13 +444,21 @@
             "workday_sensor": "Workday sensor (today)",
             "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
             "calendar": "Calendar",
-            "brightness_sensor": "Brightness sensor"
+            "brightness_sensor": "Brightness sensor",
+            "outdoor_temperature_sensor": "Outdoor temperature",
+            "indoor_temperature_sensor": "Indoor temperature",
+            "weather_entity": "Weather",
+            "forecast_sensor": "Forecast temperature sensor"
           },
           "data_description": {
             "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_sensor}",
             "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Used when the times come from the calendar.\n↳ {inh_calendar}",
-            "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}"
+            "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}",
+            "outdoor_temperature_sensor": "For shading and heat protection.\n↳ {inh_outdoor_temperature_sensor}",
+            "indoor_temperature_sensor": "For shading, usually set per cover or profile.\n↳ {inh_indoor_temperature_sensor}",
+            "weather_entity": "Weather condition and daily forecast for shading.\n↳ {inh_weather_entity}",
+            "forecast_sensor": "Today's maximum temperature; used instead of the forecast of the weather entity.\n↳ {inh_forecast_sensor}"
           }
         },
         "positions": {
@@ -327,8 +467,11 @@
           "data": {
             "pos_open": "Open position",
             "pos_closed": "Closed position",
+            "pos_sleep": "Sleep position",
             "pos_ventilate": "Ventilation position",
             "pos_comfort": "Comfort position",
+            "pos_shading": "Shading position",
+            "pos_shading_alt": "Alternative shading position",
             "pos_privacy": "Privacy position (evening)",
             "pos_privacy_up": "Privacy position (morning)",
             "tolerance": "Tolerance"
@@ -336,8 +479,11 @@
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_sleep": "While residents sleep. Empty = closed position.\n↳ {inh_pos_sleep}",
             "pos_ventilate": "↳ {inh_pos_ventilate}",
             "pos_comfort": "Used for a fully open window while the switch Comfort is on.\n↳ {inh_pos_comfort}",
+            "pos_shading": "↳ {inh_pos_shading}",
+            "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}"
@@ -446,6 +592,134 @@
             "privacy_down_minutes": "0 = off.\n↳ {inh_privacy_down_minutes}",
             "privacy_brightness": "Empty = off. Starts the evening privacy after the earliest closing time as soon as it is this dark.\n↳ {inh_privacy_brightness}"
           }
+        },
+        "residents": {
+          "title": "Residents and self defense",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "residents_house": "Sources of the house status",
+            "residents_map": "Own mapping of source values",
+            "residents_gone_hours": "Away longer than (gone)",
+            "presence_up": "Morning drive",
+            "presence_down": "Evening drive",
+            "sleep_close": "Close when the residents go to sleep",
+            "wake_open": "Open when the residents wake up",
+            "sleep_allow_open": "Morning drive while asleep",
+            "sleep_allow_ventilate": "Ventilation while asleep",
+            "sleep_allow_shading": "Shading while asleep",
+            "self_defense_mode": "Self defense",
+            "self_defense_delay": "Self defense delay when absent",
+            "self_defense_all": "Self defense closes every cover"
+          },
+          "data_description": {
+            "residents_house": "Person: home = at home, otherwise absent. Zone: number of persons. Binary sensor / input boolean: on = asleep, off = awake. Alarm panel: away = gone, night = asleep, home = at home. Sensors and selects with the state names asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
+            "residents_map": "Example: armed_night:asleep, Schlafen:asleep, Urlaub:gone\n↳ {inh_residents_map}",
+            "residents_gone_hours": "A person who is away longer counts as gone. 0 = off.\n↳ {inh_residents_gone_hours}",
+            "presence_up": "Drive in the morning only when someone is at home, or only when nobody is.\n↳ {inh_presence_up}",
+            "presence_down": "Drive in the evening only when someone is at home, or only when nobody is.\n↳ {inh_presence_down}",
+            "sleep_close": "Drives to the sleep position.\n↳ {inh_sleep_close}",
+            "wake_open": "When it is day, the cover goes to its target (open, shading).\n↳ {inh_wake_open}",
+            "sleep_allow_open": "Open in the morning even if the residents still sleep.\n↳ {inh_sleep_allow_open}",
+            "sleep_allow_ventilate": "↳ {inh_sleep_allow_ventilate}",
+            "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
+            "self_defense_mode": "Closes covers with an open or tilted window when nobody is at home. Also needs the switch Self defense of the central device.\n↳ {inh_self_defense_mode}",
+            "self_defense_delay": "↳ {inh_self_defense_delay}",
+            "self_defense_all": "Also covers without an open window.\n↳ {inh_self_defense_all}"
+          }
+        },
+        "shading": {
+          "title": "Shading",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "shading_mode": "Shading",
+            "shading_azimuth_start": "Sun direction from",
+            "shading_azimuth_end": "Sun direction to",
+            "shading_elevation_min": "Sun elevation from",
+            "shading_elevation_max": "Sun elevation to",
+            "shading_brightness_sensor": "Brightness sensor for shading",
+            "shading_brightness_start": "Start from brightness",
+            "shading_brightness_end": "End below brightness",
+            "shading_brightness_average": "Average of the brightness over",
+            "shading_temp_out_min": "Outdoor temperature from",
+            "shading_temp_in_min": "Indoor temperature from",
+            "shading_forecast_min": "Forecast temperature from",
+            "shading_temp_hysteresis": "Hysteresis of the temperatures",
+            "shading_weather_conditions": "Weather conditions for shading",
+            "shading_sensor": "Own binary sensor",
+            "shading_must": "Must (all)",
+            "shading_any": "Or (at least one)",
+            "shading_delay_start": "Wait before shading",
+            "shading_delay_end": "Wait before ending",
+            "shading_end_sun_leaves": "End at once when the sun leaves the area",
+            "shading_end_open": "Open again after shading",
+            "shading_only_down": "Shading only drives down",
+            "shading_time_start": "Shading from",
+            "shading_time_end": "Shading until",
+            "heat_protection_temp": "Heat protection from",
+            "shading_alt_entity": "Entity for the alternative position"
+          },
+          "data_description": {
+            "shading_mode": "Off by default. Always, or only when someone / nobody is at home.\n↳ {inh_shading_mode}",
+            "shading_azimuth_start": "Compass degrees: 90 east, 180 south, 270 west. The window faces the range between these values.\n↳ {inh_shading_azimuth_start}",
+            "shading_azimuth_end": "↳ {inh_shading_azimuth_end}",
+            "shading_elevation_min": "↳ {inh_shading_elevation_min}",
+            "shading_elevation_max": "↳ {inh_shading_elevation_max}",
+            "shading_brightness_sensor": "Empty = the brightness sensor of the page Sensors.\n↳ {inh_shading_brightness_sensor}",
+            "shading_brightness_start": "↳ {inh_shading_brightness_start}",
+            "shading_brightness_end": "↳ {inh_shading_brightness_end}",
+            "shading_brightness_average": "Minutes; 0 = current value.\n↳ {inh_shading_brightness_average}",
+            "shading_temp_out_min": "↳ {inh_shading_temp_out_min}",
+            "shading_temp_in_min": "Empty = not used.\n↳ {inh_shading_temp_in_min}",
+            "shading_forecast_min": "Empty = not used. From the forecast sensor or the daily forecast of the weather entity.\n↳ {inh_shading_forecast_min}",
+            "shading_temp_hysteresis": "Shading ends only below the threshold minus this value.\n↳ {inh_shading_temp_hysteresis}",
+            "shading_weather_conditions": "↳ {inh_shading_weather_conditions}",
+            "shading_sensor": "On = shade.\n↳ {inh_shading_sensor}",
+            "shading_must": "Default: all conditions (as ASC).\n↳ {inh_shading_must}",
+            "shading_any": "A condition in both lists counts as Must.\n↳ {inh_shading_any}",
+            "shading_delay_start": "↳ {inh_shading_delay_start}",
+            "shading_delay_end": "↳ {inh_shading_delay_end}",
+            "shading_end_sun_leaves": "↳ {inh_shading_end_sun_leaves}",
+            "shading_end_open": "Off: the cover stays at the shading position until the evening.\n↳ {inh_shading_end_open}",
+            "shading_only_down": "A cover that is lower than the shading position stays where it is.\n↳ {inh_shading_only_down}",
+            "shading_time_start": "Empty = the whole day.\n↳ {inh_shading_time_start}",
+            "shading_time_end": "↳ {inh_shading_time_end}",
+            "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.\n↳ {inh_heat_protection_temp}",
+            "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
+          }
+        },
+        "tilt": {
+          "title": "Slats",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "tilt_open": "Slats when open",
+            "tilt_closed": "Slats when closed",
+            "tilt_sleep": "Slats in the sleep position",
+            "tilt_ventilate": "Slats when ventilating",
+            "tilt_comfort": "Slats in the comfort position",
+            "tilt_shading": "Slats when shading",
+            "tilt_privacy": "Slats for privacy",
+            "tilt_shading_steps": "Shading steps by sun elevation",
+            "tilt_mode": "Order",
+            "tilt_delay": "Wait between position and slats",
+            "tilt_timeout": "Time limit for standstill",
+            "tilt_close_first": "Close the slats before a new setting",
+            "tilt_tolerance": "Tolerance of the slats"
+          },
+          "data_description": {
+            "tilt_open": "↳ {inh_tilt_open}",
+            "tilt_closed": "↳ {inh_tilt_closed}",
+            "tilt_sleep": "Empty = slats when closed.\n↳ {inh_tilt_sleep}",
+            "tilt_ventilate": "↳ {inh_tilt_ventilate}",
+            "tilt_comfort": "↳ {inh_tilt_comfort}",
+            "tilt_shading": "↳ {inh_tilt_shading}",
+            "tilt_privacy": "↳ {inh_tilt_privacy}",
+            "tilt_shading_steps": "Up to 4 steps sun elevation:slats, e.g. 20:70, 35:50, 50:30. Below the first step the slats when shading are used.\n↳ {inh_tilt_shading_steps}",
+            "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).\n↳ {inh_tilt_mode}",
+            "tilt_delay": "↳ {inh_tilt_delay}",
+            "tilt_timeout": "After this time the slats are set even if no standstill was reported.\n↳ {inh_tilt_timeout}",
+            "tilt_close_first": "↳ {inh_tilt_close_first}",
+            "tilt_tolerance": "↳ {inh_tilt_tolerance}"
+          }
         }
       }
     },
@@ -479,8 +753,11 @@
             "schedule": "Schedule",
             "light": "Brightness and sun elevation",
             "sensors": "Sensors",
+            "residents": "Residents and self defense",
             "positions": "Positions",
             "window": "Window contacts",
+            "shading": "Shading",
+            "tilt": "Slats",
             "privacy": "Privacy",
             "drive": "Drive behaviour",
             "override": "Manual override",
@@ -540,8 +817,11 @@
           "data": {
             "pos_open": "Open position",
             "pos_closed": "Closed position",
+            "pos_sleep": "Sleep position",
             "pos_ventilate": "Ventilation position",
             "pos_comfort": "Comfort position",
+            "pos_shading": "Shading position",
+            "pos_shading_alt": "Alternative shading position",
             "pos_privacy": "Privacy position (evening)",
             "pos_privacy_up": "Privacy position (morning)",
             "tolerance": "Tolerance",
@@ -551,8 +831,11 @@
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_sleep": "While residents sleep. Empty = closed position.\n↳ {inh_pos_sleep}",
             "pos_ventilate": "↳ {inh_pos_ventilate}",
             "pos_comfort": "Used for a fully open window while the switch Comfort is on.\n↳ {inh_pos_comfort}",
+            "pos_shading": "↳ {inh_pos_shading}",
+            "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}",
@@ -576,13 +859,21 @@
             "workday_sensor": "Workday sensor (today)",
             "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
             "calendar": "Calendar",
-            "brightness_sensor": "Brightness sensor"
+            "brightness_sensor": "Brightness sensor",
+            "outdoor_temperature_sensor": "Outdoor temperature",
+            "indoor_temperature_sensor": "Indoor temperature",
+            "weather_entity": "Weather",
+            "forecast_sensor": "Forecast temperature sensor"
           },
           "data_description": {
             "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_sensor}",
             "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Used when the times come from the calendar.\n↳ {inh_calendar}",
-            "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}"
+            "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}",
+            "outdoor_temperature_sensor": "For shading and heat protection.\n↳ {inh_outdoor_temperature_sensor}",
+            "indoor_temperature_sensor": "For shading, usually set per cover or profile.\n↳ {inh_indoor_temperature_sensor}",
+            "weather_entity": "Weather condition and daily forecast for shading.\n↳ {inh_weather_entity}",
+            "forecast_sensor": "Today's maximum temperature; used instead of the forecast of the weather entity.\n↳ {inh_forecast_sensor}"
           }
         },
         "drive": {
@@ -694,6 +985,138 @@
             "privacy_down_minutes": "0 = off.\n↳ {inh_privacy_down_minutes}",
             "privacy_brightness": "Empty = off. Starts the evening privacy after the earliest closing time as soon as it is this dark.\n↳ {inh_privacy_brightness}"
           }
+        },
+        "residents": {
+          "data": {
+            "residents_house": "Sources of the house status",
+            "residents_room": "Sources of the room status",
+            "residents_map": "Own mapping of source values",
+            "residents_gone_hours": "Away longer than (gone)",
+            "presence_up": "Morning drive",
+            "presence_down": "Evening drive",
+            "sleep_close": "Close when the residents go to sleep",
+            "wake_open": "Open when the residents wake up",
+            "sleep_allow_open": "Morning drive while asleep",
+            "sleep_allow_ventilate": "Ventilation while asleep",
+            "sleep_allow_shading": "Shading while asleep",
+            "self_defense_mode": "Self defense",
+            "self_defense_delay": "Self defense delay when absent",
+            "self_defense_all": "Self defense closes every cover"
+          },
+          "data_description": {
+            "residents_house": "Person: home = at home, otherwise absent. Zone: number of persons. Binary sensor / input boolean: on = asleep, off = awake. Alarm panel: away = gone, night = asleep, home = at home. Sensors and selects with the state names asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
+            "residents_room": "Persons or sensors of this room (e.g. bed sensor). Used instead of the house status for sleeping and waking.\n↳ {inh_residents_room}",
+            "residents_map": "Example: armed_night:asleep, Schlafen:asleep, Urlaub:gone\n↳ {inh_residents_map}",
+            "residents_gone_hours": "A person who is away longer counts as gone. 0 = off.\n↳ {inh_residents_gone_hours}",
+            "presence_up": "Drive in the morning only when someone is at home, or only when nobody is.\n↳ {inh_presence_up}",
+            "presence_down": "Drive in the evening only when someone is at home, or only when nobody is.\n↳ {inh_presence_down}",
+            "sleep_close": "Drives to the sleep position.\n↳ {inh_sleep_close}",
+            "wake_open": "When it is day, the cover goes to its target (open, shading).\n↳ {inh_wake_open}",
+            "sleep_allow_open": "Open in the morning even if the residents still sleep.\n↳ {inh_sleep_allow_open}",
+            "sleep_allow_ventilate": "↳ {inh_sleep_allow_ventilate}",
+            "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
+            "self_defense_mode": "Closes covers with an open or tilted window when nobody is at home. Also needs the switch Self defense of the central device.\n↳ {inh_self_defense_mode}",
+            "self_defense_delay": "↳ {inh_self_defense_delay}",
+            "self_defense_all": "Also covers without an open window.\n↳ {inh_self_defense_all}"
+          },
+          "title": "Residents and self defense",
+          "description": "Empty fields inherit. ↳ shows the inherited value."
+        },
+        "tilt": {
+          "data": {
+            "tilt_entity": "Own slat entity",
+            "tilt_open": "Slats when open",
+            "tilt_closed": "Slats when closed",
+            "tilt_sleep": "Slats in the sleep position",
+            "tilt_ventilate": "Slats when ventilating",
+            "tilt_comfort": "Slats in the comfort position",
+            "tilt_shading": "Slats when shading",
+            "tilt_privacy": "Slats for privacy",
+            "tilt_shading_steps": "Shading steps by sun elevation",
+            "tilt_mode": "Order",
+            "tilt_delay": "Wait between position and slats",
+            "tilt_timeout": "Time limit for standstill",
+            "tilt_close_first": "Close the slats before a new setting",
+            "tilt_tolerance": "Tolerance of the slats"
+          },
+          "data_description": {
+            "tilt_entity": "Separate cover entity for the slats. Empty = this cover.\n↳ {inh_tilt_entity}",
+            "tilt_open": "↳ {inh_tilt_open}",
+            "tilt_closed": "↳ {inh_tilt_closed}",
+            "tilt_sleep": "Empty = slats when closed.\n↳ {inh_tilt_sleep}",
+            "tilt_ventilate": "↳ {inh_tilt_ventilate}",
+            "tilt_comfort": "↳ {inh_tilt_comfort}",
+            "tilt_shading": "↳ {inh_tilt_shading}",
+            "tilt_privacy": "↳ {inh_tilt_privacy}",
+            "tilt_shading_steps": "Up to 4 steps sun elevation:slats, e.g. 20:70, 35:50, 50:30. Below the first step the slats when shading are used.\n↳ {inh_tilt_shading_steps}",
+            "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).\n↳ {inh_tilt_mode}",
+            "tilt_delay": "↳ {inh_tilt_delay}",
+            "tilt_timeout": "After this time the slats are set even if no standstill was reported.\n↳ {inh_tilt_timeout}",
+            "tilt_close_first": "↳ {inh_tilt_close_first}",
+            "tilt_tolerance": "↳ {inh_tilt_tolerance}"
+          },
+          "title": "Slats",
+          "description": "Empty fields inherit. ↳ shows the inherited value."
+        },
+        "shading": {
+          "title": "Shading",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "shading_mode": "Shading",
+            "shading_azimuth_start": "Sun direction from",
+            "shading_azimuth_end": "Sun direction to",
+            "shading_elevation_min": "Sun elevation from",
+            "shading_elevation_max": "Sun elevation to",
+            "shading_brightness_sensor": "Brightness sensor for shading",
+            "shading_brightness_start": "Start from brightness",
+            "shading_brightness_end": "End below brightness",
+            "shading_brightness_average": "Average of the brightness over",
+            "shading_temp_out_min": "Outdoor temperature from",
+            "shading_temp_in_min": "Indoor temperature from",
+            "shading_forecast_min": "Forecast temperature from",
+            "shading_temp_hysteresis": "Hysteresis of the temperatures",
+            "shading_weather_conditions": "Weather conditions for shading",
+            "shading_sensor": "Own binary sensor",
+            "shading_must": "Must (all)",
+            "shading_any": "Or (at least one)",
+            "shading_delay_start": "Wait before shading",
+            "shading_delay_end": "Wait before ending",
+            "shading_end_sun_leaves": "End at once when the sun leaves the area",
+            "shading_end_open": "Open again after shading",
+            "shading_only_down": "Shading only drives down",
+            "shading_time_start": "Shading from",
+            "shading_time_end": "Shading until",
+            "heat_protection_temp": "Heat protection from",
+            "shading_alt_entity": "Entity for the alternative position"
+          },
+          "data_description": {
+            "shading_mode": "Off by default. Always, or only when someone / nobody is at home.\n↳ {inh_shading_mode}",
+            "shading_azimuth_start": "Compass degrees: 90 east, 180 south, 270 west. The window faces the range between these values.\n↳ {inh_shading_azimuth_start}",
+            "shading_azimuth_end": "↳ {inh_shading_azimuth_end}",
+            "shading_elevation_min": "↳ {inh_shading_elevation_min}",
+            "shading_elevation_max": "↳ {inh_shading_elevation_max}",
+            "shading_brightness_sensor": "Empty = the brightness sensor of the page Sensors.\n↳ {inh_shading_brightness_sensor}",
+            "shading_brightness_start": "↳ {inh_shading_brightness_start}",
+            "shading_brightness_end": "↳ {inh_shading_brightness_end}",
+            "shading_brightness_average": "Minutes; 0 = current value.\n↳ {inh_shading_brightness_average}",
+            "shading_temp_out_min": "↳ {inh_shading_temp_out_min}",
+            "shading_temp_in_min": "Empty = not used.\n↳ {inh_shading_temp_in_min}",
+            "shading_forecast_min": "Empty = not used. From the forecast sensor or the daily forecast of the weather entity.\n↳ {inh_shading_forecast_min}",
+            "shading_temp_hysteresis": "Shading ends only below the threshold minus this value.\n↳ {inh_shading_temp_hysteresis}",
+            "shading_weather_conditions": "↳ {inh_shading_weather_conditions}",
+            "shading_sensor": "On = shade.\n↳ {inh_shading_sensor}",
+            "shading_must": "Default: all conditions (as ASC).\n↳ {inh_shading_must}",
+            "shading_any": "A condition in both lists counts as Must.\n↳ {inh_shading_any}",
+            "shading_delay_start": "↳ {inh_shading_delay_start}",
+            "shading_delay_end": "↳ {inh_shading_delay_end}",
+            "shading_end_sun_leaves": "↳ {inh_shading_end_sun_leaves}",
+            "shading_end_open": "Off: the cover stays at the shading position until the evening.\n↳ {inh_shading_end_open}",
+            "shading_only_down": "A cover that is lower than the shading position stays where it is.\n↳ {inh_shading_only_down}",
+            "shading_time_start": "Empty = the whole day.\n↳ {inh_shading_time_start}",
+            "shading_time_end": "↳ {inh_shading_time_end}",
+            "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.\n↳ {inh_heat_protection_temp}",
+            "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
+          }
         }
       },
       "error": {
@@ -716,7 +1139,8 @@
         "inherit": "Inherit",
         "brightness": "Brightness",
         "elevation": "Sun elevation",
-        "brightness_elevation": "Brightness and sun elevation"
+        "brightness_elevation": "Brightness and sun elevation",
+        "residents": "Residents (when awake)"
       }
     },
     "down_mode": {
@@ -726,7 +1150,8 @@
         "inherit": "Inherit",
         "brightness": "Brightness",
         "elevation": "Sun elevation",
-        "brightness_elevation": "Brightness and sun elevation"
+        "brightness_elevation": "Brightness and sun elevation",
+        "residents": "Residents (when asleep)"
       }
     },
     "twilight_up": {
@@ -801,10 +1226,31 @@
         "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
         "calendar": "Calendar",
         "brightness_sensor": "Brightness sensor",
+        "outdoor_temperature_sensor": "Outdoor temperature",
+        "indoor_temperature_sensor": "Indoor temperature",
+        "weather_entity": "Weather",
+        "forecast_sensor": "Forecast temperature sensor",
+        "residents_house": "Sources of the house status",
+        "residents_room": "Sources of the room status",
+        "residents_map": "Own mapping of source values",
+        "residents_gone_hours": "Away longer than (gone)",
+        "presence_up": "Morning drive",
+        "presence_down": "Evening drive",
+        "sleep_close": "Close when the residents go to sleep",
+        "wake_open": "Open when the residents wake up",
+        "sleep_allow_open": "Morning drive while asleep",
+        "sleep_allow_ventilate": "Ventilation while asleep",
+        "sleep_allow_shading": "Shading while asleep",
+        "self_defense_mode": "Self defense",
+        "self_defense_delay": "Self defense delay when absent",
+        "self_defense_all": "Self defense closes every cover",
         "pos_open": "Open position",
         "pos_closed": "Closed position",
+        "pos_sleep": "Sleep position",
         "pos_ventilate": "Ventilation position",
         "pos_comfort": "Comfort position",
+        "pos_shading": "Shading position",
+        "pos_shading_alt": "Alternative shading position",
         "pos_privacy": "Privacy position (evening)",
         "pos_privacy_up": "Privacy position (morning)",
         "tolerance": "Tolerance",
@@ -822,6 +1268,46 @@
         "window_close_return": "When the window is closed",
         "lockout": "Lock-out protection",
         "lockout_tilted": "Lock-out protection also when tilted",
+        "shading_mode": "Shading",
+        "shading_azimuth_start": "Sun direction from",
+        "shading_azimuth_end": "Sun direction to",
+        "shading_elevation_min": "Sun elevation from",
+        "shading_elevation_max": "Sun elevation to",
+        "shading_brightness_sensor": "Brightness sensor for shading",
+        "shading_brightness_start": "Start from brightness",
+        "shading_brightness_end": "End below brightness",
+        "shading_brightness_average": "Average of the brightness over",
+        "shading_temp_out_min": "Outdoor temperature from",
+        "shading_temp_in_min": "Indoor temperature from",
+        "shading_forecast_min": "Forecast temperature from",
+        "shading_temp_hysteresis": "Hysteresis of the temperatures",
+        "shading_weather_conditions": "Weather conditions for shading",
+        "shading_sensor": "Own binary sensor",
+        "shading_must": "Must (all)",
+        "shading_any": "Or (at least one)",
+        "shading_delay_start": "Wait before shading",
+        "shading_delay_end": "Wait before ending",
+        "shading_end_sun_leaves": "End at once when the sun leaves the area",
+        "shading_end_open": "Open again after shading",
+        "shading_only_down": "Shading only drives down",
+        "shading_time_start": "Shading from",
+        "shading_time_end": "Shading until",
+        "heat_protection_temp": "Heat protection from",
+        "shading_alt_entity": "Entity for the alternative position",
+        "tilt_entity": "Own slat entity",
+        "tilt_open": "Slats when open",
+        "tilt_closed": "Slats when closed",
+        "tilt_sleep": "Slats in the sleep position",
+        "tilt_ventilate": "Slats when ventilating",
+        "tilt_comfort": "Slats in the comfort position",
+        "tilt_shading": "Slats when shading",
+        "tilt_privacy": "Slats for privacy",
+        "tilt_shading_steps": "Shading steps by sun elevation",
+        "tilt_mode": "Order",
+        "tilt_delay": "Wait between position and slats",
+        "tilt_timeout": "Time limit for standstill",
+        "tilt_close_first": "Close the slats before a new setting",
+        "tilt_tolerance": "Tolerance of the slats",
         "privacy_up_minutes": "Morning: minutes before opening",
         "privacy_down_minutes": "Evening: minutes before closing",
         "privacy_brightness": "Evening: when darker than",
@@ -875,6 +1361,92 @@
         "hard": "Hard",
         "inherit": "Inherit"
       }
+    },
+    "presence_up": {
+      "options": {
+        "always": "Always",
+        "home": "Only when someone is at home",
+        "absent": "Only when nobody is at home",
+        "off": "Never",
+        "inherit": "Inherit"
+      }
+    },
+    "presence_down": {
+      "options": {
+        "always": "Always",
+        "home": "Only when someone is at home",
+        "absent": "Only when nobody is at home",
+        "off": "Never",
+        "inherit": "Inherit"
+      }
+    },
+    "shading_mode": {
+      "options": {
+        "always": "Always",
+        "home": "Only when someone is at home",
+        "absent": "Only when nobody is at home",
+        "off": "Off",
+        "inherit": "Inherit"
+      }
+    },
+    "self_defense_mode": {
+      "options": {
+        "off": "Off",
+        "absent": "When nobody is at home (after the delay)",
+        "gone": "Only when the residents are gone",
+        "inherit": "Inherit"
+      }
+    },
+    "shading_must": {
+      "options": {
+        "azimuth": "Sun direction (azimuth)",
+        "elevation": "Sun elevation",
+        "brightness": "Brightness",
+        "temp_out": "Outdoor temperature",
+        "temp_in": "Indoor temperature",
+        "forecast": "Forecast temperature",
+        "weather": "Weather condition",
+        "sensor": "Own binary sensor"
+      }
+    },
+    "shading_any": {
+      "options": {
+        "azimuth": "Sun direction (azimuth)",
+        "elevation": "Sun elevation",
+        "brightness": "Brightness",
+        "temp_out": "Outdoor temperature",
+        "temp_in": "Indoor temperature",
+        "forecast": "Forecast temperature",
+        "weather": "Weather condition",
+        "sensor": "Own binary sensor"
+      }
+    },
+    "shading_weather_conditions": {
+      "options": {
+        "clear-night": "Clear, night",
+        "cloudy": "Cloudy",
+        "exceptional": "Exceptional",
+        "fog": "Fog",
+        "hail": "Hail",
+        "lightning": "Lightning",
+        "lightning-rainy": "Lightning, rainy",
+        "partlycloudy": "Partly cloudy",
+        "pouring": "Pouring",
+        "rainy": "Rainy",
+        "snowy": "Snowy",
+        "snowy-rainy": "Snowy, rainy",
+        "sunny": "Sunny",
+        "windy": "Windy",
+        "windy-variant": "Windy, cloudy"
+      }
+    },
+    "tilt_mode": {
+      "options": {
+        "after": "Position, then slats after the delay",
+        "standstill": "Position, then slats when the cover stands still",
+        "first": "Slats first, then position",
+        "inherit": "Inherit"
+      }
     }
   },
   "entity": {
@@ -902,6 +1474,12 @@
       },
       "global_comfort": {
         "name": "Comfort"
+      },
+      "global_shading": {
+        "name": "Shading"
+      },
+      "global_self_defense": {
+        "name": "Self defense"
       }
     },
     "binary_sensor": {
@@ -910,6 +1488,9 @@
       },
       "manual_override": {
         "name": "Manual override"
+      },
+      "self_defense": {
+        "name": "Self defense"
       }
     },
     "sensor": {
@@ -930,7 +1511,11 @@
           "comfort": "Comfort",
           "privacy_up": "Privacy (morning)",
           "privacy_down": "Privacy (evening)",
-          "window_return": "Window closed"
+          "window_return": "Window closed",
+          "sleep": "Residents asleep",
+          "self_defense": "Self defense",
+          "shading": "Shading",
+          "heat": "Heat protection"
         }
       },
       "target": {
@@ -952,6 +1537,37 @@
       },
       "next_privacy": {
         "name": "Next privacy"
+      },
+      "house_status": {
+        "name": "House status",
+        "state": {
+          "asleep": "Asleep",
+          "gotosleep": "Going to sleep",
+          "awoken": "Awake",
+          "home": "At home",
+          "absent": "Absent",
+          "gone": "Gone (longer away)"
+        }
+      },
+      "residents": {
+        "name": "Residents",
+        "state": {
+          "asleep": "Asleep",
+          "gotosleep": "Going to sleep",
+          "awoken": "Awake",
+          "home": "At home",
+          "absent": "Absent",
+          "gone": "Gone (longer away)"
+        }
+      },
+      "shading_state": {
+        "name": "Shading",
+        "state": {
+          "out": "Not shading",
+          "in_reserved": "Shading starts soon",
+          "in": "Shading",
+          "out_reserved": "Shading ends soon"
+        }
       }
     },
     "button": {
@@ -977,7 +1593,8 @@
           "astro": "Sun",
           "brightness": "Brightness",
           "elevation": "Sun elevation",
-          "brightness_elevation": "Brightness and sun elevation"
+          "brightness_elevation": "Brightness and sun elevation",
+          "residents": "Residents (when awake)"
         }
       },
       "down_mode": {
@@ -988,7 +1605,18 @@
           "astro": "Sun",
           "brightness": "Brightness",
           "elevation": "Sun elevation",
-          "brightness_elevation": "Brightness and sun elevation"
+          "brightness_elevation": "Brightness and sun elevation",
+          "residents": "Residents (when asleep)"
+        }
+      },
+      "shading_mode": {
+        "name": "Shading",
+        "state": {
+          "inherit": "Inherit",
+          "always": "Always",
+          "home": "Only when someone is at home",
+          "absent": "Only when nobody is at home",
+          "off": "Off"
         }
       }
     },
@@ -1024,6 +1652,9 @@
       },
       "pos_closed": {
         "name": "Closed position"
+      },
+      "pos_shading": {
+        "name": "Shading position"
       }
     }
   },

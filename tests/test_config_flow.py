@@ -191,3 +191,62 @@ async def test_add_profile(hass: HomeAssistant) -> None:
         "time_up_early_workday": "07:15:00",
         "down_tomorrow_workday": True,
     }
+
+
+async def test_stage3_pages(hass: HomeAssistant) -> None:
+    await setup_hass(hass)
+    set_cover(hass)
+    entry = await setup_entry(hass, {"residents_house": ["person.anna"]})
+    # Global residents and shading pages
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert {"residents", "shading", "tilt"} <= set(result["menu_options"])
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "residents"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"residents_house": ["person.anna", "person.ben"], "self_defense_mode": "absent"},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "shading"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"shading_mode": "always", "shading_must": ["azimuth", "elevation"], "shading_any": []},
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "save"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    settings = entry.options["settings"]
+    assert settings["residents_house"] == ["person.anna", "person.ben"]
+    assert settings["shading_must"] == ["azimuth", "elevation"]
+    await hass.async_block_till_done()
+    # Cover: room sources and own slat entity, inherited house sources shown
+    result = await entry.start_subentry_reconfigure_flow(hass, "sub_cover")
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "residents"}
+    )
+    placeholders = result["description_placeholders"]
+    assert placeholders["inh_residents_house"] == "person.anna, person.ben"
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"residents_room": ["binary_sensor.bed"], "residents_house": []}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "tilt"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"tilt_entity": "cover.slats", "tilt_shading": 40}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "save"}
+    )
+    assert entry.subentries["sub_cover"].data["settings"] == {
+        "residents_room": ["binary_sensor.bed"],
+        "tilt_entity": "cover.slats",
+        "tilt_shading": 40,
+    }
+    await hass.async_block_till_done()
+    cfg = entry.runtime_data.controllers["sub_cover"].cfg
+    assert cfg["residents_house"] == ("person.anna", "person.ben")

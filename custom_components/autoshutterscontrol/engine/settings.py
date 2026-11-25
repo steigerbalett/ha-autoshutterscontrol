@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import time
 from typing import Any
 
-ACTIVE_STAGE = 2
+ACTIVE_STAGE = 3
 
 LEVEL_GLOBAL = "global"
 LEVEL_PROFILE = "profile"
@@ -31,6 +31,7 @@ SELECT = "select"
 MULTI = "multi"
 ENTITY = "entity"
 TEXT = "text"
+ENTITIES = "entities"
 
 # Sections (one options page each)
 SEC_SCHEDULE = "schedule"
@@ -41,12 +42,18 @@ SEC_OVERRIDE = "override"
 SEC_LIGHT = "light"
 SEC_WINDOW = "window"
 SEC_PRIVACY = "privacy"
+SEC_RESIDENTS = "residents"
+SEC_SHADING = "shading"
+SEC_TILT = "tilt"
 SECTIONS = (
     SEC_SCHEDULE,
     SEC_LIGHT,
     SEC_SENSORS,
+    SEC_RESIDENTS,
     SEC_POSITIONS,
     SEC_WINDOW,
+    SEC_SHADING,
+    SEC_TILT,
     SEC_PRIVACY,
     SEC_DRIVE,
     SEC_OVERRIDE,
@@ -58,9 +65,19 @@ MODE_ASTRO = "astro"
 MODE_BRIGHTNESS = "brightness"
 MODE_ELEVATION = "elevation"
 MODE_BRIGHTNESS_ELEVATION = "brightness_elevation"
-UP_DOWN_MODES = (MODE_TIME, MODE_ASTRO, MODE_BRIGHTNESS, MODE_ELEVATION, MODE_BRIGHTNESS_ELEVATION)
+MODE_RESIDENTS = "residents"
+UP_DOWN_MODES = (
+    MODE_TIME,
+    MODE_ASTRO,
+    MODE_BRIGHTNESS,
+    MODE_ELEVATION,
+    MODE_BRIGHTNESS_ELEVATION,
+    MODE_RESIDENTS,
+)
 # Modes where the drive happens when a condition is met (between early and late)
-DYNAMIC_MODES = frozenset({MODE_BRIGHTNESS, MODE_ELEVATION, MODE_BRIGHTNESS_ELEVATION})
+DYNAMIC_MODES = frozenset(
+    {MODE_BRIGHTNESS, MODE_ELEVATION, MODE_BRIGHTNESS_ELEVATION, MODE_RESIDENTS}
+)
 
 LOGIC_AND = "and"
 LOGIC_OR = "or"
@@ -106,6 +123,80 @@ KIND_CLOSE = "close"
 KIND_VENTILATE = "ventilate"
 KIND_SHADING = "shading"
 DRIVE_KINDS = (KIND_OPEN, KIND_CLOSE, KIND_VENTILATE, KIND_SHADING)
+
+# Residents (ASC states, highest priority first)
+RES_ASLEEP = "asleep"
+RES_GOTOSLEEP = "gotosleep"
+RES_AWOKEN = "awoken"
+RES_HOME = "home"
+RES_ABSENT = "absent"
+RES_GONE = "gone"
+RESIDENT_STATES = (RES_ASLEEP, RES_GOTOSLEEP, RES_AWOKEN, RES_HOME, RES_ABSENT, RES_GONE)
+RESIDENT_DOMAINS = (
+    "person",
+    "device_tracker",
+    "zone",
+    "binary_sensor",
+    "input_boolean",
+    "input_select",
+    "select",
+    "sensor",
+    "alarm_control_panel",
+)
+
+# Drive only when residents are ... (ASC_Mode_Up / _Down / ASC_Shading_Mode)
+PRESENCE_ALWAYS = "always"
+PRESENCE_HOME = "home"
+PRESENCE_ABSENT = "absent"
+PRESENCE_OFF = "off"
+PRESENCE_MODES = (PRESENCE_ALWAYS, PRESENCE_HOME, PRESENCE_ABSENT, PRESENCE_OFF)
+
+SELF_DEFENSE_OFF = "off"
+SELF_DEFENSE_ABSENT = "absent"
+SELF_DEFENSE_GONE = "gone"
+SELF_DEFENSE_MODES = (SELF_DEFENSE_OFF, SELF_DEFENSE_ABSENT, SELF_DEFENSE_GONE)
+
+# Shading conditions
+COND_AZIMUTH = "azimuth"
+COND_ELEVATION = "elevation"
+COND_BRIGHTNESS = "brightness"
+COND_TEMP_OUT = "temp_out"
+COND_TEMP_IN = "temp_in"
+COND_FORECAST = "forecast"
+COND_WEATHER = "weather"
+COND_SENSOR = "sensor"
+SHADING_CONDITIONS = (
+    COND_AZIMUTH,
+    COND_ELEVATION,
+    COND_BRIGHTNESS,
+    COND_TEMP_OUT,
+    COND_TEMP_IN,
+    COND_FORECAST,
+    COND_WEATHER,
+    COND_SENSOR,
+)
+WEATHER_CONDITIONS = (
+    "clear-night",
+    "cloudy",
+    "exceptional",
+    "fog",
+    "hail",
+    "lightning",
+    "lightning-rainy",
+    "partlycloudy",
+    "pouring",
+    "rainy",
+    "snowy",
+    "snowy-rainy",
+    "sunny",
+    "windy",
+    "windy-variant",
+)
+
+TILT_AFTER = "after"
+TILT_STANDSTILL = "standstill"
+TILT_FIRST = "first"
+TILT_MODES = (TILT_AFTER, TILT_STANDSTILL, TILT_FIRST)
 
 RESET_MINUTES = "minutes"
 RESET_TIME = "time"
@@ -212,19 +303,76 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("workday_tomorrow_sensor", ENTITY, None, SEC_SENSORS, domains=("binary_sensor",)),
     Setting("calendar", ENTITY, None, SEC_SENSORS, stage=2, domains=("calendar",)),
     Setting("brightness_sensor", ENTITY, None, SEC_SENSORS, stage=2, domains=("sensor",)),
-    Setting("residents_home", ENTITY, None, SEC_SENSORS, stage=3),
     Setting("rain_sensor", ENTITY, None, SEC_SENSORS, stage=4, domains=("sensor", "binary_sensor")),
     Setting("wind_sensor", ENTITY, None, SEC_SENSORS, stage=4, domains=("sensor",)),
-    Setting("outdoor_temperature_sensor", ENTITY, None, SEC_SENSORS, stage=3, domains=("sensor",)),
-    Setting("indoor_temperature_sensor", ENTITY, None, SEC_SENSORS, stage=3, domains=("sensor",)),
+    Setting(
+        "outdoor_temperature_sensor",
+        ENTITY,
+        None,
+        SEC_SENSORS,
+        stage=3,
+        domains=("sensor", "input_number", "number"),
+    ),
+    Setting(
+        "indoor_temperature_sensor",
+        ENTITY,
+        None,
+        SEC_SENSORS,
+        stage=3,
+        domains=("sensor", "input_number", "number"),
+    ),
     Setting("weather_entity", ENTITY, None, SEC_SENSORS, stage=3, domains=("weather",)),
+    Setting(
+        "forecast_sensor",
+        ENTITY,
+        None,
+        SEC_SENSORS,
+        stage=3,
+        domains=("sensor", "input_number", "number"),
+    ),
+    # --- residents ------------------------------------------------------
+    Setting("residents_house", ENTITIES, (), SEC_RESIDENTS, stage=3, domains=RESIDENT_DOMAINS),
+    Setting(
+        "residents_room",
+        ENTITIES,
+        (),
+        SEC_RESIDENTS,
+        stage=3,
+        levels=COVER_ONLY,
+        domains=RESIDENT_DOMAINS,
+    ),
+    Setting("residents_map", TEXT, None, SEC_RESIDENTS, stage=3),
+    Setting(
+        "residents_gone_hours", INT, 0, SEC_RESIDENTS, stage=3, minimum=0, maximum=240, unit="h"
+    ),
+    Setting("presence_up", SELECT, PRESENCE_ALWAYS, SEC_RESIDENTS, stage=3, options=PRESENCE_MODES),
+    Setting(
+        "presence_down", SELECT, PRESENCE_ALWAYS, SEC_RESIDENTS, stage=3, options=PRESENCE_MODES
+    ),
+    Setting("sleep_close", BOOL, True, SEC_RESIDENTS, stage=3),
+    Setting("wake_open", BOOL, True, SEC_RESIDENTS, stage=3),
+    Setting("sleep_allow_open", BOOL, False, SEC_RESIDENTS, stage=3),
+    Setting("sleep_allow_ventilate", BOOL, False, SEC_RESIDENTS, stage=3),
+    Setting("sleep_allow_shading", BOOL, False, SEC_RESIDENTS, stage=3),
+    Setting(
+        "self_defense_mode",
+        SELECT,
+        SELF_DEFENSE_GONE,
+        SEC_RESIDENTS,
+        stage=3,
+        options=SELF_DEFENSE_MODES,
+    ),
+    Setting(
+        "self_defense_delay", INT, 5, SEC_RESIDENTS, stage=3, minimum=0, maximum=240, unit="min"
+    ),
+    Setting("self_defense_all", BOOL, False, SEC_RESIDENTS, stage=3),
     # --- positions ------------------------------------------------------
     _pos("pos_open", 100, 1, entity=True),
     _pos("pos_closed", 0, 1, entity=True),
     _pos("pos_sleep", None, 3),
     _pos("pos_ventilate", 50, 2),
     _pos("pos_comfort", 70, 2),
-    _pos("pos_shading", 30, 3),
+    _pos("pos_shading", 30, 3, entity=True),
     _pos("pos_shading_alt", None, 3),
     _pos("pos_privacy", 50, 2),
     _pos("pos_privacy_up", None, 2),
@@ -281,6 +429,191 @@ SETTINGS: tuple[Setting, ...] = (
     ),
     Setting("lockout", SELECT, LOCKOUT_OFF, SEC_WINDOW, stage=2, options=LOCKOUTS),
     Setting("lockout_tilted", BOOL, False, SEC_WINDOW, stage=2),
+    # --- shading ----------------------------------------------------------
+    Setting(
+        "shading_mode",
+        SELECT,
+        PRESENCE_OFF,
+        SEC_SHADING,
+        stage=3,
+        options=PRESENCE_MODES,
+        entity="select",
+    ),
+    Setting(
+        "shading_azimuth_start", INT, 105, SEC_SHADING, stage=3, minimum=0, maximum=360, unit="°"
+    ),
+    Setting(
+        "shading_azimuth_end", INT, 255, SEC_SHADING, stage=3, minimum=0, maximum=360, unit="°"
+    ),
+    Setting(
+        "shading_elevation_min",
+        FLOAT,
+        25.0,
+        SEC_SHADING,
+        stage=3,
+        minimum=-10,
+        maximum=90,
+        step=0.5,
+        unit="°",
+    ),
+    Setting(
+        "shading_elevation_max",
+        FLOAT,
+        90.0,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=90,
+        step=0.5,
+        unit="°",
+    ),
+    Setting(
+        "shading_brightness_sensor",
+        ENTITY,
+        None,
+        SEC_SHADING,
+        stage=3,
+        domains=("sensor", "input_number", "number"),
+    ),
+    Setting(
+        "shading_brightness_start",
+        INT,
+        35000,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=200000,
+        unit="lx",
+    ),
+    Setting(
+        "shading_brightness_end",
+        INT,
+        20000,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=200000,
+        unit="lx",
+    ),
+    Setting(
+        "shading_brightness_average",
+        INT,
+        0,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=60,
+        unit="min",
+    ),
+    Setting(
+        "shading_temp_out_min",
+        FLOAT,
+        18.0,
+        SEC_SHADING,
+        stage=3,
+        minimum=-30,
+        maximum=50,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "shading_temp_in_min",
+        FLOAT,
+        None,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=40,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "shading_forecast_min",
+        FLOAT,
+        None,
+        SEC_SHADING,
+        stage=3,
+        minimum=-30,
+        maximum=50,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "shading_temp_hysteresis",
+        FLOAT,
+        1.0,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=10,
+        step=0.5,
+        unit="K",
+    ),
+    Setting(
+        "shading_weather_conditions",
+        MULTI,
+        ("sunny", "partlycloudy"),
+        SEC_SHADING,
+        stage=3,
+        options=WEATHER_CONDITIONS,
+    ),
+    Setting(
+        "shading_sensor",
+        ENTITY,
+        None,
+        SEC_SHADING,
+        stage=3,
+        domains=("binary_sensor", "input_boolean", "switch"),
+    ),
+    Setting(
+        "shading_must",
+        MULTI,
+        SHADING_CONDITIONS,
+        SEC_SHADING,
+        stage=3,
+        options=SHADING_CONDITIONS,
+    ),
+    Setting("shading_any", MULTI, (), SEC_SHADING, stage=3, options=SHADING_CONDITIONS),
+    Setting(
+        "shading_delay_start", INT, 10, SEC_SHADING, stage=3, minimum=0, maximum=240, unit="min"
+    ),
+    Setting("shading_delay_end", INT, 20, SEC_SHADING, stage=3, minimum=0, maximum=240, unit="min"),
+    Setting("shading_end_sun_leaves", BOOL, True, SEC_SHADING, stage=3),
+    Setting("shading_end_open", BOOL, True, SEC_SHADING, stage=3),
+    Setting("shading_only_down", BOOL, True, SEC_SHADING, stage=3),
+    Setting("shading_time_start", TIME, None, SEC_SHADING, stage=3),
+    Setting("shading_time_end", TIME, None, SEC_SHADING, stage=3),
+    Setting(
+        "heat_protection_temp",
+        FLOAT,
+        None,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=50,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "shading_alt_entity",
+        ENTITY,
+        None,
+        SEC_SHADING,
+        stage=3,
+        domains=("binary_sensor", "input_boolean", "switch"),
+    ),
+    # --- tilt (slats) -----------------------------------------------------
+    Setting("tilt_entity", ENTITY, None, SEC_TILT, stage=3, levels=COVER_ONLY, domains=("cover",)),
+    *(
+        Setting(f"tilt_{name}", INT, None, SEC_TILT, stage=3, minimum=0, maximum=100, unit="%")
+        for name in ("open", "closed", "sleep", "ventilate", "comfort", "shading", "privacy")
+    ),
+    Setting("tilt_shading_steps", TEXT, None, SEC_TILT, stage=3),
+    Setting("tilt_mode", SELECT, TILT_STANDSTILL, SEC_TILT, stage=3, options=TILT_MODES),
+    Setting("tilt_delay", INT, 2, SEC_TILT, stage=3, minimum=0, maximum=120, unit="s"),
+    Setting("tilt_timeout", INT, 120, SEC_TILT, stage=3, minimum=5, maximum=600, unit="s"),
+    Setting("tilt_close_first", BOOL, False, SEC_TILT, stage=3),
+    Setting("tilt_tolerance", INT, 2, SEC_TILT, stage=3, minimum=0, maximum=20, unit="%"),
     # --- privacy ----------------------------------------------------------
     Setting("privacy_up_minutes", INT, 0, SEC_PRIVACY, stage=2, minimum=0, maximum=240, unit="min"),
     Setting(
@@ -343,7 +676,7 @@ def to_storage(setting: Setting, value: Any) -> Any:
         if isinstance(value, time):
             return value.strftime("%H:%M:%S")
         return parse_time(value).strftime("%H:%M:%S")
-    if setting.kind == MULTI:
+    if setting.kind in (MULTI, ENTITIES):
         return list(value)
     if setting.kind == INT:
         return int(value)
@@ -360,7 +693,7 @@ def from_storage(setting: Setting, value: Any) -> Any:
         return None
     if setting.kind == TIME:
         return value if isinstance(value, time) else parse_time(value)
-    if setting.kind == MULTI:
+    if setting.kind in (MULTI, ENTITIES):
         return tuple(value)
     if setting.kind == INT:
         return int(value)

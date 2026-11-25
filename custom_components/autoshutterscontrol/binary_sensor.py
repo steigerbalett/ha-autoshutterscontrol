@@ -21,7 +21,11 @@ async def async_setup_entry(
     """Set up binary sensors."""
     for controller in entry.runtime_data.controllers.values():
         async_add_entities(
-            [DayBinarySensor(controller), OverrideBinarySensor(controller)],
+            [
+                DayBinarySensor(controller),
+                OverrideBinarySensor(controller),
+                SelfDefenseBinarySensor(controller),
+            ],
             config_subentry_id=controller.subentry_id,
         )
 
@@ -70,3 +74,14 @@ class OverrideBinarySensor(AscCoverEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict:
         override = self.controller.override or {}
         return {"since": override.get("since"), "until": override.get("until")}
+
+
+class SelfDefenseBinarySensor(AscCoverEntity, BinarySensorEntity):
+    """On while self defense keeps the cover closed."""
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "self_defense")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.self_defense_active()

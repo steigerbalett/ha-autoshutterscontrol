@@ -36,6 +36,7 @@ from .const import (
 from .engine.resolve import inherited_value
 from .engine.settings import (
     BOOL,
+    ENTITIES,
     ENTITY,
     FLOAT,
     INT,
@@ -117,6 +118,10 @@ def _selector(setting: Setting, inherit: bool) -> selector.Selector:
             else selector.EntitySelectorConfig()
         )
         return selector.EntitySelector(config)
+    if kind == ENTITIES:
+        return selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=list(setting.domains), multiple=True)
+        )
     raise ValueError(kind)
 
 
@@ -145,6 +150,8 @@ def _stored_value(setting: Setting, value: Any, inherit: bool) -> Any:
         return value == ON
     if setting.kind == SELECT and value == INHERIT:
         return None
+    if setting.kind == ENTITIES:
+        return to_storage(setting, value) if value else None
     if setting.kind == MULTI:
         values = [v for v in value if v != NONE_OPTION]
         if inherit and not values and NONE_OPTION not in value:
@@ -161,7 +168,7 @@ def _display(setting: Setting, value: Any) -> str:
         return "✓" if value else "✗"
     if setting.kind == TIME and isinstance(value, time):
         return value.strftime("%H:%M")
-    if setting.kind == MULTI:
+    if setting.kind in (MULTI, ENTITIES):
         return ", ".join(value) if value else "–"
     if setting.kind == INT and setting.unit:
         return f"{value} {setting.unit}"
@@ -176,7 +183,7 @@ def build_schema(level: str, section: str, current: Mapping[str, Any]) -> vol.Sc
     fields: dict[Any, Any] = {}
     for setting in settings_for(level, section):
         stored = current.get(setting.key)
-        if level == LEVEL_GLOBAL and stored is None and setting.kind != ENTITY:
+        if level == LEVEL_GLOBAL and stored is None and setting.kind not in (ENTITY, ENTITIES):
             stored = to_storage(setting, setting.default)
         shown = _form_value(setting, stored, inherit)
         if shown is None:
@@ -324,6 +331,18 @@ class AscOptionsFlow(OptionsFlow):
         """Privacy."""
         return await self._section("privacy", user_input)
 
+    async def async_step_residents(self, user_input=None) -> ConfigFlowResult:
+        """Residents and self defense."""
+        return await self._section("residents", user_input)
+
+    async def async_step_shading(self, user_input=None) -> ConfigFlowResult:
+        """Shading."""
+        return await self._section("shading", user_input)
+
+    async def async_step_tilt(self, user_input=None) -> ConfigFlowResult:
+        """Slats."""
+        return await self._section("tilt", user_input)
+
     async def async_step_reset(self, user_input=None) -> ConfigFlowResult:
         """Reset fields to the default."""
         if user_input is not None:
@@ -422,6 +441,18 @@ class _SettingsSubentryFlow(ConfigSubentryFlow):
     async def async_step_privacy(self, user_input=None) -> SubentryFlowResult:
         """Privacy."""
         return await self._section("privacy", user_input)
+
+    async def async_step_residents(self, user_input=None) -> SubentryFlowResult:
+        """Residents and self defense."""
+        return await self._section("residents", user_input)
+
+    async def async_step_shading(self, user_input=None) -> SubentryFlowResult:
+        """Shading."""
+        return await self._section("shading", user_input)
+
+    async def async_step_tilt(self, user_input=None) -> SubentryFlowResult:
+        """Slats."""
+        return await self._section("tilt", user_input)
 
     async def async_step_reset(self, user_input=None) -> SubentryFlowResult:
         """Back to the inherited value."""

@@ -9,7 +9,16 @@ from dataclasses import dataclass
 from datetime import date, datetime, tzinfo
 
 from astral import Observer
-from astral.sun import SunDirection, dawn, dusk, elevation, sunrise, sunset, time_at_elevation
+from astral.sun import (
+    SunDirection,
+    azimuth,
+    dawn,
+    dusk,
+    elevation,
+    sunrise,
+    sunset,
+    time_at_elevation,
+)
 
 from .settings import (
     TWILIGHT_ASTRONOMICAL,
@@ -74,3 +83,7 @@ class SunCalculator:
     def elevation(self, when: datetime) -> float:
         """Sun elevation in degrees at a moment."""
         return float(elevation(self._observer, when))
+
+    def azimuth(self, when: datetime) -> float:
+        """Sun azimuth in degrees (0 north, 90 east, 180 south) at a moment."""
+        return float(azimuth(self._observer, when))

@@ -13,7 +13,9 @@ from typing import Any
 
 from homeassistant.components.cover import (
     ATTR_CURRENT_POSITION,
+    ATTR_CURRENT_TILT_POSITION,
     ATTR_POSITION as COVER_ATTR_POSITION,
+    ATTR_TILT_POSITION,
     DOMAIN as COVER_DOMAIN,
     CoverEntityFeature,
     CoverState,
@@ -26,6 +28,7 @@ from homeassistant.const import (
     SERVICE_CLOSE_COVER,
     SERVICE_OPEN_COVER,
     SERVICE_SET_COVER_POSITION,
+    SERVICE_SET_COVER_TILT_POSITION,
     STATE_OFF,
     STATE_ON,
     STATE_UNAVAILABLE,
@@ -54,6 +57,7 @@ from .const import (
     DOMAIN,
     EVENT_DRIVE,
     EVENT_MANUAL,
+    FORECAST_SECONDS,
     GLOBAL_SWITCHES,
     SIGNAL_COVER_UPDATE,
     SIGNAL_GLOBAL_UPDATE,
@@ -67,20 +71,28 @@ from .const import (
     SWITCH_EVENING,
     SWITCH_MORNING,
     SWITCH_PAUSE,
+    SWITCH_SELF_DEFENSE,
+    SWITCH_SHADING,
     SWITCH_WEEKEND_TIMES,
     TICK_SECONDS,
 )
 from .engine.arbiter import (
+    BLOCK_AT_TARGET,
     BLOCK_LOCKOUT,
+    REASON_HEAT,
     REASON_MANUAL,
     REASON_SERVICE,
+    REASON_SHADING,
     REASON_WINDOW_RETURN,
     TRIGGER_APPLY_TARGET,
     TRIGGER_OVERRIDE_END,
     TRIGGER_PRIVACY,
+    TRIGGER_RESIDENTS,
     TRIGGER_RESUME,
     TRIGGER_SCHEDULE_DOWN,
     TRIGGER_SCHEDULE_UP,
+    TRIGGER_SHADING,
+    TRIGGER_SHADING_END,
     TRIGGER_WINDOW,
     TRIGGER_WINDOW_CLOSED,
     Decision,
@@ -103,10 +115,46 @@ from .engine.daynight import (
     privacy_times,
 )
 from .engine.override import manual_counts_as_scheduled, override_until
+from .engine.residents import (
+    SLEEPING,
+    Source,
+    parse_map,
+    presence_allows,
+    self_defense_due,
+    status as residents_status,
+)
 from .engine.resolve import ResolvedConfig, resolve
 from .engine.schedule import DaySchedule, day_schedule, default_workday, next_events
-from .engine.settings import RESET_NEXT_SCHEDULE, RETURN_PREVIOUS, WINDOW_CLOSED, WINDOWS_CALENDAR
+from .engine.settings import (
+    MODE_RESIDENTS,
+    PRESENCE_OFF,
+    RES_ABSENT,
+    RES_AWOKEN,
+    RES_HOME,
+    RESET_NEXT_SCHEDULE,
+    RETURN_PREVIOUS,
+    TILT_AFTER,
+    TILT_FIRST,
+    WINDOW_CLOSED,
+    WINDOW_OPEN,
+    WINDOW_TILTED,
+    WINDOWS_CALENDAR,
+)
+from .engine.shading import (
+    OUT as SHADING_OUT,
+    SHADED,
+    Configured,
+    Inputs,
+    average,
+    combine as shading_combine,
+    conditions as shading_conditions,
+    heat_active,
+    in_time_window,
+    step as shading_step,
+    sun_left,
+)
 from .engine.sun import Location, SunCalculator
+from .engine.tilt import shading_tilt, tilt_for
 from .engine.window import lockout_active, window_position, window_state
 
 _LOGGER = logging.getLogger(__name__)
@@ -135,7 +183,13 @@ class AscManager:
         self.controllers: dict[str, CoverController] = {}
         self.sun = self._make_sun()
         self._unsubs: list[CALLBACK_TYPE] = []
+        self._unsub_residents: CALLBACK_TYPE | None = None
         self.central_device_id: str | None = None
+        # Last usable state of every resident source ("last known counts")
+        self.resident_sources: dict[str, Source] = {}
+        # Weather forecast per entity: (monotonic time of fetch, max temperature today)
+        self.forecasts: dict[str, tuple[float, float | None]] = {}
+        self._forecast_pending: set[str] = set()
 
     # --- configuration ----------------------------------------------------
 
@@ -161,6 +215,87 @@ class AscManager:
             self.profile_settings(sub.data.get(CONF_PROFILE)),
             sub.data.get(CONF_SETTINGS, {}),
         )
+
+    @property
+    def global_cfg(self) -> ResolvedConfig:
+        """Resolved global settings (with defaults)."""
+        return resolve(self.global_settings)
+
+    def resident_source(self, entity_id: str) -> Source | None:
+        """State of a resident source; the last known one while unavailable."""
+        state = self.hass.states.get(entity_id)
+        if state is not None and state.state not in _UNUSABLE:
+            source = Source(entity_id, state.state, state.last_changed)
+            self.resident_sources[entity_id] = source
+            return source
+        return self.resident_sources.get(entity_id)
+
+    def residents(self, entities, cfg, now: datetime) -> str | None:
+        """Combined status of resident source entities."""
+        sources = [s for s in (self.resident_source(e) for e in entities) if s is not None]
+        return residents_status(
+            sources, parse_map(cfg["residents_map"]), now, cfg["residents_gone_hours"]
+        )
+
+    def house_status(self, now: datetime | None = None) -> str | None:
+        """House status from the global sources (sensor of the central device)."""
+        cfg = self.global_cfg
+        return self.residents(cfg["residents_house"], cfg, now or dt_util.utcnow())
+
+    def _subscribe_residents(self) -> None:
+        if self._unsub_residents:
+            self._unsub_residents()
+            self._unsub_residents = None
+        entities = list(self.global_cfg["residents_house"])
+        if entities:
+            self._unsub_residents = async_track_state_change_event(
+                self.hass, entities, self._on_global_residents
+            )
+
+    @callback
+    def _on_global_residents(self, _event: Event) -> None:
+        async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+
+    def forecast(self, entity_id: str) -> float | None:
+        """Forecast maximum temperature of today (refreshed in the background)."""
+        entry = self.forecasts.get(entity_id)
+        if entry is None or monotonic_time.monotonic() - entry[0] > FORECAST_SECONDS:
+            self._refresh_forecast(entity_id)
+        return entry[1] if entry else None
+
+    def _refresh_forecast(self, entity_id: str) -> None:
+        if entity_id in self._forecast_pending:
+            return
+        self._forecast_pending.add(entity_id)
+        self.entry.async_create_background_task(
+            self.hass, self._async_fetch_forecast(entity_id), f"{DOMAIN} forecast {entity_id}"
+        )
+
+    async def _async_fetch_forecast(self, entity_id: str) -> None:
+        value: float | None = None
+        try:
+            response = await self.hass.services.async_call(
+                "weather",
+                "get_forecasts",
+                {ATTR_ENTITY_ID: entity_id, "type": "daily"},
+                blocking=True,
+                return_response=True,
+            )
+            forecasts = (response or {}).get(entity_id, {}).get("forecast", [])
+            today = dt_util.now(self.tz).date()
+            for item in forecasts:
+                when = dt_util.parse_datetime(str(item.get("datetime", "")))
+                if when is None or dt_util.as_local(when).date() == today:
+                    value = item.get("temperature")
+                    break
+            if value is None and forecasts:
+                value = forecasts[0].get("temperature")
+            value = float(value) if value is not None else None
+        except Exception as err:  # noqa: BLE001 - weather may be unavailable
+            _LOGGER.warning("Forecast of %s not readable: %s", entity_id, err)
+        finally:
+            self._forecast_pending.discard(entity_id)
+        self.forecasts[entity_id] = (monotonic_time.monotonic(), value)
 
     def structure(self) -> set[str]:
         """Return the subentry ids; a change needs a reload."""
@@ -214,6 +349,7 @@ class AscManager:
 
         for controller in self.controllers.values():
             controller.async_start()
+        self._subscribe_residents()
 
         self._unsubs.append(
             async_track_time_change(self.hass, self._midnight, hour=0, minute=0, second=5)
@@ -233,6 +369,9 @@ class AscManager:
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
+        if self._unsub_residents:
+            self._unsub_residents()
+            self._unsub_residents = None
         for controller in self.controllers.values():
             controller.async_stop()
         await self.store.async_save(self.data)
@@ -244,6 +383,7 @@ class AscManager:
             sub = self.entry.subentries[controller.subentry_id]
             controller.name = sub.title
             controller.async_reconfigure(sub.data[CONF_COVER_ENTITY])
+        self._subscribe_residents()
         async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
 
     @callback
@@ -282,6 +422,9 @@ class AscManager:
             for controller in self.controllers.values():
                 if controller.window_state not in (None, WINDOW_CLOSED):
                     controller.evaluate(TRIGGER_WINDOW)
+        if key in (SWITCH_SHADING, SWITCH_SELF_DEFENSE) and old != value:
+            for controller in self.controllers.values():
+                controller.tick()
         if key == SWITCH_PAUSE and old and not value:
             for controller in self.controllers.values():
                 controller.evaluate(TRIGGER_RESUME)
@@ -332,6 +475,11 @@ class CoverController:
         self._light_since: dict[str, datetime | None] = {UP: None, DOWN: None}
         self._calendar: dict[date, dict[str, tuple]] = {}
         self._calendar_task: Any = None
+        self._res_key: tuple | None = None
+        self._brightness: deque[tuple[datetime, float]] = deque(maxlen=120)
+        self._tilt_wait: tuple[int, int, Context] | None = None
+        self._unsub_tilt: CALLBACK_TYPE | None = None
+        self._unsub_position: CALLBACK_TYPE | None = None
 
     # --- life cycle ---------------------------------------------------------
 
@@ -342,6 +490,7 @@ class CoverController:
         self._restore_override()
         self.window_state = self._read_window()
         self.recalculate()
+        self._res_key = self._residents_key(dt_util.utcnow())
         self._unsub_started = async_at_started(self.hass, self._on_started)
 
     @callback
@@ -356,6 +505,8 @@ class CoverController:
             "_unsub_started",
             "_unsub_window_delay",
             "_unsub_privacy",
+            "_unsub_tilt",
+            "_unsub_position",
         ):
             unsub = getattr(self, name)
             if unsub:
@@ -373,6 +524,7 @@ class CoverController:
         self._calendar.clear()
         self.window_state = self._read_window()
         self.recalculate()
+        self._res_key = self._residents_key(dt_util.utcnow())
 
     def _subscribe(self) -> None:
         self._unsub_listeners.append(
@@ -408,6 +560,17 @@ class CoverController:
         if light:
             self._unsub_listeners.append(
                 async_track_state_change_event(self.hass, light, self._on_light_change)
+            )
+        residents = [*self.cfg["residents_house"], *self.cfg["residents_room"]]
+        if residents:
+            self._unsub_listeners.append(
+                async_track_state_change_event(self.hass, residents, self._on_residents_change)
+            )
+        if self.cfg["shading_alt_entity"]:
+            self._unsub_listeners.append(
+                async_track_state_change_event(
+                    self.hass, [self.cfg["shading_alt_entity"]], self._on_shading_alt_change
+                )
             )
         if self.cfg["calendar"] and self.cfg["time_source"] == WINDOWS_CALENDAR:
             self._unsub_listeners.append(
@@ -802,6 +965,8 @@ class CoverController:
     def tick(self) -> None:
         """Check the dynamic modes and the privacy by brightness."""
         now = dt_util.now(self.tz)
+        self._check_residents(now)
+        self._shading_tick(now)
         today = now.astimezone(self.tz).date()
         sched = self.schedule_for(today)
         marks = self.marks_for(today)
@@ -813,19 +978,25 @@ class CoverController:
             if mark is not None or not in_dynamic_window(sched, direction, now):
                 self._light_since[direction] = None
                 continue
-            met = light_condition(
-                self.cfg,
-                direction,
-                brightness,
-                self.manager.sun.elevation(now),
-                self._number(self.cfg["elevation_sensor"]),
-            )
+            residents_mode = self.cfg[f"{direction}_mode"] == MODE_RESIDENTS
+            if residents_mode:
+                resident = self.resident_status(now)
+                met = resident in ((RES_AWOKEN, RES_HOME) if direction == UP else SLEEPING)
+            else:
+                met = light_condition(
+                    self.cfg,
+                    direction,
+                    brightness,
+                    self.manager.sun.elevation(now),
+                    self._number(self.cfg["elevation_sensor"]),
+                )
             if not met:
                 self._light_since[direction] = None
                 continue
             if self._light_since[direction] is None:
                 self._light_since[direction] = now
-            if condition_held(self._light_since[direction], now, self.cfg["brightness_duration"]):
+            duration = 0 if residents_mode else self.cfg["brightness_duration"]
+            if condition_held(self._light_since[direction], now, duration):
                 self._light_since[direction] = None
                 self._set_mark(now, direction)
                 self._schedule_event(trigger)
@@ -834,6 +1005,304 @@ class CoverController:
             self._set_mark(now, PRIVACY_DOWN)
             self.evaluate(TRIGGER_PRIVACY, delayed=True)
             self.recalculate(fetch=False)
+
+    # --- residents and self defense -------------------------------------------
+
+    def house_status(self, now: datetime | None = None) -> str | None:
+        """House status from the (inherited) house sources."""
+        return self.manager.residents(
+            self.cfg["residents_house"], self.cfg, now or dt_util.utcnow()
+        )
+
+    def room_status(self, now: datetime | None = None) -> str | None:
+        """Room status from the room sources of this cover."""
+        if not self.cfg["residents_room"]:
+            return None
+        return self.manager.residents(self.cfg["residents_room"], self.cfg, now or dt_util.utcnow())
+
+    def resident_status(self, now: datetime | None = None) -> str | None:
+        """Status for this cover: the room if it has sources, otherwise the house."""
+        if self.cfg["residents_room"]:
+            return self.room_status(now)
+        return self.house_status(now)
+
+    def self_defense_active(self, now: datetime | None = None) -> bool:
+        """Close because nobody is at home (with an open window, or always)."""
+        if not self.manager.switches[SWITCH_SELF_DEFENSE]:
+            return False
+        now = now or dt_util.utcnow()
+        absent_since = _parse(self.state.get("absent_since"))
+        if not self_defense_due(self.cfg, self.house_status(now), absent_since, now):
+            return False
+        return self.cfg["self_defense_all"] or self.window_state in (WINDOW_OPEN, WINDOW_TILTED)
+
+    def _residents_key(self, now: datetime) -> tuple:
+        house = self.house_status(now)
+        return (
+            self.resident_status(now) in SLEEPING,
+            self.self_defense_active(now),
+            presence_allows(self.cfg["presence_up"], house),
+            presence_allows(self.cfg["presence_down"], house),
+        )
+
+    @callback
+    def _check_residents(self, now: datetime) -> None:
+        """React to a change of sleep, self defense or presence modes."""
+        house = self.house_status(now)
+        if house == RES_ABSENT:
+            if not self.state.get("absent_since"):
+                self.state["absent_since"] = _iso(now)
+                self._save()
+        elif self.state.pop("absent_since", None):
+            self._save()
+        key = self._residents_key(now)
+        old = self._res_key
+        self._res_key = key
+        if old is None or key == old:
+            return
+        self.notify()
+        woke = old[0] and not key[0]
+        if woke and not self.cfg["wake_open"] and key[1] == old[1]:
+            return
+        self.evaluate(TRIGGER_RESIDENTS)
+
+    @callback
+    def _on_residents_change(self, _event: Event) -> None:
+        self.tick()
+        self.notify()
+
+    # --- shading ----------------------------------------------------------------
+
+    @property
+    def shading_state(self) -> str:
+        """State of the shading state machine."""
+        return (self.state.get("shading") or {}).get("state", SHADING_OUT)
+
+    def heat_latched(self, now: datetime | None = None) -> bool:
+        """Heat protection started today (kept until the evening)."""
+        now = now or dt_util.utcnow()
+        return self.state.get("heat") == now.astimezone(self.tz).date().isoformat()
+
+    def shaded(self, now: datetime | None = None) -> tuple[bool, bool]:
+        """(shaded by the sun conditions, heat protection) for the arbiter."""
+        return self.shading_state in SHADED, self.heat_latched(now)
+
+    def _is_on(self, entity_id: str | None) -> bool | None:
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is None or state.state in _UNUSABLE:
+            return None
+        return state.state == STATE_ON
+
+    def shading_inputs(self, now: datetime, *, sample: bool = False) -> tuple[Inputs, Configured]:
+        """Measured values of the shading conditions."""
+        cfg = self.cfg
+        bright_entity = cfg["shading_brightness_sensor"] or cfg["brightness_sensor"]
+        brightness = self._number(bright_entity)
+        if brightness is not None:
+            if sample:
+                self._brightness.append((now, brightness))
+            if self._brightness:
+                brightness = average(list(self._brightness), now, cfg["shading_brightness_average"])
+        weather_entity = cfg["weather_entity"]
+        forecast = None
+        if cfg["forecast_sensor"]:
+            forecast = self._number(cfg["forecast_sensor"])
+        elif weather_entity and cfg["shading_forecast_min"] is not None:
+            forecast = self.manager.forecast(weather_entity)
+        weather = None
+        if weather_entity:
+            state = self.hass.states.get(weather_entity)
+            if state is not None and state.state not in _UNUSABLE:
+                weather = state.state
+        inputs = Inputs(
+            azimuth=self.manager.sun.azimuth(now),
+            elevation=self.manager.sun.elevation(now),
+            brightness=brightness,
+            temp_out=self._number(cfg["outdoor_temperature_sensor"]),
+            temp_in=self._number(cfg["indoor_temperature_sensor"]),
+            forecast=forecast,
+            weather=weather,
+            sensor=self._is_on(cfg["shading_sensor"]),
+        )
+        configured = Configured(
+            brightness=bool(bright_entity),
+            temp_out=bool(cfg["outdoor_temperature_sensor"]),
+            temp_in=bool(cfg["indoor_temperature_sensor"]),
+            forecast=bool(cfg["forecast_sensor"] or weather_entity),
+            weather=bool(weather_entity),
+            sensor=bool(cfg["shading_sensor"]),
+        )
+        return inputs, configured
+
+    @callback
+    def _shading_tick(self, now: datetime) -> None:
+        cfg = self.cfg
+        old = self.shading_state
+        if (
+            cfg["shading_mode"] == PRESENCE_OFF
+            and cfg["heat_protection_temp"] is None
+            and old == SHADING_OUT
+        ):
+            return
+        inputs, configured = self.shading_inputs(now, sample=True)
+        switch_on = self.manager.switches[SWITCH_SHADING]
+        day = self.is_day(now)
+        local = now.astimezone(self.tz)
+        allowed = (
+            switch_on
+            and cfg["shading_mode"] != PRESENCE_OFF
+            and presence_allows(cfg["shading_mode"], self.house_status(now))
+            and in_time_window(cfg, local.time().replace(tzinfo=None))
+            and day
+        )
+        start_ok = shading_combine(cfg, shading_conditions(cfg, inputs, configured, False))
+        still = shading_conditions(cfg, inputs, configured, True)
+        stored = self.state.get("shading") or {}
+        since = _parse(stored.get("since"))
+        new, new_since = shading_step(
+            cfg,
+            old,
+            since,
+            now,
+            start_ok=start_ok,
+            still_ok=shading_combine(cfg, still),
+            left=sun_left(still),
+            allowed=allowed,
+        )
+        if new != old or new_since != since:
+            self.state["shading"] = {"state": new, "since": _iso(new_since)}
+            self._save()
+            self.notify()
+        heat_allowed = switch_on and day
+        latched = self.heat_latched(now)
+        heat = heat_allowed and heat_active(cfg, inputs.temp_out, latched)
+        if heat and not latched:
+            self.state["heat"] = local.date().isoformat()
+            self._save()
+        before = old in SHADED or (latched and heat_allowed)
+        after = new in SHADED or heat
+        if after and not before:
+            self.evaluate(TRIGGER_SHADING)
+        elif before and not after:
+            self.evaluate(TRIGGER_SHADING_END)
+        elif after and shading_tilt(cfg, inputs.elevation) != self.state.get("shading_tilt"):
+            # Next slat step by sun elevation
+            self.evaluate(TRIGGER_SHADING)
+
+    @callback
+    def _on_shading_alt_change(self, _event: Event) -> None:
+        if any(self.shaded()):
+            self.evaluate(TRIGGER_SHADING)
+
+    # --- slats ------------------------------------------------------------------
+
+    @property
+    def tilt_entity(self) -> str:
+        """Entity that moves the slats."""
+        return self.cfg["tilt_entity"] or self.cover_entity
+
+    def tilt_supported(self) -> bool:
+        """The slat entity can be set to a tilt position."""
+        state = self.hass.states.get(self.tilt_entity)
+        if state is None or state.state in _UNUSABLE:
+            return False
+        features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
+        return bool(features & CoverEntityFeature.SET_TILT_POSITION)
+
+    def current_tilt(self) -> float | None:
+        """Tilt position of the slats."""
+        state = self.hass.states.get(self.tilt_entity)
+        if state is None:
+            return None
+        value = state.attributes.get(ATTR_CURRENT_TILT_POSITION)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    def tilt_for_reason(self, reason: str | None) -> int | None:
+        """Tilt for a drive reason, None if no tilt is configured or supported."""
+        tilt = tilt_for(self.cfg, reason, self.manager.sun.elevation(dt_util.utcnow()))
+        if tilt is None or not self.tilt_supported():
+            return None
+        return tilt
+
+    def _cancel_tilt(self) -> None:
+        self._tilt_wait = None
+        for name in ("_unsub_tilt", "_unsub_position"):
+            unsub = getattr(self, name)
+            if unsub:
+                unsub()
+                setattr(self, name, None)
+
+    def _call_tilt(self, tilt: int, context: Context) -> None:
+        self.hass.async_create_task(
+            self.hass.services.async_call(
+                COVER_DOMAIN,
+                SERVICE_SET_COVER_TILT_POSITION,
+                {ATTR_ENTITY_ID: self.tilt_entity, ATTR_TILT_POSITION: tilt},
+                blocking=False,
+                context=context,
+            ),
+            f"{DOMAIN} tilt {self.tilt_entity}",
+        )
+
+    @callback
+    def _send_tilt(self, tilt: int, context: Context, _now: datetime | None = None) -> None:
+        """Set the slats (optionally closed first)."""
+        self._unsub_tilt = None
+        self._tilt_wait = None
+        current = self.current_tilt()
+        if (
+            self.cfg["tilt_close_first"]
+            and tilt != 0
+            and (current is None or current > self.cfg["tilt_tolerance"])
+        ):
+            self._call_tilt(0, context)
+            self._unsub_tilt = async_call_later(
+                self.hass,
+                max(self.cfg["tilt_delay"], 1),
+                partial(self._send_tilt_direct, tilt, context),
+            )
+            return
+        self._call_tilt(tilt, context)
+
+    @callback
+    def _send_tilt_direct(self, tilt: int, context: Context, _now: datetime | None = None) -> None:
+        self._unsub_tilt = None
+        self._call_tilt(tilt, context)
+
+    @callback
+    def _check_tilt_wait(self) -> None:
+        """Mode "standstill": set the slats once the cover reached its position."""
+        if self._tilt_wait is None or self.moving:
+            return
+        position, tilt, context = self._tilt_wait
+        current = self.current_position()
+        if current is not None and abs(current - position) > self.cfg["tolerance"]:
+            return
+        self._tilt_wait = None
+        if self._unsub_tilt:
+            self._unsub_tilt()
+        self._unsub_tilt = async_call_later(
+            self.hass, self.cfg["tilt_delay"], partial(self._send_tilt, tilt, context)
+        )
+
+    def _tilt_only(self, tilt: int, reason: str | None) -> None:
+        """Position reached, only the slats differ."""
+        current = self.current_tilt()
+        if current is not None and abs(current - tilt) <= self.cfg["tilt_tolerance"]:
+            return
+        self._cancel_tilt()
+        context = Context()
+        self._own_contexts.append(context.id)
+        self._active_drive = (int(self.current_position() or 0), monotonic_time.monotonic())
+        if reason in (REASON_SHADING, REASON_HEAT):
+            self.state["shading_tilt"] = tilt
+        self._send_tilt(tilt, context)
+        _LOGGER.debug("%s: slats to %s (%s)", self.cover_entity, tilt, reason)
 
     def _schedule_event(self, trigger: str) -> None:
         self.evaluate(trigger, delayed=True)
@@ -861,6 +1330,8 @@ class CoverController:
         """Decide without driving (target state)."""
         now = dt_util.now(self.tz)
         situation = self.situation(trigger, now)
+        house = self.house_status(now)
+        shaded, heat = self.shaded(now)
         wishes = build_wishes(
             self.cfg,
             trigger=trigger,
@@ -870,8 +1341,15 @@ class CoverController:
                 self.cfg, self.window_state, self.manager.switches[SWITCH_COMFORT]
             ),
             current=situation.current_position,
-            morning_enabled=self.manager.switches[SWITCH_MORNING],
-            evening_enabled=self.manager.switches[SWITCH_EVENING],
+            morning_enabled=self.manager.switches[SWITCH_MORNING]
+            and presence_allows(self.cfg["presence_up"], house),
+            evening_enabled=self.manager.switches[SWITCH_EVENING]
+            and presence_allows(self.cfg["presence_down"], house),
+            sleeping=self.resident_status(now) in SLEEPING,
+            self_defense=self.self_defense_active(now),
+            shaded=shaded and self.manager.switches[SWITCH_SHADING],
+            heat=heat and self.manager.switches[SWITCH_SHADING],
+            shading_alt=bool(self._is_on(self.cfg["shading_alt_entity"])),
         )
         return decide(self.cfg, situation, wishes)
 
@@ -885,6 +1363,10 @@ class CoverController:
             self.state["lockout_deferred"] = True
         if not decision.drive:
             _LOGGER.debug("%s: %s not driven (%s)", self.cover_entity, trigger, decision.blocked_by)
+            if decision.blocked_by == BLOCK_AT_TARGET:
+                tilt = self.tilt_for_reason(decision.reason)
+                if tilt is not None:
+                    self._tilt_only(tilt, decision.reason)
             self.notify()
             return decision
         delay = 0.0
@@ -954,17 +1436,37 @@ class CoverController:
             opening = position > (current if current is not None else 50)
             service = SERVICE_OPEN_COVER if opening else SERVICE_CLOSE_COVER
             data = {ATTR_ENTITY_ID: self.cover_entity}
-        self.hass.async_create_task(
-            self.hass.services.async_call(
-                COVER_DOMAIN, service, data, blocking=False, context=context
-            ),
-            f"{DOMAIN} drive {self.cover_entity}",
-        )
+        self._cancel_tilt()
+        tilt = self.tilt_for_reason(reason) if reason != REASON_SERVICE else None
+        if reason in (REASON_SHADING, REASON_HEAT):
+            self.state["shading_tilt"] = tilt
+        mode = self.cfg["tilt_mode"]
+        if tilt is not None and mode == TILT_FIRST:
+            # Slats first, then the position (e.g. Z-Wave)
+            self._send_tilt(tilt, context)
+            self._unsub_position = async_call_later(
+                self.hass,
+                max(self.cfg["tilt_delay"], 1),
+                partial(self._send_position, service, data, context),
+            )
+        else:
+            self._send_position(service, data, context)
+            if tilt is not None and mode == TILT_AFTER:
+                self._unsub_tilt = async_call_later(
+                    self.hass, self.cfg["tilt_delay"], partial(self._send_tilt, tilt, context)
+                )
+            elif tilt is not None:
+                # Wait until the cover stands still at its position (with a time limit)
+                self._tilt_wait = (position, tilt, context)
+                self._unsub_tilt = async_call_later(
+                    self.hass, self.cfg["tilt_timeout"], partial(self._send_tilt, tilt, context)
+                )
         now = dt_util.utcnow()
         self.state["last"] = {
             "reason": reason,
             "trigger": trigger,
             "position": position,
+            "tilt": tilt,
             "time": _iso(now),
         }
         self._save()
@@ -981,6 +1483,18 @@ class CoverController:
         )
         _LOGGER.debug("%s: drive to %s (%s, %s)", self.cover_entity, position, reason, trigger)
         self.notify()
+
+    @callback
+    def _send_position(
+        self, service: str, data: dict[str, Any], context: Context, _now: datetime | None = None
+    ) -> None:
+        self._unsub_position = None
+        self.hass.async_create_task(
+            self.hass.services.async_call(
+                COVER_DOMAIN, service, data, blocking=False, context=context
+            ),
+            f"{DOMAIN} drive {self.cover_entity}",
+        )
 
     @callback
     def drive_to(self, position: int, *, respect_rules: bool) -> bool:
@@ -1002,10 +1516,16 @@ class CoverController:
             return
         if new.state in _UNUSABLE or old.state in _UNUSABLE:
             return
+        if self._tilt_wait is not None:
+            self._check_tilt_wait()
         if not self.cfg["position_entity"]:
-            if new.state == old.state and new.attributes.get(
-                ATTR_CURRENT_POSITION
-            ) == old.attributes.get(ATTR_CURRENT_POSITION):
+            if (
+                new.state == old.state
+                and new.attributes.get(ATTR_CURRENT_POSITION)
+                == old.attributes.get(ATTR_CURRENT_POSITION)
+                and new.attributes.get(ATTR_CURRENT_TILT_POSITION)
+                == old.attributes.get(ATTR_CURRENT_TILT_POSITION)
+            ):
                 return
         self._check_manual(new.context)
 
@@ -1080,6 +1600,11 @@ class CoverController:
     @callback
     def _window_settled(self, _now: datetime | None) -> None:
         self._unsub_window_delay = None
+        self._window_changed()
+        # Self defense depends on the window
+        self._check_residents(dt_util.utcnow())
+
+    def _window_changed(self) -> None:
         new = self._read_window()
         old = self.window_state
         if new is None or new == old:
@@ -1118,6 +1643,12 @@ class CoverController:
             "next_privacy": _iso(self.next_privacy),
             "window": self.window_state,
             "privacy_phase": self.privacy_phase(),
+            "house_status": self.house_status(),
+            "resident_status": self.resident_status(),
+            "self_defense": self.self_defense_active(),
+            "shading_state": self.shading_state,
+            "heat_protection": self.heat_latched(),
+            "tilt": self.current_tilt(),
             "is_day": self.is_day(),
             "position": self.current_position(),
             "state": self.state,

@@ -8,13 +8,21 @@
           "workday_sensor": "Arbeitstag-Sensor (heute)",
           "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
           "calendar": "Kalender",
-          "brightness_sensor": "Helligkeitssensor"
+          "brightness_sensor": "Helligkeitssensor",
+          "outdoor_temperature_sensor": "Außentemperatur",
+          "indoor_temperature_sensor": "Innentemperatur",
+          "weather_entity": "Wetter",
+          "forecast_sensor": "Sensor für die Vorhersage-Temperatur"
         },
         "data_description": {
           "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
           "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
           "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.",
-          "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit."
+          "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.",
+          "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.",
+          "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.",
+          "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.",
+          "forecast_sensor": "Höchsttemperatur von heute; wird statt der Vorhersage der Wetter-Entität genutzt."
         }
       }
     },
@@ -31,8 +39,11 @@
           "schedule": "Zeitplan",
           "light": "Helligkeit und Sonnenhöhe",
           "sensors": "Sensoren",
+          "residents": "Bewohner und Selbstschutz",
           "positions": "Positionen",
           "window": "Fensterkontakte",
+          "shading": "Beschattung",
+          "tilt": "Lamellen",
           "privacy": "Sichtschutz",
           "drive": "Fahrverhalten",
           "override": "Manuelle Übersteuerung",
@@ -85,13 +96,21 @@
           "workday_sensor": "Arbeitstag-Sensor (heute)",
           "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
           "calendar": "Kalender",
-          "brightness_sensor": "Helligkeitssensor"
+          "brightness_sensor": "Helligkeitssensor",
+          "outdoor_temperature_sensor": "Außentemperatur",
+          "indoor_temperature_sensor": "Innentemperatur",
+          "weather_entity": "Wetter",
+          "forecast_sensor": "Sensor für die Vorhersage-Temperatur"
         },
         "data_description": {
           "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
           "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
           "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.",
-          "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit."
+          "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.",
+          "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.",
+          "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.",
+          "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.",
+          "forecast_sensor": "Höchsttemperatur von heute; wird statt der Vorhersage der Wetter-Entität genutzt."
         }
       },
       "positions": {
@@ -100,14 +119,19 @@
         "data": {
           "pos_open": "Position offen",
           "pos_closed": "Position geschlossen",
+          "pos_sleep": "Position Schlafen",
           "pos_ventilate": "Position Lüften",
           "pos_comfort": "Position Komfort",
+          "pos_shading": "Position Beschattung",
+          "pos_shading_alt": "Alternative Position Beschattung",
           "pos_privacy": "Position Sichtschutz (abends)",
           "pos_privacy_up": "Position Sichtschutz (morgens)",
           "tolerance": "Toleranz"
         },
         "data_description": {
+          "pos_sleep": "Solange die Bewohner schlafen. Leer = Position geschlossen.",
           "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.",
+          "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.",
           "pos_privacy_up": "Leer: wie der Sichtschutz abends.",
           "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht."
         }
@@ -216,6 +240,111 @@
           "privacy_down_minutes": "0 = aus.",
           "privacy_brightness": "Leer = aus. Startet den Sichtschutz abends nach dem frühesten Schließen, sobald es so dunkel ist."
         }
+      },
+      "residents": {
+        "title": "Bewohner und Selbstschutz",
+        "description": "Der Haus-Status kommt aus Personen, Device Trackern, Zonen, Bett- oder Schlafsensoren, Alarmanlagen oder Helfern. Mehrere Quellen: schläft > geht schlafen > wach > zu Hause > abwesend > verreist.",
+        "data": {
+          "residents_house": "Quellen des Haus-Status",
+          "residents_map": "Eigene Zuordnung von Quellwerten",
+          "residents_gone_hours": "Länger weg als (verreist)",
+          "presence_up": "Morgenfahrt",
+          "presence_down": "Abendfahrt",
+          "sleep_close": "Schließen, wenn die Bewohner schlafen gehen",
+          "wake_open": "Öffnen, wenn die Bewohner aufwachen",
+          "sleep_allow_open": "Morgenfahrt trotz Schlaf",
+          "sleep_allow_ventilate": "Lüften trotz Schlaf",
+          "sleep_allow_shading": "Beschattung trotz Schlaf",
+          "self_defense_mode": "Selbstschutz",
+          "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
+          "self_defense_all": "Selbstschutz schließt jeden Rollladen"
+        },
+        "data_description": {
+          "residents_house": "Person: home = zu Hause, sonst abwesend. Zone: Anzahl Personen. Binärsensor / Input Boolean: an = schläft, aus = wach. Alarmanlage: abwesend = verreist, Nacht = schläft, zu Hause = zu Hause. Sensoren und Auswahlen mit den Zustandsnamen asleep, gotosleep, awoken, home, absent, gone.",
+          "residents_map": "Beispiel: armed_night:asleep, Schlafen:asleep, Urlaub:gone",
+          "residents_gone_hours": "Wer länger weg ist, gilt als verreist. 0 = aus.",
+          "presence_up": "Morgens nur fahren, wenn jemand zu Hause ist, oder nur, wenn niemand da ist.",
+          "presence_down": "Abends nur fahren, wenn jemand zu Hause ist, oder nur, wenn niemand da ist.",
+          "sleep_close": "Fährt auf die Position Schlafen.",
+          "wake_open": "Ist es Tag, fährt der Rollladen in den Zielzustand (offen, Beschattung).",
+          "sleep_allow_open": "Morgens öffnen, auch wenn die Bewohner noch schlafen.",
+          "self_defense_mode": "Schließt Rollläden mit offenem oder gekipptem Fenster, wenn niemand zu Hause ist. Braucht zusätzlich den Schalter Selbstschutz am zentralen Gerät.",
+          "self_defense_all": "Auch Rollläden ohne offenes Fenster."
+        }
+      },
+      "shading": {
+        "title": "Beschattung",
+        "description": "Die Beschattung beginnt, wenn alle Bedingungen der Liste Muss und eine der Liste Oder erfüllt sind, und endet mit Hysterese. Bedingungen ohne Sensor zählen nicht.",
+        "data": {
+          "shading_mode": "Beschattung",
+          "shading_azimuth_start": "Sonnenrichtung von",
+          "shading_azimuth_end": "Sonnenrichtung bis",
+          "shading_elevation_min": "Sonnenhöhe ab",
+          "shading_elevation_max": "Sonnenhöhe bis",
+          "shading_brightness_sensor": "Helligkeitssensor für die Beschattung",
+          "shading_brightness_start": "Beginn ab Helligkeit",
+          "shading_brightness_end": "Ende unter Helligkeit",
+          "shading_brightness_average": "Mittelwert der Helligkeit über",
+          "shading_temp_out_min": "Außentemperatur ab",
+          "shading_temp_in_min": "Innentemperatur ab",
+          "shading_forecast_min": "Vorhersage-Temperatur ab",
+          "shading_temp_hysteresis": "Hysterese der Temperaturen",
+          "shading_weather_conditions": "Wetterlagen für die Beschattung",
+          "shading_sensor": "Eigener Binärsensor",
+          "shading_must": "Muss (alle)",
+          "shading_any": "Oder (mindestens eine)",
+          "shading_delay_start": "Wartezeit vor der Beschattung",
+          "shading_delay_end": "Wartezeit vor dem Ende",
+          "shading_end_sun_leaves": "Sofort beenden, wenn die Sonne den Bereich verlässt",
+          "shading_end_open": "Nach der Beschattung wieder öffnen",
+          "shading_only_down": "Beschattung fährt nur nach unten",
+          "shading_time_start": "Beschattung ab",
+          "shading_time_end": "Beschattung bis",
+          "heat_protection_temp": "Hitzeschutz ab",
+          "shading_alt_entity": "Entität für die alternative Position"
+        },
+        "data_description": {
+          "shading_mode": "Standardmäßig aus. Immer, oder nur wenn jemand / niemand zu Hause ist.",
+          "shading_azimuth_start": "Kompassgrad: 90 Ost, 180 Süd, 270 West. Das Fenster zeigt in den Bereich zwischen diesen Werten.",
+          "shading_brightness_sensor": "Leer = der Helligkeitssensor der Seite Sensoren.",
+          "shading_brightness_average": "Minuten; 0 = aktueller Wert.",
+          "shading_temp_in_min": "Leer = nicht genutzt.",
+          "shading_forecast_min": "Leer = nicht genutzt. Aus dem Vorhersage-Sensor oder der Tagesvorhersage der Wetter-Entität.",
+          "shading_temp_hysteresis": "Die Beschattung endet erst unter der Schwelle minus diesem Wert.",
+          "shading_sensor": "An = beschatten.",
+          "shading_must": "Standard: alle Bedingungen (wie ASC).",
+          "shading_any": "Eine Bedingung in beiden Listen zählt als Muss.",
+          "shading_end_open": "Aus: Der Rollladen bleibt bis zum Abend auf der Beschattungsposition.",
+          "shading_only_down": "Ein Rollladen, der tiefer steht als die Beschattungsposition, bleibt stehen.",
+          "shading_time_start": "Leer = den ganzen Tag.",
+          "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.",
+          "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition."
+        }
+      },
+      "tilt": {
+        "title": "Lamellen",
+        "description": "Für Jalousien: Lamellenstellung je Fahrt. Leer = Lamellen bleiben, wie sie sind. Nur für Rollläden, die eine Lamellenposition kennen.",
+        "data": {
+          "tilt_open": "Lamellen offen",
+          "tilt_closed": "Lamellen geschlossen",
+          "tilt_sleep": "Lamellen Schlafen",
+          "tilt_ventilate": "Lamellen Lüften",
+          "tilt_comfort": "Lamellen Komfort",
+          "tilt_shading": "Lamellen Beschattung",
+          "tilt_privacy": "Lamellen Sichtschutz",
+          "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+          "tilt_mode": "Reihenfolge",
+          "tilt_delay": "Wartezeit zwischen Position und Lamellen",
+          "tilt_timeout": "Zeitlimit für den Stillstand",
+          "tilt_close_first": "Lamellen vor neuer Einstellung erst schließen",
+          "tilt_tolerance": "Toleranz der Lamellen"
+        },
+        "data_description": {
+          "tilt_sleep": "Leer = Lamellen geschlossen.",
+          "tilt_shading_steps": "Bis zu 4 Stufen Sonnenhöhe:Lamelle, z. B. 20:70, 35:50, 50:30. Unter der ersten Stufe gilt Lamellen Beschattung.",
+          "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).",
+          "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde."
+        }
       }
     }
   },
@@ -241,8 +370,11 @@
             "schedule": "Zeitplan",
             "light": "Helligkeit und Sonnenhöhe",
             "sensors": "Sensoren",
+            "residents": "Bewohner und Selbstschutz",
             "positions": "Positionen",
             "window": "Fensterkontakte",
+            "shading": "Beschattung",
+            "tilt": "Lamellen",
             "privacy": "Sichtschutz",
             "drive": "Fahrverhalten",
             "override": "Manuelle Übersteuerung",
@@ -312,13 +444,21 @@
             "workday_sensor": "Arbeitstag-Sensor (heute)",
             "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
             "calendar": "Kalender",
-            "brightness_sensor": "Helligkeitssensor"
+            "brightness_sensor": "Helligkeitssensor",
+            "outdoor_temperature_sensor": "Außentemperatur",
+            "indoor_temperature_sensor": "Innentemperatur",
+            "weather_entity": "Wetter",
+            "forecast_sensor": "Sensor für die Vorhersage-Temperatur"
           },
           "data_description": {
             "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_sensor}",
             "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.\n↳ {inh_calendar}",
-            "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}"
+            "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}",
+            "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.\n↳ {inh_outdoor_temperature_sensor}",
+            "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.\n↳ {inh_indoor_temperature_sensor}",
+            "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.\n↳ {inh_weather_entity}",
+            "forecast_sensor": "Höchsttemperatur von heute; wird statt der Vorhersage der Wetter-Entität genutzt.\n↳ {inh_forecast_sensor}"
           }
         },
         "positions": {
@@ -327,8 +467,11 @@
           "data": {
             "pos_open": "Position offen",
             "pos_closed": "Position geschlossen",
+            "pos_sleep": "Position Schlafen",
             "pos_ventilate": "Position Lüften",
             "pos_comfort": "Position Komfort",
+            "pos_shading": "Position Beschattung",
+            "pos_shading_alt": "Alternative Position Beschattung",
             "pos_privacy": "Position Sichtschutz (abends)",
             "pos_privacy_up": "Position Sichtschutz (morgens)",
             "tolerance": "Toleranz"
@@ -336,8 +479,11 @@
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_sleep": "Solange die Bewohner schlafen. Leer = Position geschlossen.\n↳ {inh_pos_sleep}",
             "pos_ventilate": "↳ {inh_pos_ventilate}",
             "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.\n↳ {inh_pos_comfort}",
+            "pos_shading": "↳ {inh_pos_shading}",
+            "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}"
@@ -446,6 +592,134 @@
             "privacy_down_minutes": "0 = aus.\n↳ {inh_privacy_down_minutes}",
             "privacy_brightness": "Leer = aus. Startet den Sichtschutz abends nach dem frühesten Schließen, sobald es so dunkel ist.\n↳ {inh_privacy_brightness}"
           }
+        },
+        "residents": {
+          "title": "Bewohner und Selbstschutz",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "residents_house": "Quellen des Haus-Status",
+            "residents_map": "Eigene Zuordnung von Quellwerten",
+            "residents_gone_hours": "Länger weg als (verreist)",
+            "presence_up": "Morgenfahrt",
+            "presence_down": "Abendfahrt",
+            "sleep_close": "Schließen, wenn die Bewohner schlafen gehen",
+            "wake_open": "Öffnen, wenn die Bewohner aufwachen",
+            "sleep_allow_open": "Morgenfahrt trotz Schlaf",
+            "sleep_allow_ventilate": "Lüften trotz Schlaf",
+            "sleep_allow_shading": "Beschattung trotz Schlaf",
+            "self_defense_mode": "Selbstschutz",
+            "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
+            "self_defense_all": "Selbstschutz schließt jeden Rollladen"
+          },
+          "data_description": {
+            "residents_house": "Person: home = zu Hause, sonst abwesend. Zone: Anzahl Personen. Binärsensor / Input Boolean: an = schläft, aus = wach. Alarmanlage: abwesend = verreist, Nacht = schläft, zu Hause = zu Hause. Sensoren und Auswahlen mit den Zustandsnamen asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
+            "residents_map": "Beispiel: armed_night:asleep, Schlafen:asleep, Urlaub:gone\n↳ {inh_residents_map}",
+            "residents_gone_hours": "Wer länger weg ist, gilt als verreist. 0 = aus.\n↳ {inh_residents_gone_hours}",
+            "presence_up": "Morgens nur fahren, wenn jemand zu Hause ist, oder nur, wenn niemand da ist.\n↳ {inh_presence_up}",
+            "presence_down": "Abends nur fahren, wenn jemand zu Hause ist, oder nur, wenn niemand da ist.\n↳ {inh_presence_down}",
+            "sleep_close": "Fährt auf die Position Schlafen.\n↳ {inh_sleep_close}",
+            "wake_open": "Ist es Tag, fährt der Rollladen in den Zielzustand (offen, Beschattung).\n↳ {inh_wake_open}",
+            "sleep_allow_open": "Morgens öffnen, auch wenn die Bewohner noch schlafen.\n↳ {inh_sleep_allow_open}",
+            "sleep_allow_ventilate": "↳ {inh_sleep_allow_ventilate}",
+            "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
+            "self_defense_mode": "Schließt Rollläden mit offenem oder gekipptem Fenster, wenn niemand zu Hause ist. Braucht zusätzlich den Schalter Selbstschutz am zentralen Gerät.\n↳ {inh_self_defense_mode}",
+            "self_defense_delay": "↳ {inh_self_defense_delay}",
+            "self_defense_all": "Auch Rollläden ohne offenes Fenster.\n↳ {inh_self_defense_all}"
+          }
+        },
+        "shading": {
+          "title": "Beschattung",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "shading_mode": "Beschattung",
+            "shading_azimuth_start": "Sonnenrichtung von",
+            "shading_azimuth_end": "Sonnenrichtung bis",
+            "shading_elevation_min": "Sonnenhöhe ab",
+            "shading_elevation_max": "Sonnenhöhe bis",
+            "shading_brightness_sensor": "Helligkeitssensor für die Beschattung",
+            "shading_brightness_start": "Beginn ab Helligkeit",
+            "shading_brightness_end": "Ende unter Helligkeit",
+            "shading_brightness_average": "Mittelwert der Helligkeit über",
+            "shading_temp_out_min": "Außentemperatur ab",
+            "shading_temp_in_min": "Innentemperatur ab",
+            "shading_forecast_min": "Vorhersage-Temperatur ab",
+            "shading_temp_hysteresis": "Hysterese der Temperaturen",
+            "shading_weather_conditions": "Wetterlagen für die Beschattung",
+            "shading_sensor": "Eigener Binärsensor",
+            "shading_must": "Muss (alle)",
+            "shading_any": "Oder (mindestens eine)",
+            "shading_delay_start": "Wartezeit vor der Beschattung",
+            "shading_delay_end": "Wartezeit vor dem Ende",
+            "shading_end_sun_leaves": "Sofort beenden, wenn die Sonne den Bereich verlässt",
+            "shading_end_open": "Nach der Beschattung wieder öffnen",
+            "shading_only_down": "Beschattung fährt nur nach unten",
+            "shading_time_start": "Beschattung ab",
+            "shading_time_end": "Beschattung bis",
+            "heat_protection_temp": "Hitzeschutz ab",
+            "shading_alt_entity": "Entität für die alternative Position"
+          },
+          "data_description": {
+            "shading_mode": "Standardmäßig aus. Immer, oder nur wenn jemand / niemand zu Hause ist.\n↳ {inh_shading_mode}",
+            "shading_azimuth_start": "Kompassgrad: 90 Ost, 180 Süd, 270 West. Das Fenster zeigt in den Bereich zwischen diesen Werten.\n↳ {inh_shading_azimuth_start}",
+            "shading_azimuth_end": "↳ {inh_shading_azimuth_end}",
+            "shading_elevation_min": "↳ {inh_shading_elevation_min}",
+            "shading_elevation_max": "↳ {inh_shading_elevation_max}",
+            "shading_brightness_sensor": "Leer = der Helligkeitssensor der Seite Sensoren.\n↳ {inh_shading_brightness_sensor}",
+            "shading_brightness_start": "↳ {inh_shading_brightness_start}",
+            "shading_brightness_end": "↳ {inh_shading_brightness_end}",
+            "shading_brightness_average": "Minuten; 0 = aktueller Wert.\n↳ {inh_shading_brightness_average}",
+            "shading_temp_out_min": "↳ {inh_shading_temp_out_min}",
+            "shading_temp_in_min": "Leer = nicht genutzt.\n↳ {inh_shading_temp_in_min}",
+            "shading_forecast_min": "Leer = nicht genutzt. Aus dem Vorhersage-Sensor oder der Tagesvorhersage der Wetter-Entität.\n↳ {inh_shading_forecast_min}",
+            "shading_temp_hysteresis": "Die Beschattung endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_shading_temp_hysteresis}",
+            "shading_weather_conditions": "↳ {inh_shading_weather_conditions}",
+            "shading_sensor": "An = beschatten.\n↳ {inh_shading_sensor}",
+            "shading_must": "Standard: alle Bedingungen (wie ASC).\n↳ {inh_shading_must}",
+            "shading_any": "Eine Bedingung in beiden Listen zählt als Muss.\n↳ {inh_shading_any}",
+            "shading_delay_start": "↳ {inh_shading_delay_start}",
+            "shading_delay_end": "↳ {inh_shading_delay_end}",
+            "shading_end_sun_leaves": "↳ {inh_shading_end_sun_leaves}",
+            "shading_end_open": "Aus: Der Rollladen bleibt bis zum Abend auf der Beschattungsposition.\n↳ {inh_shading_end_open}",
+            "shading_only_down": "Ein Rollladen, der tiefer steht als die Beschattungsposition, bleibt stehen.\n↳ {inh_shading_only_down}",
+            "shading_time_start": "Leer = den ganzen Tag.\n↳ {inh_shading_time_start}",
+            "shading_time_end": "↳ {inh_shading_time_end}",
+            "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.\n↳ {inh_heat_protection_temp}",
+            "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
+          }
+        },
+        "tilt": {
+          "title": "Lamellen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "tilt_open": "Lamellen offen",
+            "tilt_closed": "Lamellen geschlossen",
+            "tilt_sleep": "Lamellen Schlafen",
+            "tilt_ventilate": "Lamellen Lüften",
+            "tilt_comfort": "Lamellen Komfort",
+            "tilt_shading": "Lamellen Beschattung",
+            "tilt_privacy": "Lamellen Sichtschutz",
+            "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+            "tilt_mode": "Reihenfolge",
+            "tilt_delay": "Wartezeit zwischen Position und Lamellen",
+            "tilt_timeout": "Zeitlimit für den Stillstand",
+            "tilt_close_first": "Lamellen vor neuer Einstellung erst schließen",
+            "tilt_tolerance": "Toleranz der Lamellen"
+          },
+          "data_description": {
+            "tilt_open": "↳ {inh_tilt_open}",
+            "tilt_closed": "↳ {inh_tilt_closed}",
+            "tilt_sleep": "Leer = Lamellen geschlossen.\n↳ {inh_tilt_sleep}",
+            "tilt_ventilate": "↳ {inh_tilt_ventilate}",
+            "tilt_comfort": "↳ {inh_tilt_comfort}",
+            "tilt_shading": "↳ {inh_tilt_shading}",
+            "tilt_privacy": "↳ {inh_tilt_privacy}",
+            "tilt_shading_steps": "Bis zu 4 Stufen Sonnenhöhe:Lamelle, z. B. 20:70, 35:50, 50:30. Unter der ersten Stufe gilt Lamellen Beschattung.\n↳ {inh_tilt_shading_steps}",
+            "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).\n↳ {inh_tilt_mode}",
+            "tilt_delay": "↳ {inh_tilt_delay}",
+            "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde.\n↳ {inh_tilt_timeout}",
+            "tilt_close_first": "↳ {inh_tilt_close_first}",
+            "tilt_tolerance": "↳ {inh_tilt_tolerance}"
+          }
         }
       }
     },
@@ -479,8 +753,11 @@
             "schedule": "Zeitplan",
             "light": "Helligkeit und Sonnenhöhe",
             "sensors": "Sensoren",
+            "residents": "Bewohner und Selbstschutz",
             "positions": "Positionen",
             "window": "Fensterkontakte",
+            "shading": "Beschattung",
+            "tilt": "Lamellen",
             "privacy": "Sichtschutz",
             "drive": "Fahrverhalten",
             "override": "Manuelle Übersteuerung",
@@ -540,8 +817,11 @@
           "data": {
             "pos_open": "Position offen",
             "pos_closed": "Position geschlossen",
+            "pos_sleep": "Position Schlafen",
             "pos_ventilate": "Position Lüften",
             "pos_comfort": "Position Komfort",
+            "pos_shading": "Position Beschattung",
+            "pos_shading_alt": "Alternative Position Beschattung",
             "pos_privacy": "Position Sichtschutz (abends)",
             "pos_privacy_up": "Position Sichtschutz (morgens)",
             "tolerance": "Toleranz",
@@ -551,8 +831,11 @@
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_sleep": "Solange die Bewohner schlafen. Leer = Position geschlossen.\n↳ {inh_pos_sleep}",
             "pos_ventilate": "↳ {inh_pos_ventilate}",
             "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.\n↳ {inh_pos_comfort}",
+            "pos_shading": "↳ {inh_pos_shading}",
+            "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}",
@@ -576,13 +859,21 @@
             "workday_sensor": "Arbeitstag-Sensor (heute)",
             "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
             "calendar": "Kalender",
-            "brightness_sensor": "Helligkeitssensor"
+            "brightness_sensor": "Helligkeitssensor",
+            "outdoor_temperature_sensor": "Außentemperatur",
+            "indoor_temperature_sensor": "Innentemperatur",
+            "weather_entity": "Wetter",
+            "forecast_sensor": "Sensor für die Vorhersage-Temperatur"
           },
           "data_description": {
             "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_sensor}",
             "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.\n↳ {inh_calendar}",
-            "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}"
+            "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}",
+            "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.\n↳ {inh_outdoor_temperature_sensor}",
+            "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.\n↳ {inh_indoor_temperature_sensor}",
+            "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.\n↳ {inh_weather_entity}",
+            "forecast_sensor": "Höchsttemperatur von heute; wird statt der Vorhersage der Wetter-Entität genutzt.\n↳ {inh_forecast_sensor}"
           }
         },
         "drive": {
@@ -694,6 +985,138 @@
             "privacy_down_minutes": "0 = aus.\n↳ {inh_privacy_down_minutes}",
             "privacy_brightness": "Leer = aus. Startet den Sichtschutz abends nach dem frühesten Schließen, sobald es so dunkel ist.\n↳ {inh_privacy_brightness}"
           }
+        },
+        "residents": {
+          "data": {
+            "residents_house": "Quellen des Haus-Status",
+            "residents_room": "Quellen des Raum-Status",
+            "residents_map": "Eigene Zuordnung von Quellwerten",
+            "residents_gone_hours": "Länger weg als (verreist)",
+            "presence_up": "Morgenfahrt",
+            "presence_down": "Abendfahrt",
+            "sleep_close": "Schließen, wenn die Bewohner schlafen gehen",
+            "wake_open": "Öffnen, wenn die Bewohner aufwachen",
+            "sleep_allow_open": "Morgenfahrt trotz Schlaf",
+            "sleep_allow_ventilate": "Lüften trotz Schlaf",
+            "sleep_allow_shading": "Beschattung trotz Schlaf",
+            "self_defense_mode": "Selbstschutz",
+            "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
+            "self_defense_all": "Selbstschutz schließt jeden Rollladen"
+          },
+          "data_description": {
+            "residents_house": "Person: home = zu Hause, sonst abwesend. Zone: Anzahl Personen. Binärsensor / Input Boolean: an = schläft, aus = wach. Alarmanlage: abwesend = verreist, Nacht = schläft, zu Hause = zu Hause. Sensoren und Auswahlen mit den Zustandsnamen asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
+            "residents_room": "Personen oder Sensoren dieses Raums (z. B. Bettsensor). Gilt fürs Schlafen und Aufwachen statt des Haus-Status.\n↳ {inh_residents_room}",
+            "residents_map": "Beispiel: armed_night:asleep, Schlafen:asleep, Urlaub:gone\n↳ {inh_residents_map}",
+            "residents_gone_hours": "Wer länger weg ist, gilt als verreist. 0 = aus.\n↳ {inh_residents_gone_hours}",
+            "presence_up": "Morgens nur fahren, wenn jemand zu Hause ist, oder nur, wenn niemand da ist.\n↳ {inh_presence_up}",
+            "presence_down": "Abends nur fahren, wenn jemand zu Hause ist, oder nur, wenn niemand da ist.\n↳ {inh_presence_down}",
+            "sleep_close": "Fährt auf die Position Schlafen.\n↳ {inh_sleep_close}",
+            "wake_open": "Ist es Tag, fährt der Rollladen in den Zielzustand (offen, Beschattung).\n↳ {inh_wake_open}",
+            "sleep_allow_open": "Morgens öffnen, auch wenn die Bewohner noch schlafen.\n↳ {inh_sleep_allow_open}",
+            "sleep_allow_ventilate": "↳ {inh_sleep_allow_ventilate}",
+            "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
+            "self_defense_mode": "Schließt Rollläden mit offenem oder gekipptem Fenster, wenn niemand zu Hause ist. Braucht zusätzlich den Schalter Selbstschutz am zentralen Gerät.\n↳ {inh_self_defense_mode}",
+            "self_defense_delay": "↳ {inh_self_defense_delay}",
+            "self_defense_all": "Auch Rollläden ohne offenes Fenster.\n↳ {inh_self_defense_all}"
+          },
+          "title": "Bewohner und Selbstschutz",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert."
+        },
+        "tilt": {
+          "data": {
+            "tilt_entity": "Eigene Lamellen-Entität",
+            "tilt_open": "Lamellen offen",
+            "tilt_closed": "Lamellen geschlossen",
+            "tilt_sleep": "Lamellen Schlafen",
+            "tilt_ventilate": "Lamellen Lüften",
+            "tilt_comfort": "Lamellen Komfort",
+            "tilt_shading": "Lamellen Beschattung",
+            "tilt_privacy": "Lamellen Sichtschutz",
+            "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+            "tilt_mode": "Reihenfolge",
+            "tilt_delay": "Wartezeit zwischen Position und Lamellen",
+            "tilt_timeout": "Zeitlimit für den Stillstand",
+            "tilt_close_first": "Lamellen vor neuer Einstellung erst schließen",
+            "tilt_tolerance": "Toleranz der Lamellen"
+          },
+          "data_description": {
+            "tilt_entity": "Eigene Cover-Entität für die Lamellen. Leer = dieser Rollladen.\n↳ {inh_tilt_entity}",
+            "tilt_open": "↳ {inh_tilt_open}",
+            "tilt_closed": "↳ {inh_tilt_closed}",
+            "tilt_sleep": "Leer = Lamellen geschlossen.\n↳ {inh_tilt_sleep}",
+            "tilt_ventilate": "↳ {inh_tilt_ventilate}",
+            "tilt_comfort": "↳ {inh_tilt_comfort}",
+            "tilt_shading": "↳ {inh_tilt_shading}",
+            "tilt_privacy": "↳ {inh_tilt_privacy}",
+            "tilt_shading_steps": "Bis zu 4 Stufen Sonnenhöhe:Lamelle, z. B. 20:70, 35:50, 50:30. Unter der ersten Stufe gilt Lamellen Beschattung.\n↳ {inh_tilt_shading_steps}",
+            "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).\n↳ {inh_tilt_mode}",
+            "tilt_delay": "↳ {inh_tilt_delay}",
+            "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde.\n↳ {inh_tilt_timeout}",
+            "tilt_close_first": "↳ {inh_tilt_close_first}",
+            "tilt_tolerance": "↳ {inh_tilt_tolerance}"
+          },
+          "title": "Lamellen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert."
+        },
+        "shading": {
+          "title": "Beschattung",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "shading_mode": "Beschattung",
+            "shading_azimuth_start": "Sonnenrichtung von",
+            "shading_azimuth_end": "Sonnenrichtung bis",
+            "shading_elevation_min": "Sonnenhöhe ab",
+            "shading_elevation_max": "Sonnenhöhe bis",
+            "shading_brightness_sensor": "Helligkeitssensor für die Beschattung",
+            "shading_brightness_start": "Beginn ab Helligkeit",
+            "shading_brightness_end": "Ende unter Helligkeit",
+            "shading_brightness_average": "Mittelwert der Helligkeit über",
+            "shading_temp_out_min": "Außentemperatur ab",
+            "shading_temp_in_min": "Innentemperatur ab",
+            "shading_forecast_min": "Vorhersage-Temperatur ab",
+            "shading_temp_hysteresis": "Hysterese der Temperaturen",
+            "shading_weather_conditions": "Wetterlagen für die Beschattung",
+            "shading_sensor": "Eigener Binärsensor",
+            "shading_must": "Muss (alle)",
+            "shading_any": "Oder (mindestens eine)",
+            "shading_delay_start": "Wartezeit vor der Beschattung",
+            "shading_delay_end": "Wartezeit vor dem Ende",
+            "shading_end_sun_leaves": "Sofort beenden, wenn die Sonne den Bereich verlässt",
+            "shading_end_open": "Nach der Beschattung wieder öffnen",
+            "shading_only_down": "Beschattung fährt nur nach unten",
+            "shading_time_start": "Beschattung ab",
+            "shading_time_end": "Beschattung bis",
+            "heat_protection_temp": "Hitzeschutz ab",
+            "shading_alt_entity": "Entität für die alternative Position"
+          },
+          "data_description": {
+            "shading_mode": "Standardmäßig aus. Immer, oder nur wenn jemand / niemand zu Hause ist.\n↳ {inh_shading_mode}",
+            "shading_azimuth_start": "Kompassgrad: 90 Ost, 180 Süd, 270 West. Das Fenster zeigt in den Bereich zwischen diesen Werten.\n↳ {inh_shading_azimuth_start}",
+            "shading_azimuth_end": "↳ {inh_shading_azimuth_end}",
+            "shading_elevation_min": "↳ {inh_shading_elevation_min}",
+            "shading_elevation_max": "↳ {inh_shading_elevation_max}",
+            "shading_brightness_sensor": "Leer = der Helligkeitssensor der Seite Sensoren.\n↳ {inh_shading_brightness_sensor}",
+            "shading_brightness_start": "↳ {inh_shading_brightness_start}",
+            "shading_brightness_end": "↳ {inh_shading_brightness_end}",
+            "shading_brightness_average": "Minuten; 0 = aktueller Wert.\n↳ {inh_shading_brightness_average}",
+            "shading_temp_out_min": "↳ {inh_shading_temp_out_min}",
+            "shading_temp_in_min": "Leer = nicht genutzt.\n↳ {inh_shading_temp_in_min}",
+            "shading_forecast_min": "Leer = nicht genutzt. Aus dem Vorhersage-Sensor oder der Tagesvorhersage der Wetter-Entität.\n↳ {inh_shading_forecast_min}",
+            "shading_temp_hysteresis": "Die Beschattung endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_shading_temp_hysteresis}",
+            "shading_weather_conditions": "↳ {inh_shading_weather_conditions}",
+            "shading_sensor": "An = beschatten.\n↳ {inh_shading_sensor}",
+            "shading_must": "Standard: alle Bedingungen (wie ASC).\n↳ {inh_shading_must}",
+            "shading_any": "Eine Bedingung in beiden Listen zählt als Muss.\n↳ {inh_shading_any}",
+            "shading_delay_start": "↳ {inh_shading_delay_start}",
+            "shading_delay_end": "↳ {inh_shading_delay_end}",
+            "shading_end_sun_leaves": "↳ {inh_shading_end_sun_leaves}",
+            "shading_end_open": "Aus: Der Rollladen bleibt bis zum Abend auf der Beschattungsposition.\n↳ {inh_shading_end_open}",
+            "shading_only_down": "Ein Rollladen, der tiefer steht als die Beschattungsposition, bleibt stehen.\n↳ {inh_shading_only_down}",
+            "shading_time_start": "Leer = den ganzen Tag.\n↳ {inh_shading_time_start}",
+            "shading_time_end": "↳ {inh_shading_time_end}",
+            "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.\n↳ {inh_heat_protection_temp}",
+            "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
+          }
         }
       },
       "error": {
@@ -716,7 +1139,8 @@
         "inherit": "Erben",
         "brightness": "Helligkeit",
         "elevation": "Sonnenhöhe",
-        "brightness_elevation": "Helligkeit und Sonnenhöhe"
+        "brightness_elevation": "Helligkeit und Sonnenhöhe",
+        "residents": "Bewohner (wenn wach)"
       }
     },
     "down_mode": {
@@ -726,7 +1150,8 @@
         "inherit": "Erben",
         "brightness": "Helligkeit",
         "elevation": "Sonnenhöhe",
-        "brightness_elevation": "Helligkeit und Sonnenhöhe"
+        "brightness_elevation": "Helligkeit und Sonnenhöhe",
+        "residents": "Bewohner (wenn sie schlafen)"
       }
     },
     "twilight_up": {
@@ -801,10 +1226,31 @@
         "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
         "calendar": "Kalender",
         "brightness_sensor": "Helligkeitssensor",
+        "outdoor_temperature_sensor": "Außentemperatur",
+        "indoor_temperature_sensor": "Innentemperatur",
+        "weather_entity": "Wetter",
+        "forecast_sensor": "Sensor für die Vorhersage-Temperatur",
+        "residents_house": "Quellen des Haus-Status",
+        "residents_room": "Quellen des Raum-Status",
+        "residents_map": "Eigene Zuordnung von Quellwerten",
+        "residents_gone_hours": "Länger weg als (verreist)",
+        "presence_up": "Morgenfahrt",
+        "presence_down": "Abendfahrt",
+        "sleep_close": "Schließen, wenn die Bewohner schlafen gehen",
+        "wake_open": "Öffnen, wenn die Bewohner aufwachen",
+        "sleep_allow_open": "Morgenfahrt trotz Schlaf",
+        "sleep_allow_ventilate": "Lüften trotz Schlaf",
+        "sleep_allow_shading": "Beschattung trotz Schlaf",
+        "self_defense_mode": "Selbstschutz",
+        "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
+        "self_defense_all": "Selbstschutz schließt jeden Rollladen",
         "pos_open": "Position offen",
         "pos_closed": "Position geschlossen",
+        "pos_sleep": "Position Schlafen",
         "pos_ventilate": "Position Lüften",
         "pos_comfort": "Position Komfort",
+        "pos_shading": "Position Beschattung",
+        "pos_shading_alt": "Alternative Position Beschattung",
         "pos_privacy": "Position Sichtschutz (abends)",
         "pos_privacy_up": "Position Sichtschutz (morgens)",
         "tolerance": "Toleranz",
@@ -822,6 +1268,46 @@
         "window_close_return": "Wenn das Fenster geschlossen wird",
         "lockout": "Aussperrschutz",
         "lockout_tilted": "Aussperrschutz auch bei gekippt",
+        "shading_mode": "Beschattung",
+        "shading_azimuth_start": "Sonnenrichtung von",
+        "shading_azimuth_end": "Sonnenrichtung bis",
+        "shading_elevation_min": "Sonnenhöhe ab",
+        "shading_elevation_max": "Sonnenhöhe bis",
+        "shading_brightness_sensor": "Helligkeitssensor für die Beschattung",
+        "shading_brightness_start": "Beginn ab Helligkeit",
+        "shading_brightness_end": "Ende unter Helligkeit",
+        "shading_brightness_average": "Mittelwert der Helligkeit über",
+        "shading_temp_out_min": "Außentemperatur ab",
+        "shading_temp_in_min": "Innentemperatur ab",
+        "shading_forecast_min": "Vorhersage-Temperatur ab",
+        "shading_temp_hysteresis": "Hysterese der Temperaturen",
+        "shading_weather_conditions": "Wetterlagen für die Beschattung",
+        "shading_sensor": "Eigener Binärsensor",
+        "shading_must": "Muss (alle)",
+        "shading_any": "Oder (mindestens eine)",
+        "shading_delay_start": "Wartezeit vor der Beschattung",
+        "shading_delay_end": "Wartezeit vor dem Ende",
+        "shading_end_sun_leaves": "Sofort beenden, wenn die Sonne den Bereich verlässt",
+        "shading_end_open": "Nach der Beschattung wieder öffnen",
+        "shading_only_down": "Beschattung fährt nur nach unten",
+        "shading_time_start": "Beschattung ab",
+        "shading_time_end": "Beschattung bis",
+        "heat_protection_temp": "Hitzeschutz ab",
+        "shading_alt_entity": "Entität für die alternative Position",
+        "tilt_entity": "Eigene Lamellen-Entität",
+        "tilt_open": "Lamellen offen",
+        "tilt_closed": "Lamellen geschlossen",
+        "tilt_sleep": "Lamellen Schlafen",
+        "tilt_ventilate": "Lamellen Lüften",
+        "tilt_comfort": "Lamellen Komfort",
+        "tilt_shading": "Lamellen Beschattung",
+        "tilt_privacy": "Lamellen Sichtschutz",
+        "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+        "tilt_mode": "Reihenfolge",
+        "tilt_delay": "Wartezeit zwischen Position und Lamellen",
+        "tilt_timeout": "Zeitlimit für den Stillstand",
+        "tilt_close_first": "Lamellen vor neuer Einstellung erst schließen",
+        "tilt_tolerance": "Toleranz der Lamellen",
         "privacy_up_minutes": "Morgens: Minuten vor dem Öffnen",
         "privacy_down_minutes": "Abends: Minuten vor dem Schließen",
         "privacy_brightness": "Abends: wenn dunkler als",
@@ -875,6 +1361,92 @@
         "hard": "Hart",
         "inherit": "Erben"
       }
+    },
+    "presence_up": {
+      "options": {
+        "always": "Immer",
+        "home": "Nur wenn jemand zu Hause ist",
+        "absent": "Nur wenn niemand zu Hause ist",
+        "off": "Nie",
+        "inherit": "Erben"
+      }
+    },
+    "presence_down": {
+      "options": {
+        "always": "Immer",
+        "home": "Nur wenn jemand zu Hause ist",
+        "absent": "Nur wenn niemand zu Hause ist",
+        "off": "Nie",
+        "inherit": "Erben"
+      }
+    },
+    "shading_mode": {
+      "options": {
+        "always": "Immer",
+        "home": "Nur wenn jemand zu Hause ist",
+        "absent": "Nur wenn niemand zu Hause ist",
+        "off": "Aus",
+        "inherit": "Erben"
+      }
+    },
+    "self_defense_mode": {
+      "options": {
+        "off": "Aus",
+        "absent": "Wenn niemand zu Hause ist (nach der Verzögerung)",
+        "gone": "Nur wenn die Bewohner verreist sind",
+        "inherit": "Erben"
+      }
+    },
+    "shading_must": {
+      "options": {
+        "azimuth": "Sonnenrichtung (Azimut)",
+        "elevation": "Sonnenhöhe",
+        "brightness": "Helligkeit",
+        "temp_out": "Außentemperatur",
+        "temp_in": "Innentemperatur",
+        "forecast": "Vorhersage-Temperatur",
+        "weather": "Wetterlage",
+        "sensor": "Eigener Binärsensor"
+      }
+    },
+    "shading_any": {
+      "options": {
+        "azimuth": "Sonnenrichtung (Azimut)",
+        "elevation": "Sonnenhöhe",
+        "brightness": "Helligkeit",
+        "temp_out": "Außentemperatur",
+        "temp_in": "Innentemperatur",
+        "forecast": "Vorhersage-Temperatur",
+        "weather": "Wetterlage",
+        "sensor": "Eigener Binärsensor"
+      }
+    },
+    "shading_weather_conditions": {
+      "options": {
+        "clear-night": "Klar, Nacht",
+        "cloudy": "Bewölkt",
+        "exceptional": "Außergewöhnlich",
+        "fog": "Nebel",
+        "hail": "Hagel",
+        "lightning": "Gewitter",
+        "lightning-rainy": "Gewitter mit Regen",
+        "partlycloudy": "Teilweise bewölkt",
+        "pouring": "Starkregen",
+        "rainy": "Regen",
+        "snowy": "Schnee",
+        "snowy-rainy": "Schneeregen",
+        "sunny": "Sonnig",
+        "windy": "Windig",
+        "windy-variant": "Windig, bewölkt"
+      }
+    },
+    "tilt_mode": {
+      "options": {
+        "after": "Position, dann Lamellen nach der Wartezeit",
+        "standstill": "Position, dann Lamellen bei Stillstand",
+        "first": "Erst Lamellen, dann Position",
+        "inherit": "Erben"
+      }
     }
   },
   "entity": {
@@ -902,6 +1474,12 @@
       },
       "global_comfort": {
         "name": "Komfort"
+      },
+      "global_shading": {
+        "name": "Beschattung"
+      },
+      "global_self_defense": {
+        "name": "Selbstschutz"
       }
     },
     "binary_sensor": {
@@ -910,6 +1488,9 @@
       },
       "manual_override": {
         "name": "Manuelle Übersteuerung"
+      },
+      "self_defense": {
+        "name": "Selbstschutz"
       }
     },
     "sensor": {
@@ -930,7 +1511,11 @@
           "comfort": "Komfort",
           "privacy_up": "Sichtschutz (morgens)",
           "privacy_down": "Sichtschutz (abends)",
-          "window_return": "Fenster geschlossen"
+          "window_return": "Fenster geschlossen",
+          "sleep": "Bewohner schlafen",
+          "self_defense": "Selbstschutz",
+          "shading": "Beschattung",
+          "heat": "Hitzeschutz"
         }
       },
       "target": {
@@ -952,6 +1537,37 @@
       },
       "next_privacy": {
         "name": "Nächster Sichtschutz"
+      },
+      "house_status": {
+        "name": "Haus-Status",
+        "state": {
+          "asleep": "Schläft",
+          "gotosleep": "Geht schlafen",
+          "awoken": "Wach",
+          "home": "Zu Hause",
+          "absent": "Abwesend",
+          "gone": "Verreist (länger weg)"
+        }
+      },
+      "residents": {
+        "name": "Bewohner",
+        "state": {
+          "asleep": "Schläft",
+          "gotosleep": "Geht schlafen",
+          "awoken": "Wach",
+          "home": "Zu Hause",
+          "absent": "Abwesend",
+          "gone": "Verreist (länger weg)"
+        }
+      },
+      "shading_state": {
+        "name": "Beschattung",
+        "state": {
+          "out": "Keine Beschattung",
+          "in_reserved": "Beschattung beginnt gleich",
+          "in": "Beschattung",
+          "out_reserved": "Beschattung endet gleich"
+        }
       }
     },
     "button": {
@@ -977,7 +1593,8 @@
           "astro": "Sonne",
           "brightness": "Helligkeit",
           "elevation": "Sonnenhöhe",
-          "brightness_elevation": "Helligkeit und Sonnenhöhe"
+          "brightness_elevation": "Helligkeit und Sonnenhöhe",
+          "residents": "Bewohner (wenn wach)"
         }
       },
       "down_mode": {
@@ -988,7 +1605,18 @@
           "astro": "Sonne",
           "brightness": "Helligkeit",
           "elevation": "Sonnenhöhe",
-          "brightness_elevation": "Helligkeit und Sonnenhöhe"
+          "brightness_elevation": "Helligkeit und Sonnenhöhe",
+          "residents": "Bewohner (wenn sie schlafen)"
+        }
+      },
+      "shading_mode": {
+        "name": "Beschattung",
+        "state": {
+          "inherit": "Erben",
+          "always": "Immer",
+          "home": "Nur wenn jemand zu Hause ist",
+          "absent": "Nur wenn niemand zu Hause ist",
+          "off": "Aus"
         }
       }
     },
@@ -1024,6 +1652,9 @@
       },
       "pos_closed": {
         "name": "Position geschlossen"
+      },
+      "pos_shading": {
+        "name": "Position Beschattung"
       }
     }
   },

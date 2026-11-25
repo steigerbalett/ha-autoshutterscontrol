@@ -35,6 +35,8 @@ SWITCH_MORNING: Final = "morning"
 SWITCH_EVENING: Final = "evening"
 SWITCH_PAUSE: Final = "pause"
 SWITCH_COMFORT: Final = "comfort"
+SWITCH_SHADING: Final = "shading"
+SWITCH_SELF_DEFENSE: Final = "self_defense"
 
 GLOBAL_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
@@ -43,6 +45,8 @@ GLOBAL_SWITCHES: Final = {
     SWITCH_EVENING: True,
     SWITCH_PAUSE: False,
     SWITCH_COMFORT: False,
+    SWITCH_SHADING: True,
+    SWITCH_SELF_DEFENSE: False,
 }
 
 # Per cover runtime switches
@@ -86,6 +90,9 @@ NAMED_POSITIONS: Final = (
 
 # Interval of the check of brightness, sun elevation and privacy (seconds)
 TICK_SECONDS: Final = 60
+
+# Refresh interval of the weather forecast (seconds)
+FORECAST_SECONDS: Final = 1800
 
 # Number of decisions kept per cover for diagnostics
 DECISION_HISTORY: Final = 50
