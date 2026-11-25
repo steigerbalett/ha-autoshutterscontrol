@@ -44,6 +44,7 @@ from .engine.settings import (
     LEVEL_PROFILE,
     MULTI,
     SELECT,
+    TEXT,
     TIME,
     Setting,
     sections_for,
@@ -107,6 +108,8 @@ def _selector(setting: Setting, inherit: bool) -> selector.Selector:
                 mode=selector.SelectSelectorMode.LIST,
             )
         )
+    if kind == TEXT:
+        return selector.TextSelector()
     if kind == ENTITY:
         config = (
             selector.EntitySelectorConfig(domain=list(setting.domains))
@@ -309,6 +312,18 @@ class AscOptionsFlow(OptionsFlow):
         """Manual override."""
         return await self._section("override", user_input)
 
+    async def async_step_light(self, user_input=None) -> ConfigFlowResult:
+        """Brightness and sun elevation."""
+        return await self._section("light", user_input)
+
+    async def async_step_window(self, user_input=None) -> ConfigFlowResult:
+        """Window contacts."""
+        return await self._section("window", user_input)
+
+    async def async_step_privacy(self, user_input=None) -> ConfigFlowResult:
+        """Privacy."""
+        return await self._section("privacy", user_input)
+
     async def async_step_reset(self, user_input=None) -> ConfigFlowResult:
         """Reset fields to the default."""
         if user_input is not None:
@@ -395,6 +410,18 @@ class _SettingsSubentryFlow(ConfigSubentryFlow):
     async def async_step_override(self, user_input=None) -> SubentryFlowResult:
         """Manual override."""
         return await self._section("override", user_input)
+
+    async def async_step_light(self, user_input=None) -> SubentryFlowResult:
+        """Brightness and sun elevation."""
+        return await self._section("light", user_input)
+
+    async def async_step_window(self, user_input=None) -> SubentryFlowResult:
+        """Window contacts."""
+        return await self._section("window", user_input)
+
+    async def async_step_privacy(self, user_input=None) -> SubentryFlowResult:
+        """Privacy."""
+        return await self._section("privacy", user_input)
 
     async def async_step_reset(self, user_input=None) -> SubentryFlowResult:
         """Back to the inherited value."""

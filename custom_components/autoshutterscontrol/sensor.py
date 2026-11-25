@@ -12,12 +12,32 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import AscConfigEntry
-from .engine.arbiter import REASON_DAY_OPEN, REASON_MANUAL, REASON_NIGHT_CLOSE, REASON_SERVICE
-from .engine.settings import DRIVE_KINDS
+from .engine.arbiter import (
+    REASON_COMFORT,
+    REASON_DAY_OPEN,
+    REASON_MANUAL,
+    REASON_NIGHT_CLOSE,
+    REASON_PRIVACY_DOWN,
+    REASON_PRIVACY_UP,
+    REASON_SERVICE,
+    REASON_VENTILATE,
+    REASON_WINDOW_RETURN,
+)
+from .engine.settings import DRIVE_KINDS, WINDOW_CLOSED, WINDOW_OPEN, WINDOW_TILTED
 from .entity import AscCoverEntity
 from .runtime import CoverController
 
-REASONS = [REASON_DAY_OPEN, REASON_NIGHT_CLOSE, REASON_SERVICE, REASON_MANUAL]
+REASONS = [
+    REASON_DAY_OPEN,
+    REASON_NIGHT_CLOSE,
+    REASON_VENTILATE,
+    REASON_COMFORT,
+    REASON_PRIVACY_UP,
+    REASON_PRIVACY_DOWN,
+    REASON_WINDOW_RETURN,
+    REASON_SERVICE,
+    REASON_MANUAL,
+]
 
 
 async def async_setup_entry(
@@ -31,6 +51,8 @@ async def async_setup_entry(
             [
                 NextDriveSensor(controller, "next_up"),
                 NextDriveSensor(controller, "next_down"),
+                NextDriveSensor(controller, "next_privacy"),
+                WindowSensor(controller),
                 LastReasonSensor(controller),
                 TargetSensor(controller),
             ],
@@ -104,3 +126,17 @@ class TargetSensor(AscCoverEntity, SensorEntity):
             "evaluated": dt_util.utcnow().isoformat(),
             "effective_config": self.controller.cfg.as_dict(),
         }
+
+
+class WindowSensor(AscCoverEntity, SensorEntity):
+    """Window state as seen by AutoShuttersControl (after the delays)."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = [WINDOW_CLOSED, WINDOW_TILTED, WINDOW_OPEN]
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "window_state")
+
+    @property
+    def native_value(self) -> str | None:
+        return self.controller.window_state

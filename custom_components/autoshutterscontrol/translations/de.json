@@ -6,11 +6,15 @@
         "description": "Eine Einrichtung für alle Rollläden. Wähle jetzt die globalen Sensoren; alles Weitere steht in den Optionen. Rollläden und Profile fügst du danach über die Knöpfe der Integration hinzu.",
         "data": {
           "workday_sensor": "Arbeitstag-Sensor (heute)",
-          "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+          "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
+          "calendar": "Kalender",
+          "brightness_sensor": "Helligkeitssensor"
         },
         "data_description": {
           "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
-          "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage."
+          "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
+          "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.",
+          "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit."
         }
       }
     },
@@ -25,8 +29,11 @@
         "description": "Diese Werte gelten für alle Rollläden, solange ein Profil oder der Rollladen keinen eigenen Wert setzt.",
         "menu_options": {
           "schedule": "Zeitplan",
+          "light": "Helligkeit und Sonnenhöhe",
           "sensors": "Sensoren",
           "positions": "Positionen",
+          "window": "Fensterkontakte",
+          "privacy": "Sichtschutz",
           "drive": "Fahrverhalten",
           "override": "Manuelle Übersteuerung",
           "reset": "Felder auf Standard zurücksetzen",
@@ -53,7 +60,10 @@
           "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
           "time_down_early_free": "Frühestes Schließen an freien Tagen",
           "time_down_late_free": "Spätestes Schließen an freien Tagen",
-          "down_tomorrow_workday": "Abends nach dem morgigen Tag richten"
+          "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+          "time_source": "Früheste und späteste Zeiten aus",
+          "calendar_open_title": "Kalender: Titel für Öffnen",
+          "calendar_close_title": "Kalender: Titel für Schließen"
         },
         "data_description": {
           "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.",
@@ -62,7 +72,10 @@
           "horizon_down": "Nur bei „Eigene Sonnenhöhe“.",
           "offset_up": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.",
           "offset_down": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.",
-          "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages."
+          "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.",
+          "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.",
+          "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.",
+          "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“."
         }
       },
       "sensors": {
@@ -70,11 +83,15 @@
         "description": "Sensoren für alle Rollläden. Ein Profil oder ein Rollladen kann stattdessen einen eigenen Sensor nutzen.",
         "data": {
           "workday_sensor": "Arbeitstag-Sensor (heute)",
-          "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+          "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
+          "calendar": "Kalender",
+          "brightness_sensor": "Helligkeitssensor"
         },
         "data_description": {
           "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
-          "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage."
+          "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
+          "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.",
+          "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit."
         }
       },
       "positions": {
@@ -83,9 +100,15 @@
         "data": {
           "pos_open": "Position offen",
           "pos_closed": "Position geschlossen",
+          "pos_ventilate": "Position Lüften",
+          "pos_comfort": "Position Komfort",
+          "pos_privacy": "Position Sichtschutz (abends)",
+          "pos_privacy_up": "Position Sichtschutz (morgens)",
           "tolerance": "Toleranz"
         },
         "data_description": {
+          "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.",
+          "pos_privacy_up": "Leer: wie der Sichtschutz abends.",
           "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht."
         }
       },
@@ -134,6 +157,65 @@
         "data": {
           "keys": "Felder"
         }
+      },
+      "light": {
+        "title": "Helligkeit und Sonnenhöhe",
+        "description": "Für die Modi Helligkeit und Sonnenhöhe: Der Rollladen öffnet, sobald es zwischen frühester und spätester Öffnungszeit hell genug ist, spätestens zur spätesten Zeit. Schließen genauso.",
+        "data": {
+          "light_logic": "Helligkeit und Sonnenhöhe verknüpft mit",
+          "brightness_up": "Öffnen ab",
+          "brightness_down": "Schließen unter",
+          "brightness_duration": "Bedingung muss gelten für",
+          "elevation_source": "Schwelle der Sonnenhöhe aus",
+          "elevation_up": "Öffnen ab Sonnenhöhe",
+          "elevation_down": "Schließen unter Sonnenhöhe",
+          "elevation_sensor": "Sensor für die Schwelle der Sonnenhöhe"
+        },
+        "data_description": {
+          "light_logic": "Nur beim Modus „Helligkeit und Sonnenhöhe“.",
+          "brightness_duration": "Gegen kurze Schwankungen, z. B. Wolken oder Scheinwerfer.",
+          "elevation_source": "Fest: die Werte unten. Sensor: der Wert des Sensors. Sensor + Versatz: Sensorwert plus die Werte unten.",
+          "elevation_sensor": "Sensor, Zahl oder input_number mit einer Sonnenhöhe in Grad."
+        }
+      },
+      "window": {
+        "title": "Fensterkontakte",
+        "description": "Lüften bei gekipptem Fenster, Komfort bei offenem Fenster und Aussperrschutz für Türen.",
+        "data": {
+          "window_value_open": "Zustandstext „offen“",
+          "window_value_tilted": "Zustandstext „gekippt“",
+          "ventilate_enabled": "Lüften",
+          "ventilate_only_up": "Lüften fährt nur nach oben",
+          "window_open_delay": "Verzögerung beim Öffnen",
+          "window_close_delay": "Verzögerung beim Schließen",
+          "window_close_return": "Wenn das Fenster geschlossen wird",
+          "lockout": "Aussperrschutz",
+          "lockout_tilted": "Aussperrschutz auch bei gekippt"
+        },
+        "data_description": {
+          "window_value_open": "Für einen Fenstersensor mit drei Zuständen.",
+          "window_value_tilted": "Für einen Fenstersensor mit drei Zuständen.",
+          "ventilate_enabled": "Bei gekipptem oder offenem Fenster in die Lüftungsposition fahren.",
+          "ventilate_only_up": "Das Öffnen des Fensters senkt den Rollladen nie ab.",
+          "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).",
+          "window_close_delay": "Sekunden, die der Kontakt geschlossen bleiben muss.",
+          "window_close_return": "Nur nach einer Lüftungsfahrt oder einem Schließen, das auf die Tür gewartet hat.",
+          "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn sie zu ist. Hart sperrt zusätzlich den Aktor (Stufe 4)."
+        }
+      },
+      "privacy": {
+        "title": "Sichtschutz",
+        "description": "Vor der Abendfahrt fährt der Rollladen in die Sichtschutzposition, vor der Morgenfahrt in die Sichtschutzposition morgens.",
+        "data": {
+          "privacy_up_minutes": "Morgens: Minuten vor dem Öffnen",
+          "privacy_down_minutes": "Abends: Minuten vor dem Schließen",
+          "privacy_brightness": "Abends: wenn dunkler als"
+        },
+        "data_description": {
+          "privacy_up_minutes": "0 = aus.",
+          "privacy_down_minutes": "0 = aus.",
+          "privacy_brightness": "Leer = aus. Startet den Sichtschutz abends nach dem frühesten Schließen, sobald es so dunkel ist."
+        }
       }
     }
   },
@@ -157,8 +239,11 @@
           "menu_options": {
             "base": "Name",
             "schedule": "Zeitplan",
+            "light": "Helligkeit und Sonnenhöhe",
             "sensors": "Sensoren",
             "positions": "Positionen",
+            "window": "Fensterkontakte",
+            "privacy": "Sichtschutz",
             "drive": "Fahrverhalten",
             "override": "Manuelle Übersteuerung",
             "reset": "Auf geerbten Wert zurücksetzen",
@@ -192,7 +277,10 @@
             "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
             "time_down_early_free": "Frühestes Schließen an freien Tagen",
             "time_down_late_free": "Spätestes Schließen an freien Tagen",
-            "down_tomorrow_workday": "Abends nach dem morgigen Tag richten"
+            "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+            "time_source": "Früheste und späteste Zeiten aus",
+            "calendar_open_title": "Kalender: Titel für Öffnen",
+            "calendar_close_title": "Kalender: Titel für Schließen"
           },
           "data_description": {
             "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.\n↳ {inh_up_mode}",
@@ -211,7 +299,10 @@
             "time_down_late_workday": "↳ {inh_time_down_late_workday}",
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
-            "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}"
+            "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}",
+            "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.\n↳ {inh_time_source}",
+            "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.\n↳ {inh_calendar_open_title}",
+            "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“.\n↳ {inh_calendar_close_title}"
           }
         },
         "sensors": {
@@ -219,11 +310,15 @@
           "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
           "data": {
             "workday_sensor": "Arbeitstag-Sensor (heute)",
-            "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+            "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
+            "calendar": "Kalender",
+            "brightness_sensor": "Helligkeitssensor"
           },
           "data_description": {
             "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_sensor}",
-            "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}"
+            "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}",
+            "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.\n↳ {inh_calendar}",
+            "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}"
           }
         },
         "positions": {
@@ -232,11 +327,19 @@
           "data": {
             "pos_open": "Position offen",
             "pos_closed": "Position geschlossen",
+            "pos_ventilate": "Position Lüften",
+            "pos_comfort": "Position Komfort",
+            "pos_privacy": "Position Sichtschutz (abends)",
+            "pos_privacy_up": "Position Sichtschutz (morgens)",
             "tolerance": "Toleranz"
           },
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_ventilate": "↳ {inh_pos_ventilate}",
+            "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.\n↳ {inh_pos_comfort}",
+            "pos_privacy": "↳ {inh_pos_privacy}",
+            "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}"
           }
         },
@@ -279,6 +382,70 @@
             "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.\n↳ {inh_manual_counts_open}",
             "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}"
           }
+        },
+        "light": {
+          "title": "Helligkeit und Sonnenhöhe",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "light_logic": "Helligkeit und Sonnenhöhe verknüpft mit",
+            "brightness_up": "Öffnen ab",
+            "brightness_down": "Schließen unter",
+            "brightness_duration": "Bedingung muss gelten für",
+            "elevation_source": "Schwelle der Sonnenhöhe aus",
+            "elevation_up": "Öffnen ab Sonnenhöhe",
+            "elevation_down": "Schließen unter Sonnenhöhe",
+            "elevation_sensor": "Sensor für die Schwelle der Sonnenhöhe"
+          },
+          "data_description": {
+            "light_logic": "Nur beim Modus „Helligkeit und Sonnenhöhe“.\n↳ {inh_light_logic}",
+            "brightness_up": "↳ {inh_brightness_up}",
+            "brightness_down": "↳ {inh_brightness_down}",
+            "brightness_duration": "Gegen kurze Schwankungen, z. B. Wolken oder Scheinwerfer.\n↳ {inh_brightness_duration}",
+            "elevation_source": "Fest: die Werte unten. Sensor: der Wert des Sensors. Sensor + Versatz: Sensorwert plus die Werte unten.\n↳ {inh_elevation_source}",
+            "elevation_up": "↳ {inh_elevation_up}",
+            "elevation_down": "↳ {inh_elevation_down}",
+            "elevation_sensor": "Sensor, Zahl oder input_number mit einer Sonnenhöhe in Grad.\n↳ {inh_elevation_sensor}"
+          }
+        },
+        "window": {
+          "title": "Fensterkontakte",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "window_value_open": "Zustandstext „offen“",
+            "window_value_tilted": "Zustandstext „gekippt“",
+            "ventilate_enabled": "Lüften",
+            "ventilate_only_up": "Lüften fährt nur nach oben",
+            "window_open_delay": "Verzögerung beim Öffnen",
+            "window_close_delay": "Verzögerung beim Schließen",
+            "window_close_return": "Wenn das Fenster geschlossen wird",
+            "lockout": "Aussperrschutz",
+            "lockout_tilted": "Aussperrschutz auch bei gekippt"
+          },
+          "data_description": {
+            "window_value_open": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_open}",
+            "window_value_tilted": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_tilted}",
+            "ventilate_enabled": "Bei gekipptem oder offenem Fenster in die Lüftungsposition fahren.\n↳ {inh_ventilate_enabled}",
+            "ventilate_only_up": "Das Öffnen des Fensters senkt den Rollladen nie ab.\n↳ {inh_ventilate_only_up}",
+            "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).\n↳ {inh_window_open_delay}",
+            "window_close_delay": "Sekunden, die der Kontakt geschlossen bleiben muss.\n↳ {inh_window_close_delay}",
+            "window_close_return": "Nur nach einer Lüftungsfahrt oder einem Schließen, das auf die Tür gewartet hat.\n↳ {inh_window_close_return}",
+            "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn sie zu ist. Hart sperrt zusätzlich den Aktor (Stufe 4).\n↳ {inh_lockout}",
+            "lockout_tilted": "↳ {inh_lockout_tilted}"
+          }
+        },
+        "privacy": {
+          "title": "Sichtschutz",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "privacy_up_minutes": "Morgens: Minuten vor dem Öffnen",
+            "privacy_down_minutes": "Abends: Minuten vor dem Schließen",
+            "privacy_brightness": "Abends: wenn dunkler als"
+          },
+          "data_description": {
+            "privacy_up_minutes": "0 = aus.\n↳ {inh_privacy_up_minutes}",
+            "privacy_down_minutes": "0 = aus.\n↳ {inh_privacy_down_minutes}",
+            "privacy_brightness": "Leer = aus. Startet den Sichtschutz abends nach dem frühesten Schließen, sobald es so dunkel ist.\n↳ {inh_privacy_brightness}"
+          }
         }
       }
     },
@@ -310,8 +477,11 @@
           "menu_options": {
             "base": "Name und Profil",
             "schedule": "Zeitplan",
+            "light": "Helligkeit und Sonnenhöhe",
             "sensors": "Sensoren",
             "positions": "Positionen",
+            "window": "Fensterkontakte",
+            "privacy": "Sichtschutz",
             "drive": "Fahrverhalten",
             "override": "Manuelle Übersteuerung",
             "reset": "Auf geerbten Wert zurücksetzen",
@@ -338,7 +508,10 @@
             "time_down_late_workday": "Spätestes Schließen an Arbeitstagen",
             "time_down_early_free": "Frühestes Schließen an freien Tagen",
             "time_down_late_free": "Spätestes Schließen an freien Tagen",
-            "down_tomorrow_workday": "Abends nach dem morgigen Tag richten"
+            "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+            "time_source": "Früheste und späteste Zeiten aus",
+            "calendar_open_title": "Kalender: Titel für Öffnen",
+            "calendar_close_title": "Kalender: Titel für Schließen"
           },
           "data_description": {
             "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.\n↳ {inh_up_mode}",
@@ -357,13 +530,20 @@
             "time_down_late_workday": "↳ {inh_time_down_late_workday}",
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
-            "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}"
+            "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}",
+            "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.\n↳ {inh_time_source}",
+            "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.\n↳ {inh_calendar_open_title}",
+            "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“.\n↳ {inh_calendar_close_title}"
           }
         },
         "positions": {
           "data": {
             "pos_open": "Position offen",
             "pos_closed": "Position geschlossen",
+            "pos_ventilate": "Position Lüften",
+            "pos_comfort": "Position Komfort",
+            "pos_privacy": "Position Sichtschutz (abends)",
+            "pos_privacy_up": "Position Sichtschutz (morgens)",
             "tolerance": "Toleranz",
             "invert": "Richtung umkehren",
             "position_entity": "Position aus anderer Entität"
@@ -371,6 +551,10 @@
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_ventilate": "↳ {inh_pos_ventilate}",
+            "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.\n↳ {inh_pos_comfort}",
+            "pos_privacy": "↳ {inh_pos_privacy}",
+            "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}",
             "invert": "Für Rollläden, die 0 % als offen melden.\n↳ {inh_invert}",
             "position_entity": "Sensor oder Zahl mit der Position, falls der Rollladen sie nicht selbst meldet.\n↳ {inh_position_entity}"
@@ -390,11 +574,15 @@
           "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
           "data": {
             "workday_sensor": "Arbeitstag-Sensor (heute)",
-            "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)"
+            "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
+            "calendar": "Kalender",
+            "brightness_sensor": "Helligkeitssensor"
           },
           "data_description": {
             "workday_sensor": "Binärsensor der Integration Workday. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_sensor}",
-            "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}"
+            "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}",
+            "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.\n↳ {inh_calendar}",
+            "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}"
           }
         },
         "drive": {
@@ -436,6 +624,76 @@
             "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.\n↳ {inh_manual_counts_open}",
             "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}"
           }
+        },
+        "window": {
+          "data": {
+            "window_open_sensor": "Kontakt „offen“",
+            "window_tilted_sensor": "Kontakt „gekippt“",
+            "window_state_sensor": "Fenstersensor mit drei Zuständen",
+            "window_value_open": "Zustandstext „offen“",
+            "window_value_tilted": "Zustandstext „gekippt“",
+            "ventilate_enabled": "Lüften",
+            "ventilate_only_up": "Lüften fährt nur nach oben",
+            "window_open_delay": "Verzögerung beim Öffnen",
+            "window_close_delay": "Verzögerung beim Schließen",
+            "window_close_return": "Wenn das Fenster geschlossen wird",
+            "lockout": "Aussperrschutz",
+            "lockout_tilted": "Aussperrschutz auch bei gekippt"
+          },
+          "data_description": {
+            "window_open_sensor": "Binärsensor, an = offen.\n↳ {inh_window_open_sensor}",
+            "window_tilted_sensor": "Binärsensor, an = gekippt.\n↳ {inh_window_tilted_sensor}",
+            "window_state_sensor": "Sensor mit den Zuständen geschlossen / gekippt / offen (Texte unten).\n↳ {inh_window_state_sensor}",
+            "window_value_open": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_open}",
+            "window_value_tilted": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_tilted}",
+            "ventilate_enabled": "Bei gekipptem oder offenem Fenster in die Lüftungsposition fahren.\n↳ {inh_ventilate_enabled}",
+            "ventilate_only_up": "Das Öffnen des Fensters senkt den Rollladen nie ab.\n↳ {inh_ventilate_only_up}",
+            "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).\n↳ {inh_window_open_delay}",
+            "window_close_delay": "Sekunden, die der Kontakt geschlossen bleiben muss.\n↳ {inh_window_close_delay}",
+            "window_close_return": "Nur nach einer Lüftungsfahrt oder einem Schließen, das auf die Tür gewartet hat.\n↳ {inh_window_close_return}",
+            "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn sie zu ist. Hart sperrt zusätzlich den Aktor (Stufe 4).\n↳ {inh_lockout}",
+            "lockout_tilted": "↳ {inh_lockout_tilted}"
+          },
+          "title": "Fensterkontakte",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert."
+        },
+        "light": {
+          "title": "Helligkeit und Sonnenhöhe",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "light_logic": "Helligkeit und Sonnenhöhe verknüpft mit",
+            "brightness_up": "Öffnen ab",
+            "brightness_down": "Schließen unter",
+            "brightness_duration": "Bedingung muss gelten für",
+            "elevation_source": "Schwelle der Sonnenhöhe aus",
+            "elevation_up": "Öffnen ab Sonnenhöhe",
+            "elevation_down": "Schließen unter Sonnenhöhe",
+            "elevation_sensor": "Sensor für die Schwelle der Sonnenhöhe"
+          },
+          "data_description": {
+            "light_logic": "Nur beim Modus „Helligkeit und Sonnenhöhe“.\n↳ {inh_light_logic}",
+            "brightness_up": "↳ {inh_brightness_up}",
+            "brightness_down": "↳ {inh_brightness_down}",
+            "brightness_duration": "Gegen kurze Schwankungen, z. B. Wolken oder Scheinwerfer.\n↳ {inh_brightness_duration}",
+            "elevation_source": "Fest: die Werte unten. Sensor: der Wert des Sensors. Sensor + Versatz: Sensorwert plus die Werte unten.\n↳ {inh_elevation_source}",
+            "elevation_up": "↳ {inh_elevation_up}",
+            "elevation_down": "↳ {inh_elevation_down}",
+            "elevation_sensor": "Sensor, Zahl oder input_number mit einer Sonnenhöhe in Grad.\n↳ {inh_elevation_sensor}"
+          }
+        },
+        "privacy": {
+          "title": "Sichtschutz",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "privacy_up_minutes": "Morgens: Minuten vor dem Öffnen",
+            "privacy_down_minutes": "Abends: Minuten vor dem Schließen",
+            "privacy_brightness": "Abends: wenn dunkler als"
+          },
+          "data_description": {
+            "privacy_up_minutes": "0 = aus.\n↳ {inh_privacy_up_minutes}",
+            "privacy_down_minutes": "0 = aus.\n↳ {inh_privacy_down_minutes}",
+            "privacy_brightness": "Leer = aus. Startet den Sichtschutz abends nach dem frühesten Schließen, sobald es so dunkel ist.\n↳ {inh_privacy_brightness}"
+          }
         }
       },
       "error": {
@@ -455,14 +713,20 @@
       "options": {
         "time": "Zeit",
         "astro": "Sonne",
-        "inherit": "Erben"
+        "inherit": "Erben",
+        "brightness": "Helligkeit",
+        "elevation": "Sonnenhöhe",
+        "brightness_elevation": "Helligkeit und Sonnenhöhe"
       }
     },
     "down_mode": {
       "options": {
         "time": "Zeit",
         "astro": "Sonne",
-        "inherit": "Erben"
+        "inherit": "Erben",
+        "brightness": "Helligkeit",
+        "elevation": "Sonnenhöhe",
+        "brightness_elevation": "Helligkeit und Sonnenhöhe"
       }
     },
     "twilight_up": {
@@ -522,13 +786,45 @@
         "time_down_early_free": "Frühestes Schließen an freien Tagen",
         "time_down_late_free": "Spätestes Schließen an freien Tagen",
         "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+        "time_source": "Früheste und späteste Zeiten aus",
+        "calendar_open_title": "Kalender: Titel für Öffnen",
+        "calendar_close_title": "Kalender: Titel für Schließen",
+        "light_logic": "Helligkeit und Sonnenhöhe verknüpft mit",
+        "brightness_up": "Öffnen ab",
+        "brightness_down": "Schließen unter",
+        "brightness_duration": "Bedingung muss gelten für",
+        "elevation_source": "Schwelle der Sonnenhöhe aus",
+        "elevation_up": "Öffnen ab Sonnenhöhe",
+        "elevation_down": "Schließen unter Sonnenhöhe",
+        "elevation_sensor": "Sensor für die Schwelle der Sonnenhöhe",
         "workday_sensor": "Arbeitstag-Sensor (heute)",
         "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
+        "calendar": "Kalender",
+        "brightness_sensor": "Helligkeitssensor",
         "pos_open": "Position offen",
         "pos_closed": "Position geschlossen",
+        "pos_ventilate": "Position Lüften",
+        "pos_comfort": "Position Komfort",
+        "pos_privacy": "Position Sichtschutz (abends)",
+        "pos_privacy_up": "Position Sichtschutz (morgens)",
         "tolerance": "Toleranz",
         "invert": "Richtung umkehren",
         "position_entity": "Position aus anderer Entität",
+        "window_open_sensor": "Kontakt „offen“",
+        "window_tilted_sensor": "Kontakt „gekippt“",
+        "window_state_sensor": "Fenstersensor mit drei Zuständen",
+        "window_value_open": "Zustandstext „offen“",
+        "window_value_tilted": "Zustandstext „gekippt“",
+        "ventilate_enabled": "Lüften",
+        "ventilate_only_up": "Lüften fährt nur nach oben",
+        "window_open_delay": "Verzögerung beim Öffnen",
+        "window_close_delay": "Verzögerung beim Schließen",
+        "window_close_return": "Wenn das Fenster geschlossen wird",
+        "lockout": "Aussperrschutz",
+        "lockout_tilted": "Aussperrschutz auch bei gekippt",
+        "privacy_up_minutes": "Morgens: Minuten vor dem Öffnen",
+        "privacy_down_minutes": "Abends: Minuten vor dem Schließen",
+        "privacy_brightness": "Abends: wenn dunkler als",
         "delay_fixed": "Feste Verzögerung",
         "delay_random": "Zufällige Verzögerung (höchstens)",
         "drive_time": "Fahrzeit",
@@ -541,6 +837,43 @@
         "override_return": "Danach den Zielzustand anfahren",
         "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
         "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+      }
+    },
+    "light_logic": {
+      "options": {
+        "and": "Beides (UND)",
+        "or": "Eines davon (ODER)",
+        "inherit": "Erben"
+      }
+    },
+    "elevation_source": {
+      "options": {
+        "fixed": "Fest",
+        "sensor": "Sensor",
+        "hybrid": "Sensor + Versatz",
+        "inherit": "Erben"
+      }
+    },
+    "time_source": {
+      "options": {
+        "times": "Zeiten",
+        "calendar": "Kalender",
+        "inherit": "Erben"
+      }
+    },
+    "window_close_return": {
+      "options": {
+        "target": "Zielzustand",
+        "previous": "Vorherige Position",
+        "inherit": "Erben"
+      }
+    },
+    "lockout": {
+      "options": {
+        "off": "Aus",
+        "soft": "Weich",
+        "hard": "Hart",
+        "inherit": "Erben"
       }
     }
   },
@@ -566,6 +899,9 @@
       },
       "cover_pause": {
         "name": "Pause"
+      },
+      "global_comfort": {
+        "name": "Komfort"
       }
     },
     "binary_sensor": {
@@ -589,7 +925,12 @@
           "day_open": "Morgenfahrt",
           "night_close": "Abendfahrt",
           "service": "Aktion",
-          "manual": "Von Hand"
+          "manual": "Von Hand",
+          "ventilate": "Lüften",
+          "comfort": "Komfort",
+          "privacy_up": "Sichtschutz (morgens)",
+          "privacy_down": "Sichtschutz (abends)",
+          "window_return": "Fenster geschlossen"
         }
       },
       "target": {
@@ -600,6 +941,17 @@
           "ventilate": "Lüften",
           "shading": "Beschattung"
         }
+      },
+      "window_state": {
+        "name": "Fenster",
+        "state": {
+          "closed": "Geschlossen",
+          "tilted": "Gekippt",
+          "open": "Offen"
+        }
+      },
+      "next_privacy": {
+        "name": "Nächster Sichtschutz"
       }
     },
     "button": {
@@ -622,7 +974,10 @@
         "state": {
           "inherit": "Erben",
           "time": "Zeit",
-          "astro": "Sonne"
+          "astro": "Sonne",
+          "brightness": "Helligkeit",
+          "elevation": "Sonnenhöhe",
+          "brightness_elevation": "Helligkeit und Sonnenhöhe"
         }
       },
       "down_mode": {
@@ -630,7 +985,10 @@
         "state": {
           "inherit": "Erben",
           "time": "Zeit",
-          "astro": "Sonne"
+          "astro": "Sonne",
+          "brightness": "Helligkeit",
+          "elevation": "Sonnenhöhe",
+          "brightness_elevation": "Helligkeit und Sonnenhöhe"
         }
       }
     },

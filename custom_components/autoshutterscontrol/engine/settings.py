@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import time
 from typing import Any
 
-ACTIVE_STAGE = 1
+ACTIVE_STAGE = 2
 
 LEVEL_GLOBAL = "global"
 LEVEL_PROFILE = "profile"
@@ -30,6 +30,7 @@ TIME = "time"
 SELECT = "select"
 MULTI = "multi"
 ENTITY = "entity"
+TEXT = "text"
 
 # Sections (one options page each)
 SEC_SCHEDULE = "schedule"
@@ -37,12 +38,55 @@ SEC_SENSORS = "sensors"
 SEC_POSITIONS = "positions"
 SEC_DRIVE = "drive"
 SEC_OVERRIDE = "override"
-SECTIONS = (SEC_SCHEDULE, SEC_SENSORS, SEC_POSITIONS, SEC_DRIVE, SEC_OVERRIDE)
+SEC_LIGHT = "light"
+SEC_WINDOW = "window"
+SEC_PRIVACY = "privacy"
+SECTIONS = (
+    SEC_SCHEDULE,
+    SEC_LIGHT,
+    SEC_SENSORS,
+    SEC_POSITIONS,
+    SEC_WINDOW,
+    SEC_PRIVACY,
+    SEC_DRIVE,
+    SEC_OVERRIDE,
+)
 
 # Option values
 MODE_TIME = "time"
 MODE_ASTRO = "astro"
-UP_DOWN_MODES = (MODE_TIME, MODE_ASTRO)
+MODE_BRIGHTNESS = "brightness"
+MODE_ELEVATION = "elevation"
+MODE_BRIGHTNESS_ELEVATION = "brightness_elevation"
+UP_DOWN_MODES = (MODE_TIME, MODE_ASTRO, MODE_BRIGHTNESS, MODE_ELEVATION, MODE_BRIGHTNESS_ELEVATION)
+# Modes where the drive happens when a condition is met (between early and late)
+DYNAMIC_MODES = frozenset({MODE_BRIGHTNESS, MODE_ELEVATION, MODE_BRIGHTNESS_ELEVATION})
+
+LOGIC_AND = "and"
+LOGIC_OR = "or"
+LOGICS = (LOGIC_AND, LOGIC_OR)
+
+ELEVATION_FIXED = "fixed"
+ELEVATION_SENSOR = "sensor"
+ELEVATION_HYBRID = "hybrid"
+ELEVATION_SOURCES = (ELEVATION_FIXED, ELEVATION_SENSOR, ELEVATION_HYBRID)
+
+WINDOWS_TIMES = "times"
+WINDOWS_CALENDAR = "calendar"
+WINDOW_SOURCES = (WINDOWS_TIMES, WINDOWS_CALENDAR)
+
+WINDOW_CLOSED = "closed"
+WINDOW_TILTED = "tilted"
+WINDOW_OPEN = "open"
+
+RETURN_TARGET = "target"
+RETURN_PREVIOUS = "previous"
+WINDOW_RETURNS = (RETURN_TARGET, RETURN_PREVIOUS)
+
+LOCKOUT_OFF = "off"
+LOCKOUT_SOFT = "soft"
+LOCKOUT_HARD = "hard"
+LOCKOUTS = (LOCKOUT_OFF, LOCKOUT_SOFT, LOCKOUT_HARD)
 
 TWILIGHT_REAL = "real"
 TWILIGHT_CIVIL = "civil"
@@ -130,6 +174,39 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("time_down_early_free", TIME, time(16, 0), SEC_SCHEDULE, entity="time"),
     Setting("time_down_late_free", TIME, time(22, 0), SEC_SCHEDULE, entity="time"),
     Setting("down_tomorrow_workday", BOOL, False, SEC_SCHEDULE),
+    Setting("time_source", SELECT, WINDOWS_TIMES, SEC_SCHEDULE, stage=2, options=WINDOW_SOURCES),
+    Setting("calendar_open_title", TEXT, "open", SEC_SCHEDULE, stage=2),
+    Setting("calendar_close_title", TEXT, "close", SEC_SCHEDULE, stage=2),
+    # --- brightness and sun elevation (modes brightness/elevation) ----------
+    Setting("light_logic", SELECT, LOGIC_OR, SEC_LIGHT, stage=2, options=LOGICS),
+    Setting("brightness_up", INT, 500, SEC_LIGHT, stage=2, minimum=0, maximum=200000, unit="lx"),
+    Setting("brightness_down", INT, 300, SEC_LIGHT, stage=2, minimum=0, maximum=200000, unit="lx"),
+    Setting("brightness_duration", INT, 2, SEC_LIGHT, stage=2, minimum=0, maximum=120, unit="min"),
+    Setting(
+        "elevation_source", SELECT, ELEVATION_FIXED, SEC_LIGHT, stage=2, options=ELEVATION_SOURCES
+    ),
+    Setting(
+        "elevation_up", FLOAT, 3.0, SEC_LIGHT, stage=2, minimum=-18, maximum=60, step=0.5, unit="°"
+    ),
+    Setting(
+        "elevation_down",
+        FLOAT,
+        1.0,
+        SEC_LIGHT,
+        stage=2,
+        minimum=-18,
+        maximum=60,
+        step=0.5,
+        unit="°",
+    ),
+    Setting(
+        "elevation_sensor",
+        ENTITY,
+        None,
+        SEC_LIGHT,
+        stage=2,
+        domains=("sensor", "input_number", "number"),
+    ),
     # --- sensors --------------------------------------------------------
     Setting("workday_sensor", ENTITY, None, SEC_SENSORS, domains=("binary_sensor",)),
     Setting("workday_tomorrow_sensor", ENTITY, None, SEC_SENSORS, domains=("binary_sensor",)),
@@ -150,6 +227,7 @@ SETTINGS: tuple[Setting, ...] = (
     _pos("pos_shading", 30, 3),
     _pos("pos_shading_alt", None, 3),
     _pos("pos_privacy", 50, 2),
+    _pos("pos_privacy_up", None, 2),
     _pos("pos_frost", None, 4),
     _pos("pos_wind", 0, 4),
     _pos("pos_rain", 0, 4),
@@ -163,6 +241,53 @@ SETTINGS: tuple[Setting, ...] = (
         SEC_POSITIONS,
         levels=COVER_ONLY,
         domains=("sensor", "number", "input_number"),
+    ),
+    # --- window contacts ------------------------------------------------
+    Setting(
+        "window_open_sensor",
+        ENTITY,
+        None,
+        SEC_WINDOW,
+        stage=2,
+        levels=COVER_ONLY,
+        domains=("binary_sensor",),
+    ),
+    Setting(
+        "window_tilted_sensor",
+        ENTITY,
+        None,
+        SEC_WINDOW,
+        stage=2,
+        levels=COVER_ONLY,
+        domains=("binary_sensor",),
+    ),
+    Setting(
+        "window_state_sensor",
+        ENTITY,
+        None,
+        SEC_WINDOW,
+        stage=2,
+        levels=COVER_ONLY,
+        domains=("sensor", "input_select", "select"),
+    ),
+    Setting("window_value_open", TEXT, "open", SEC_WINDOW, stage=2),
+    Setting("window_value_tilted", TEXT, "tilted", SEC_WINDOW, stage=2),
+    Setting("ventilate_enabled", BOOL, True, SEC_WINDOW, stage=2),
+    Setting("ventilate_only_up", BOOL, True, SEC_WINDOW, stage=2),
+    Setting("window_open_delay", INT, 0, SEC_WINDOW, stage=2, minimum=0, maximum=600, unit="s"),
+    Setting("window_close_delay", INT, 0, SEC_WINDOW, stage=2, minimum=0, maximum=600, unit="s"),
+    Setting(
+        "window_close_return", SELECT, RETURN_TARGET, SEC_WINDOW, stage=2, options=WINDOW_RETURNS
+    ),
+    Setting("lockout", SELECT, LOCKOUT_OFF, SEC_WINDOW, stage=2, options=LOCKOUTS),
+    Setting("lockout_tilted", BOOL, False, SEC_WINDOW, stage=2),
+    # --- privacy ----------------------------------------------------------
+    Setting("privacy_up_minutes", INT, 0, SEC_PRIVACY, stage=2, minimum=0, maximum=240, unit="min"),
+    Setting(
+        "privacy_down_minutes", INT, 0, SEC_PRIVACY, stage=2, minimum=0, maximum=240, unit="min"
+    ),
+    Setting(
+        "privacy_brightness", INT, None, SEC_PRIVACY, stage=2, minimum=0, maximum=200000, unit="lx"
     ),
     # --- drive behaviour ------------------------------------------------
     Setting("delay_fixed", INT, 0, SEC_DRIVE, minimum=0, maximum=3600, unit="s"),

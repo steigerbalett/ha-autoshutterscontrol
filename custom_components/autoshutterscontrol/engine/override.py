@@ -45,11 +45,8 @@ def manual_counts_as_scheduled(
     if position is None:
         return None
     tol = cfg["tolerance"]
-    suffix_up = "workday" if sched.up_workday else "free"
-    suffix_down = "workday" if sched.down_workday else "free"
-    tz = sched.up.tzinfo
-    early_up = datetime.combine(sched.day, cfg[f"time_up_early_{suffix_up}"], tzinfo=tz)
-    early_down = datetime.combine(sched.day, cfg[f"time_down_early_{suffix_down}"], tzinfo=tz)
+    early_up = sched.up_early
+    early_down = sched.down_early
     if (
         cfg["manual_counts_open"]
         and early_up <= now < sched.up

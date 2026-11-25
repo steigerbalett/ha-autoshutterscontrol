@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, tzinfo
 
 from astral import Observer
-from astral.sun import SunDirection, dawn, dusk, sunrise, sunset, time_at_elevation
+from astral.sun import SunDirection, dawn, dusk, elevation, sunrise, sunset, time_at_elevation
 
 from .settings import (
     TWILIGHT_ASTRONOMICAL,
@@ -70,3 +70,7 @@ class SunCalculator:
             return dusk(self._observer, day, depression=_DEPRESSION[twilight], tzinfo=tz)
         except ValueError:
             return None
+
+    def elevation(self, when: datetime) -> float:
+        """Sun elevation in degrees at a moment."""
+        return float(elevation(self._observer, when))

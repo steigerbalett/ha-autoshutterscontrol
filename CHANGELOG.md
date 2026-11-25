@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0b1
+
+Stage 2 of the concept.
+
+- Morning/evening modes brightness, sun elevation, and brightness + sun elevation (OR/AND): drive as soon
+  as the condition holds for the minimum duration between earliest and latest time; the latest time is
+  the deadline. Elevation threshold fixed, from a sensor, or sensor + offset.
+- Calendar as source of the earliest/latest times (event titles for opening and closing).
+- Window contacts per cover (open, tilted, three-state sensor): ventilation, full ventilation with the
+  global switch Comfort, back to target or previous position, delays, lock-out protection (drive is done
+  when the door is closed). New sensor Window.
+- Privacy before the evening and/or morning drive, and in the evening by brightness. New sensor Next
+  privacy.
+
 ## 0.1.0b1
 
 First beta, stage 1 of the concept.

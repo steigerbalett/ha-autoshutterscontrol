@@ -14,7 +14,8 @@ Es gibt **einen** Eintrag für das ganze Haus.
 
 1. **Haupteintrag**: Arbeitstag-Sensoren wählen (optional). Ohne Sensor gelten Montag bis Freitag als Arbeitstage.
 2. **Optionen** (Zahnrad am Eintrag): globale Einstellungen, je eine Seite für Zeitplan, Sensoren,
-   Positionen, Fahrverhalten und manuelle Übersteuerung.
+   Helligkeit und Sonnenhöhe, Positionen, Fenster, Sichtschutz,
+   Fahrverhalten und manuelle Übersteuerung.
 3. **Profile** (optional, *Profil hinzufügen*): Einstellungen für eine Gruppe von Rollläden, z. B. „Südseite“.
 4. **Rollläden** (*Rollläden hinzufügen*): einen oder mehrere Rollläden und ein Profil wählen. Abweichungen
    trägst du über *Neu konfigurieren* am Rollladen ein.
@@ -38,6 +39,56 @@ alle wirksamen Werte und ihre Herkunft.
 Der globale Schalter *Wochenend- und Feiertagszeiten* aus nimmt jeden Tag die Arbeitstag-Zeiten.
 Die Schalter *Morgenfahrt* und *Abendfahrt* schalten diese Fahrten für alle Rollläden ab.
 
+### Helligkeit und Sonnenhöhe
+
+Weitere Modi für *Morgens/Abends fahren nach*: **Helligkeit**, **Sonnenhöhe** und **Helligkeit und
+Sonnenhöhe**. Gefahren wird, sobald die Bedingung zwischen frühester und spätester Zeit erfüllt ist und
+so lange erfüllt bleibt, wie *Bedingung muss gelten für* angibt (Prüfung jede Minute). Die späteste Zeit ist die Frist: Ist die
+Bedingung bis dahin nicht erfüllt, wird dann gefahren. Pro Tag gibt es nur eine Morgen- und eine Abendfahrt.
+
+| Einstellung | Bedeutung |
+|---|---|
+| Öffnen ab / Schließen unter | Lux-Schwellen (Standard 500 / 300) für den Helligkeitssensor (Seite *Sensoren*). |
+| Öffnen ab / Schließen unter Sonnenhöhe | Grad über dem Horizont (Standard 3 / 1). |
+| Schwelle der Sonnenhöhe aus | *Fest*, *Sensor* (Schwelle aus einem Sensor) oder *Sensor + Versatz*. |
+| Helligkeit und Sonnenhöhe verknüpft mit | *Eines davon (ODER)* oder *Beides (UND)*. |
+
+### Kalender
+
+*Früheste und späteste Zeiten aus* = *Kalender* (Kalender auf der Seite *Sensoren*): Ein Termin, dessen Titel *Kalender: Titel für Öffnen* (Standard `open`) enthält,
+ersetzt an diesem Tag früheste und späteste Öffnung durch Beginn und Ende des Termins; *Kalender: Titel für
+Schließen* (Standard `close`) genauso für den Abend. Groß-/Kleinschreibung zählt nicht, ganztägige Termine werden
+ignoriert. Tage ohne passenden Termin und ein nicht lesbarer Kalender nutzen die eingestellten Zeiten.
+
+## Fenster
+
+Je Rollladen auf der Seite *Fenster*: Kontakt *offen*, Kontakt *gekippt* und/oder ein Sensor mit drei
+Zuständen (Texte für offen und gekippt einstellbar). Offen gewinnt vor gekippt. Der Sensor *Fenster* zeigt
+geschlossen, gekippt oder offen.
+
+- **Lüften**: Wird ein Fenster geöffnet oder gekippt und steht der Rollladen tiefer als *Position Lüften*
+  (Standard 50 %), fährt er hoch. Ist es geöffnet, wenn eine Fahrt nach unten ansteht, fährt er nur bis zur
+  Lüftungsposition. *Lüften fährt nur nach oben* (Standard an) verhindert, dass ein offenes Fenster einen höher
+  stehenden Rollladen herunterfährt.
+- **Voll-Lüften (Komfort)**: Ist der globale Schalter *Komfort* an, fährt ein ganz offenes Fenster auf
+  *Position Komfort* (Standard 70 %).
+- **Fenster zu**: Der Rollladen fährt in den Zielzustand oder, mit *Wenn das Fenster geschlossen wird* =
+  *Vorherige Position*, zurück, wo er vor dem Lüften stand. Nur wenn wegen des Fensters gefahren wurde.
+- **Verzögerung beim Öffnen / Schließen**: so viele Sekunden muss der Zustand bestehen.
+- **Aussperrschutz**: *Weich* oder *hart*: Solange die Tür offen ist (gekippt nur mit *Aussperrschutz auch bei gekippt*), fährt
+  der Rollladen nicht nach unten. Eine gesperrte Fahrt wird nachgeholt, sobald die Tür zu ist. *Hart* sperrt
+  in dieser Version genauso wie *weich*; der Unterschied (auch Wetterschutz wartet) kommt mit Stufe 4.
+
+## Sichtschutz
+
+- *Abends: Minuten vor dem Schließen*: so lange vor der Abendfahrt auf *Position Sichtschutz (abends)*
+  (Standard 50 %).
+- *Morgens: Minuten vor dem Öffnen*: so lange vor der Morgenfahrt auf *Position Sichtschutz (morgens)*
+  (leer = wie abends).
+- *Abends: wenn dunkler als*: abends schon früher, sobald es dunkler als dieser Wert ist.
+
+Der Sensor *Nächster Sichtschutz* zeigt die nächste Sichtschutzfahrt.
+
 ## Manuelle Übersteuerung
 
 Eine Fahrt, die nicht von AutoShuttersControl kommt (App, Taster, Wandschalter, andere Automation), startet
@@ -58,11 +109,12 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 
 ## Entitäten
 
-**Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause;
+**Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause,
+Komfort;
 Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand.
 
 **Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag und Manuelle Übersteuerung; Sensoren
-Nächste Öffnung, Nächstes Schließen, Letzter Fahrgrund, Zielzustand; Knöpfe Zielzustand anfahren und
+Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Fenster; Knöpfe Zielzustand anfahren und
 Übersteuerung beenden; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.
 
@@ -88,8 +140,8 @@ Ereignisse: `autoshutterscontrol_drive` (jede Fahrt, mit `reason` und `trigger`)
 
 | Stufe | Inhalt |
 |---|---|
-| 1 (diese Version) | Grundgerüst, Erben, Entscheider, Zeitplan (Zeit/Sonne/Arbeitstag), Positionen, Übersteuerung, Verzögerung, EN/DE |
-| 2 | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
+| 1 | Grundgerüst, Erben, Entscheider, Zeitplan (Zeit/Sonne/Arbeitstag), Positionen, Übersteuerung, Verzögerung, EN/DE |
+| 2 (diese Version) | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
 | 3 | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
 | 4 | Regen (auch bei offenem Fenster), Wind, Frost, Force, Party, Advent, Trigger, Wackeln |
 | 5 | Nachholen nach Neustart, Plausibilitätsprüfung, Logbuch, FHEM-Import, HACS-Standard |

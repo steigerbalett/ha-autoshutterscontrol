@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import AscConfigEntry
+from .engine.daynight import PRIVACY_DOWN, PRIVACY_UP, effective_down, effective_up, privacy_times
 from .entity import AscCoverEntity
 from .runtime import CoverController
 
@@ -37,12 +38,21 @@ class DayBinarySensor(AscCoverEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict:
-        sched = self.controller.schedule_for(dt_util.now(self.controller.tz).date())
+        today = dt_util.now(self.controller.tz).date()
+        sched = self.controller.schedule_for(today)
+        marks = self.controller.marks_for(today)
+        privacy = privacy_times(self.controller.cfg, sched, marks)
         return {
-            "up_today": sched.up.isoformat(),
-            "down_today": sched.down.isoformat(),
+            "up_today": effective_up(sched, marks).isoformat(),
+            "down_today": effective_down(sched, marks).isoformat(),
             "up_workday": sched.up_workday,
             "down_workday": sched.down_workday,
+            "up_dynamic": sched.up_dynamic,
+            "down_dynamic": sched.down_dynamic,
+            "privacy_up_today": privacy[PRIVACY_UP].isoformat() if PRIVACY_UP in privacy else None,
+            "privacy_down_today": (
+                privacy[PRIVACY_DOWN].isoformat() if PRIVACY_DOWN in privacy else None
+            ),
         }
 
 

@@ -34,6 +34,7 @@ SWITCH_WEEKEND_TIMES: Final = "weekend_times"
 SWITCH_MORNING: Final = "morning"
 SWITCH_EVENING: Final = "evening"
 SWITCH_PAUSE: Final = "pause"
+SWITCH_COMFORT: Final = "comfort"
 
 GLOBAL_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
@@ -41,6 +42,7 @@ GLOBAL_SWITCHES: Final = {
     SWITCH_MORNING: True,
     SWITCH_EVENING: True,
     SWITCH_PAUSE: False,
+    SWITCH_COMFORT: False,
 }
 
 # Per cover runtime switches
@@ -81,6 +83,9 @@ NAMED_POSITIONS: Final = (
     "shading",
     "privacy",
 )
+
+# Interval of the check of brightness, sun elevation and privacy (seconds)
+TICK_SECONDS: Final = 60
 
 # Number of decisions kept per cover for diagnostics
 DECISION_HISTORY: Final = 50

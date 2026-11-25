@@ -14,7 +14,8 @@ There is **one** entry for the whole house.
 
 1. **Main entry**: choose the workday sensors (optional). Without a sensor Monday to Friday are workdays.
 2. **Options** (gear icon of the entry): global settings, one page each for schedule, sensors,
-   positions, drive behaviour and manual override.
+   brightness and sun elevation, positions, window, privacy,
+   drive behaviour and manual override.
 3. **Profiles** (optional, *Add profile*): settings for a group of covers, e.g. "South side".
 4. **Covers** (*Add covers*): choose one or more covers and a profile. Change only what differs
    with the cover's *Reconfigure* button.
@@ -38,6 +39,56 @@ where they come from in the attribute `effective_config`.
 The global switch *Weekend and holiday times* off uses the workday times every day.
 The switches *Morning drive* and *Evening drive* turn these drives off for all covers.
 
+### Brightness and sun elevation
+
+More modes for *Morning/Evening drive by*: **Brightness**, **Sun elevation** and **Brightness and sun
+elevation**. The cover drives as soon as the condition is met between the earliest and the latest time and
+stays met as long as *Condition must hold for* says (checked every minute). The latest time is the deadline: if the
+condition is not met by then, the cover drives at that time. There is only one morning and one evening
+drive per day.
+
+| Setting | Meaning |
+|---|---|
+| Open from / Close below | Lux thresholds (default 500 / 300) for the brightness sensor (page *Sensors*). |
+| Open from / Close below sun elevation | Degrees above the horizon (default 3 / 1). |
+| Sun elevation threshold from | *Fixed*, *Sensor* (threshold from a sensor) or *Sensor + offset*. |
+| Brightness and sun elevation combined with | *One of them (OR)* or *Both (AND)*. |
+
+### Calendar
+
+*Earliest and latest times from* = *Calendar* (calendar on the page *Sensors*): an event whose title contains *Calendar: title for opening* (default `open`) replaces
+the earliest and latest opening of that day with the start and end of the event; *Calendar: title for
+closing* (default `close`) does the same for the evening. Case does not matter, all-day events are ignored. Days
+without a matching event and an unreadable calendar use the configured times.
+
+## Window
+
+Per cover on the page *Window*: an *open* contact, a *tilted* contact and/or a sensor with three states
+(texts for open and tilted can be set). Open wins over tilted. The sensor *Window* shows closed, tilted or
+open.
+
+- **Ventilation**: when a window is opened or tilted and the cover is below *Ventilation position* (default 50 %), it
+  moves up. When it is open while a drive down is due, the cover only goes to the ventilation position.
+  *Ventilation only drives up* (default on) keeps an open window from moving a higher cover down.
+- **Full ventilation (comfort)**: with the global switch *Comfort* on, a fully open window drives to
+  *Comfort position* (default 70 %).
+- **Window closed**: the cover drives to its target or, with *When the window is closed* = *Previous position*, back to
+  where it was before ventilating. Only if it was driven because of the window.
+- **Delay when opened / closed**: the state must last this many seconds.
+- **Lock-out protection**: *Soft* or *hard*: while the door is open (tilted only with *Lock-out protection also when tilted*) the
+  cover does not move down. A blocked drive is done as soon as the door is closed. In this version *hard*
+  blocks the same as *soft*; the difference (weather protection waits too) comes with stage 4.
+
+## Privacy
+
+- *Evening: minutes before closing*: that long before the evening drive to *Privacy position (evening)*
+  (default 50 %).
+- *Morning: minutes before opening*: that long before the morning drive to *Privacy position (morning)*
+  (empty = same as evening).
+- *Evening: when darker than*: in the evening already earlier, as soon as it is darker than this value.
+
+The sensor *Next privacy* shows the next privacy drive.
+
 ## Manual override
 
 A drive that did not come from AutoShuttersControl (app, button, wall switch, other automation)
@@ -59,10 +110,10 @@ context; position reports during the *drive time* after its own command also cou
 ## Entities
 
 **Central device**: switches Automatic, Weekend and holiday times, Morning drive, Evening drive,
-Pause; buttons Recalculate times, All covers to target.
+Pause, Comfort; buttons Recalculate times, All covers to target.
 
 **Per cover**: switches Automatic and Pause; binary sensors Day and Manual override; sensors Next
-opening, Next closing, Last drive reason, Target; buttons Drive to target and End manual override;
+opening, Next closing, Next privacy, Last drive reason, Target, Window; buttons Drive to target and End manual override;
 selects Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
 
 Pause: nothing is driven, the target is still tracked; when the pause ends the cover drives to its
@@ -87,8 +138,8 @@ Events: `autoshutterscontrol_drive` (every drive, with `reason` and `trigger`) a
 
 | Stage | Content |
 |---|---|
-| 1 (this version) | Base, inheritance, arbiter, schedule (time/sun/workday), positions, manual override, delay, EN/DE |
-| 2 | Window contacts (ventilation, comfort, lock-out), brightness, sun elevation, privacy, calendar |
+| 1 | Base, inheritance, arbiter, schedule (time/sun/workday), positions, manual override, delay, EN/DE |
+| 2 (this version) | Window contacts (ventilation, comfort, lock-out), brightness, sun elevation, privacy, calendar |
 | 3 | Residents, self defence, shading with all conditions, slats |
 | 4 | Rain (also with open window), wind, frost, force, party, advent, trigger, wiggle |
 | 5 | Recovery after restart, validation, logbook, FHEM import, HACS default |

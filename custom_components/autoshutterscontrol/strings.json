@@ -6,11 +6,15 @@
         "description": "One setup for all covers. Choose the global sensors now; everything else is in the options. Add covers and profiles afterwards with the buttons of the integration.",
         "data": {
           "workday_sensor": "Workday sensor (today)",
-          "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+          "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
+          "calendar": "Calendar",
+          "brightness_sensor": "Brightness sensor"
         },
         "data_description": {
           "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.",
-          "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays."
+          "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.",
+          "calendar": "Used when the times come from the calendar.",
+          "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness."
         }
       }
     },
@@ -25,8 +29,11 @@
         "description": "These values apply to all covers unless a profile or the cover sets its own value.",
         "menu_options": {
           "schedule": "Schedule",
+          "light": "Brightness and sun elevation",
           "sensors": "Sensors",
           "positions": "Positions",
+          "window": "Window contacts",
+          "privacy": "Privacy",
           "drive": "Drive behaviour",
           "override": "Manual override",
           "reset": "Reset fields to the default",
@@ -53,7 +60,10 @@
           "time_down_late_workday": "Latest closing on workdays",
           "time_down_early_free": "Earliest closing on days off",
           "time_down_late_free": "Latest closing on days off",
-          "down_tomorrow_workday": "Evening by tomorrow's day type"
+          "down_tomorrow_workday": "Evening by tomorrow's day type",
+          "time_source": "Earliest and latest times from",
+          "calendar_open_title": "Calendar: title for opening",
+          "calendar_close_title": "Calendar: title for closing"
         },
         "data_description": {
           "up_mode": "Time: at the earliest opening time. Sun: at the sun event.",
@@ -62,7 +72,10 @@
           "horizon_down": "Only used with \"Own sun elevation\".",
           "offset_up": "Minutes added to the sun event; negative is earlier.",
           "offset_down": "Minutes added to the sun event; negative is earlier.",
-          "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening."
+          "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.",
+          "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.",
+          "calendar_open_title": "Case does not matter, e.g. \"open\".",
+          "calendar_close_title": "Case does not matter, e.g. \"close\"."
         }
       },
       "sensors": {
@@ -70,11 +83,15 @@
         "description": "Sensors used by all covers. A profile or a cover can use its own sensor instead.",
         "data": {
           "workday_sensor": "Workday sensor (today)",
-          "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+          "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
+          "calendar": "Calendar",
+          "brightness_sensor": "Brightness sensor"
         },
         "data_description": {
           "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.",
-          "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays."
+          "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.",
+          "calendar": "Used when the times come from the calendar.",
+          "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness."
         }
       },
       "positions": {
@@ -83,9 +100,15 @@
         "data": {
           "pos_open": "Open position",
           "pos_closed": "Closed position",
+          "pos_ventilate": "Ventilation position",
+          "pos_comfort": "Comfort position",
+          "pos_privacy": "Privacy position (evening)",
+          "pos_privacy_up": "Privacy position (morning)",
           "tolerance": "Tolerance"
         },
         "data_description": {
+          "pos_comfort": "Used for a fully open window while the switch Comfort is on.",
+          "pos_privacy_up": "Empty: same as the evening privacy position.",
           "tolerance": "A cover within this distance of a position counts as being there."
         }
       },
@@ -134,6 +157,65 @@
         "data": {
           "keys": "Fields"
         }
+      },
+      "light": {
+        "title": "Brightness and sun elevation",
+        "description": "For the modes Brightness and Sun elevation: the cover opens as soon as it is bright enough between the earliest and the latest opening time, at the latest time at the latest. Closing works the same way.",
+        "data": {
+          "light_logic": "Brightness and sun elevation combined with",
+          "brightness_up": "Open from",
+          "brightness_down": "Close below",
+          "brightness_duration": "Condition must hold for",
+          "elevation_source": "Sun elevation threshold from",
+          "elevation_up": "Open from sun elevation",
+          "elevation_down": "Close below sun elevation",
+          "elevation_sensor": "Sun elevation threshold sensor"
+        },
+        "data_description": {
+          "light_logic": "Only for the mode \"Brightness and sun elevation\".",
+          "brightness_duration": "Against short changes, e.g. clouds or headlights.",
+          "elevation_source": "Fixed: the values below. Sensor: the value of the sensor. Sensor + offset: sensor value plus the values below.",
+          "elevation_sensor": "Sensor, number or input_number with a sun elevation in degrees."
+        }
+      },
+      "window": {
+        "title": "Window contacts",
+        "description": "Ventilation when the window is tilted, comfort when it is open, and lock-out protection for doors.",
+        "data": {
+          "window_value_open": "State text \"open\"",
+          "window_value_tilted": "State text \"tilted\"",
+          "ventilate_enabled": "Ventilate",
+          "ventilate_only_up": "Ventilation only drives up",
+          "window_open_delay": "Delay when opening",
+          "window_close_delay": "Delay when closing",
+          "window_close_return": "When the window is closed",
+          "lockout": "Lock-out protection",
+          "lockout_tilted": "Lock-out protection also when tilted"
+        },
+        "data_description": {
+          "window_value_open": "For a window sensor with three states.",
+          "window_value_tilted": "For a window sensor with three states.",
+          "ventilate_enabled": "Drive to the ventilation position when the window is tilted or open.",
+          "ventilate_only_up": "Opening the window never lowers the cover.",
+          "window_open_delay": "Seconds the contact must stay open (against fluttering).",
+          "window_close_delay": "Seconds the contact must stay closed.",
+          "window_close_return": "Only after a ventilation drive or a closing that waited for the door.",
+          "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard additionally locks the actuator (stage 4)."
+        }
+      },
+      "privacy": {
+        "title": "Privacy",
+        "description": "Before the evening drive the cover goes to the privacy position, before the morning drive to the morning privacy position.",
+        "data": {
+          "privacy_up_minutes": "Morning: minutes before opening",
+          "privacy_down_minutes": "Evening: minutes before closing",
+          "privacy_brightness": "Evening: when darker than"
+        },
+        "data_description": {
+          "privacy_up_minutes": "0 = off.",
+          "privacy_down_minutes": "0 = off.",
+          "privacy_brightness": "Empty = off. Starts the evening privacy after the earliest closing time as soon as it is this dark."
+        }
       }
     }
   },
@@ -157,8 +239,11 @@
           "menu_options": {
             "base": "Name",
             "schedule": "Schedule",
+            "light": "Brightness and sun elevation",
             "sensors": "Sensors",
             "positions": "Positions",
+            "window": "Window contacts",
+            "privacy": "Privacy",
             "drive": "Drive behaviour",
             "override": "Manual override",
             "reset": "Back to the inherited value",
@@ -192,7 +277,10 @@
             "time_down_late_workday": "Latest closing on workdays",
             "time_down_early_free": "Earliest closing on days off",
             "time_down_late_free": "Latest closing on days off",
-            "down_tomorrow_workday": "Evening by tomorrow's day type"
+            "down_tomorrow_workday": "Evening by tomorrow's day type",
+            "time_source": "Earliest and latest times from",
+            "calendar_open_title": "Calendar: title for opening",
+            "calendar_close_title": "Calendar: title for closing"
           },
           "data_description": {
             "up_mode": "Time: at the earliest opening time. Sun: at the sun event.\n↳ {inh_up_mode}",
@@ -211,7 +299,10 @@
             "time_down_late_workday": "↳ {inh_time_down_late_workday}",
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
-            "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}"
+            "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}",
+            "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.\n↳ {inh_time_source}",
+            "calendar_open_title": "Case does not matter, e.g. \"open\".\n↳ {inh_calendar_open_title}",
+            "calendar_close_title": "Case does not matter, e.g. \"close\".\n↳ {inh_calendar_close_title}"
           }
         },
         "sensors": {
@@ -219,11 +310,15 @@
           "description": "Empty fields inherit. ↳ shows the inherited value.",
           "data": {
             "workday_sensor": "Workday sensor (today)",
-            "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+            "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
+            "calendar": "Calendar",
+            "brightness_sensor": "Brightness sensor"
           },
           "data_description": {
             "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_sensor}",
-            "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}"
+            "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}",
+            "calendar": "Used when the times come from the calendar.\n↳ {inh_calendar}",
+            "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}"
           }
         },
         "positions": {
@@ -232,11 +327,19 @@
           "data": {
             "pos_open": "Open position",
             "pos_closed": "Closed position",
+            "pos_ventilate": "Ventilation position",
+            "pos_comfort": "Comfort position",
+            "pos_privacy": "Privacy position (evening)",
+            "pos_privacy_up": "Privacy position (morning)",
             "tolerance": "Tolerance"
           },
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_ventilate": "↳ {inh_pos_ventilate}",
+            "pos_comfort": "Used for a fully open window while the switch Comfort is on.\n↳ {inh_pos_comfort}",
+            "pos_privacy": "↳ {inh_pos_privacy}",
+            "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}"
           }
         },
@@ -279,6 +382,70 @@
             "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.\n↳ {inh_manual_counts_open}",
             "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}"
           }
+        },
+        "light": {
+          "title": "Brightness and sun elevation",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "light_logic": "Brightness and sun elevation combined with",
+            "brightness_up": "Open from",
+            "brightness_down": "Close below",
+            "brightness_duration": "Condition must hold for",
+            "elevation_source": "Sun elevation threshold from",
+            "elevation_up": "Open from sun elevation",
+            "elevation_down": "Close below sun elevation",
+            "elevation_sensor": "Sun elevation threshold sensor"
+          },
+          "data_description": {
+            "light_logic": "Only for the mode \"Brightness and sun elevation\".\n↳ {inh_light_logic}",
+            "brightness_up": "↳ {inh_brightness_up}",
+            "brightness_down": "↳ {inh_brightness_down}",
+            "brightness_duration": "Against short changes, e.g. clouds or headlights.\n↳ {inh_brightness_duration}",
+            "elevation_source": "Fixed: the values below. Sensor: the value of the sensor. Sensor + offset: sensor value plus the values below.\n↳ {inh_elevation_source}",
+            "elevation_up": "↳ {inh_elevation_up}",
+            "elevation_down": "↳ {inh_elevation_down}",
+            "elevation_sensor": "Sensor, number or input_number with a sun elevation in degrees.\n↳ {inh_elevation_sensor}"
+          }
+        },
+        "window": {
+          "title": "Window contacts",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "window_value_open": "State text \"open\"",
+            "window_value_tilted": "State text \"tilted\"",
+            "ventilate_enabled": "Ventilate",
+            "ventilate_only_up": "Ventilation only drives up",
+            "window_open_delay": "Delay when opening",
+            "window_close_delay": "Delay when closing",
+            "window_close_return": "When the window is closed",
+            "lockout": "Lock-out protection",
+            "lockout_tilted": "Lock-out protection also when tilted"
+          },
+          "data_description": {
+            "window_value_open": "For a window sensor with three states.\n↳ {inh_window_value_open}",
+            "window_value_tilted": "For a window sensor with three states.\n↳ {inh_window_value_tilted}",
+            "ventilate_enabled": "Drive to the ventilation position when the window is tilted or open.\n↳ {inh_ventilate_enabled}",
+            "ventilate_only_up": "Opening the window never lowers the cover.\n↳ {inh_ventilate_only_up}",
+            "window_open_delay": "Seconds the contact must stay open (against fluttering).\n↳ {inh_window_open_delay}",
+            "window_close_delay": "Seconds the contact must stay closed.\n↳ {inh_window_close_delay}",
+            "window_close_return": "Only after a ventilation drive or a closing that waited for the door.\n↳ {inh_window_close_return}",
+            "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard additionally locks the actuator (stage 4).\n↳ {inh_lockout}",
+            "lockout_tilted": "↳ {inh_lockout_tilted}"
+          }
+        },
+        "privacy": {
+          "title": "Privacy",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "privacy_up_minutes": "Morning: minutes before opening",
+            "privacy_down_minutes": "Evening: minutes before closing",
+            "privacy_brightness": "Evening: when darker than"
+          },
+          "data_description": {
+            "privacy_up_minutes": "0 = off.\n↳ {inh_privacy_up_minutes}",
+            "privacy_down_minutes": "0 = off.\n↳ {inh_privacy_down_minutes}",
+            "privacy_brightness": "Empty = off. Starts the evening privacy after the earliest closing time as soon as it is this dark.\n↳ {inh_privacy_brightness}"
+          }
         }
       }
     },
@@ -310,8 +477,11 @@
           "menu_options": {
             "base": "Name and profile",
             "schedule": "Schedule",
+            "light": "Brightness and sun elevation",
             "sensors": "Sensors",
             "positions": "Positions",
+            "window": "Window contacts",
+            "privacy": "Privacy",
             "drive": "Drive behaviour",
             "override": "Manual override",
             "reset": "Back to the inherited value",
@@ -338,7 +508,10 @@
             "time_down_late_workday": "Latest closing on workdays",
             "time_down_early_free": "Earliest closing on days off",
             "time_down_late_free": "Latest closing on days off",
-            "down_tomorrow_workday": "Evening by tomorrow's day type"
+            "down_tomorrow_workday": "Evening by tomorrow's day type",
+            "time_source": "Earliest and latest times from",
+            "calendar_open_title": "Calendar: title for opening",
+            "calendar_close_title": "Calendar: title for closing"
           },
           "data_description": {
             "up_mode": "Time: at the earliest opening time. Sun: at the sun event.\n↳ {inh_up_mode}",
@@ -357,13 +530,20 @@
             "time_down_late_workday": "↳ {inh_time_down_late_workday}",
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
-            "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}"
+            "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}",
+            "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.\n↳ {inh_time_source}",
+            "calendar_open_title": "Case does not matter, e.g. \"open\".\n↳ {inh_calendar_open_title}",
+            "calendar_close_title": "Case does not matter, e.g. \"close\".\n↳ {inh_calendar_close_title}"
           }
         },
         "positions": {
           "data": {
             "pos_open": "Open position",
             "pos_closed": "Closed position",
+            "pos_ventilate": "Ventilation position",
+            "pos_comfort": "Comfort position",
+            "pos_privacy": "Privacy position (evening)",
+            "pos_privacy_up": "Privacy position (morning)",
             "tolerance": "Tolerance",
             "invert": "Invert direction",
             "position_entity": "Position from another entity"
@@ -371,6 +551,10 @@
           "data_description": {
             "pos_open": "↳ {inh_pos_open}",
             "pos_closed": "↳ {inh_pos_closed}",
+            "pos_ventilate": "↳ {inh_pos_ventilate}",
+            "pos_comfort": "Used for a fully open window while the switch Comfort is on.\n↳ {inh_pos_comfort}",
+            "pos_privacy": "↳ {inh_pos_privacy}",
+            "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}",
             "invert": "For covers that report 0 % as open.\n↳ {inh_invert}",
             "position_entity": "Sensor or number with the position, if the cover itself does not report it.\n↳ {inh_position_entity}"
@@ -390,11 +574,15 @@
           "description": "Empty fields inherit. ↳ shows the inherited value.",
           "data": {
             "workday_sensor": "Workday sensor (today)",
-            "workday_tomorrow_sensor": "Workday sensor (tomorrow)"
+            "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
+            "calendar": "Calendar",
+            "brightness_sensor": "Brightness sensor"
           },
           "data_description": {
             "workday_sensor": "Binary sensor of the Workday integration. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_sensor}",
-            "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}"
+            "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}",
+            "calendar": "Used when the times come from the calendar.\n↳ {inh_calendar}",
+            "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}"
           }
         },
         "drive": {
@@ -436,6 +624,76 @@
             "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.\n↳ {inh_manual_counts_open}",
             "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}"
           }
+        },
+        "window": {
+          "data": {
+            "window_open_sensor": "Contact \"open\"",
+            "window_tilted_sensor": "Contact \"tilted\"",
+            "window_state_sensor": "Window sensor with three states",
+            "window_value_open": "State text \"open\"",
+            "window_value_tilted": "State text \"tilted\"",
+            "ventilate_enabled": "Ventilate",
+            "ventilate_only_up": "Ventilation only drives up",
+            "window_open_delay": "Delay when opening",
+            "window_close_delay": "Delay when closing",
+            "window_close_return": "When the window is closed",
+            "lockout": "Lock-out protection",
+            "lockout_tilted": "Lock-out protection also when tilted"
+          },
+          "data_description": {
+            "window_open_sensor": "Binary sensor, on = open.\n↳ {inh_window_open_sensor}",
+            "window_tilted_sensor": "Binary sensor, on = tilted.\n↳ {inh_window_tilted_sensor}",
+            "window_state_sensor": "Sensor with the states closed / tilted / open (texts below).\n↳ {inh_window_state_sensor}",
+            "window_value_open": "For a window sensor with three states.\n↳ {inh_window_value_open}",
+            "window_value_tilted": "For a window sensor with three states.\n↳ {inh_window_value_tilted}",
+            "ventilate_enabled": "Drive to the ventilation position when the window is tilted or open.\n↳ {inh_ventilate_enabled}",
+            "ventilate_only_up": "Opening the window never lowers the cover.\n↳ {inh_ventilate_only_up}",
+            "window_open_delay": "Seconds the contact must stay open (against fluttering).\n↳ {inh_window_open_delay}",
+            "window_close_delay": "Seconds the contact must stay closed.\n↳ {inh_window_close_delay}",
+            "window_close_return": "Only after a ventilation drive or a closing that waited for the door.\n↳ {inh_window_close_return}",
+            "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard additionally locks the actuator (stage 4).\n↳ {inh_lockout}",
+            "lockout_tilted": "↳ {inh_lockout_tilted}"
+          },
+          "title": "Window contacts",
+          "description": "Empty fields inherit. ↳ shows the inherited value."
+        },
+        "light": {
+          "title": "Brightness and sun elevation",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "light_logic": "Brightness and sun elevation combined with",
+            "brightness_up": "Open from",
+            "brightness_down": "Close below",
+            "brightness_duration": "Condition must hold for",
+            "elevation_source": "Sun elevation threshold from",
+            "elevation_up": "Open from sun elevation",
+            "elevation_down": "Close below sun elevation",
+            "elevation_sensor": "Sun elevation threshold sensor"
+          },
+          "data_description": {
+            "light_logic": "Only for the mode \"Brightness and sun elevation\".\n↳ {inh_light_logic}",
+            "brightness_up": "↳ {inh_brightness_up}",
+            "brightness_down": "↳ {inh_brightness_down}",
+            "brightness_duration": "Against short changes, e.g. clouds or headlights.\n↳ {inh_brightness_duration}",
+            "elevation_source": "Fixed: the values below. Sensor: the value of the sensor. Sensor + offset: sensor value plus the values below.\n↳ {inh_elevation_source}",
+            "elevation_up": "↳ {inh_elevation_up}",
+            "elevation_down": "↳ {inh_elevation_down}",
+            "elevation_sensor": "Sensor, number or input_number with a sun elevation in degrees.\n↳ {inh_elevation_sensor}"
+          }
+        },
+        "privacy": {
+          "title": "Privacy",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "privacy_up_minutes": "Morning: minutes before opening",
+            "privacy_down_minutes": "Evening: minutes before closing",
+            "privacy_brightness": "Evening: when darker than"
+          },
+          "data_description": {
+            "privacy_up_minutes": "0 = off.\n↳ {inh_privacy_up_minutes}",
+            "privacy_down_minutes": "0 = off.\n↳ {inh_privacy_down_minutes}",
+            "privacy_brightness": "Empty = off. Starts the evening privacy after the earliest closing time as soon as it is this dark.\n↳ {inh_privacy_brightness}"
+          }
         }
       },
       "error": {
@@ -455,14 +713,20 @@
       "options": {
         "time": "Time",
         "astro": "Sun",
-        "inherit": "Inherit"
+        "inherit": "Inherit",
+        "brightness": "Brightness",
+        "elevation": "Sun elevation",
+        "brightness_elevation": "Brightness and sun elevation"
       }
     },
     "down_mode": {
       "options": {
         "time": "Time",
         "astro": "Sun",
-        "inherit": "Inherit"
+        "inherit": "Inherit",
+        "brightness": "Brightness",
+        "elevation": "Sun elevation",
+        "brightness_elevation": "Brightness and sun elevation"
       }
     },
     "twilight_up": {
@@ -522,13 +786,45 @@
         "time_down_early_free": "Earliest closing on days off",
         "time_down_late_free": "Latest closing on days off",
         "down_tomorrow_workday": "Evening by tomorrow's day type",
+        "time_source": "Earliest and latest times from",
+        "calendar_open_title": "Calendar: title for opening",
+        "calendar_close_title": "Calendar: title for closing",
+        "light_logic": "Brightness and sun elevation combined with",
+        "brightness_up": "Open from",
+        "brightness_down": "Close below",
+        "brightness_duration": "Condition must hold for",
+        "elevation_source": "Sun elevation threshold from",
+        "elevation_up": "Open from sun elevation",
+        "elevation_down": "Close below sun elevation",
+        "elevation_sensor": "Sun elevation threshold sensor",
         "workday_sensor": "Workday sensor (today)",
         "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
+        "calendar": "Calendar",
+        "brightness_sensor": "Brightness sensor",
         "pos_open": "Open position",
         "pos_closed": "Closed position",
+        "pos_ventilate": "Ventilation position",
+        "pos_comfort": "Comfort position",
+        "pos_privacy": "Privacy position (evening)",
+        "pos_privacy_up": "Privacy position (morning)",
         "tolerance": "Tolerance",
         "invert": "Invert direction",
         "position_entity": "Position from another entity",
+        "window_open_sensor": "Contact \"open\"",
+        "window_tilted_sensor": "Contact \"tilted\"",
+        "window_state_sensor": "Window sensor with three states",
+        "window_value_open": "State text \"open\"",
+        "window_value_tilted": "State text \"tilted\"",
+        "ventilate_enabled": "Ventilate",
+        "ventilate_only_up": "Ventilation only drives up",
+        "window_open_delay": "Delay when opening",
+        "window_close_delay": "Delay when closing",
+        "window_close_return": "When the window is closed",
+        "lockout": "Lock-out protection",
+        "lockout_tilted": "Lock-out protection also when tilted",
+        "privacy_up_minutes": "Morning: minutes before opening",
+        "privacy_down_minutes": "Evening: minutes before closing",
+        "privacy_brightness": "Evening: when darker than",
         "delay_fixed": "Fixed delay",
         "delay_random": "Random delay (maximum)",
         "drive_time": "Drive time",
@@ -541,6 +837,43 @@
         "override_return": "Drive to the target afterwards",
         "manual_counts_open": "Opening by hand counts as morning drive",
         "manual_counts_close": "Closing by hand counts as evening drive"
+      }
+    },
+    "light_logic": {
+      "options": {
+        "and": "Both (AND)",
+        "or": "One of them (OR)",
+        "inherit": "Inherit"
+      }
+    },
+    "elevation_source": {
+      "options": {
+        "fixed": "Fixed",
+        "sensor": "Sensor",
+        "hybrid": "Sensor + offset",
+        "inherit": "Inherit"
+      }
+    },
+    "time_source": {
+      "options": {
+        "times": "Times",
+        "calendar": "Calendar",
+        "inherit": "Inherit"
+      }
+    },
+    "window_close_return": {
+      "options": {
+        "target": "Target state",
+        "previous": "Previous position",
+        "inherit": "Inherit"
+      }
+    },
+    "lockout": {
+      "options": {
+        "off": "Off",
+        "soft": "Soft",
+        "hard": "Hard",
+        "inherit": "Inherit"
       }
     }
   },
@@ -566,6 +899,9 @@
       },
       "cover_pause": {
         "name": "Pause"
+      },
+      "global_comfort": {
+        "name": "Comfort"
       }
     },
     "binary_sensor": {
@@ -589,7 +925,12 @@
           "day_open": "Morning opening",
           "night_close": "Evening closing",
           "service": "Action",
-          "manual": "By hand"
+          "manual": "By hand",
+          "ventilate": "Ventilation",
+          "comfort": "Comfort",
+          "privacy_up": "Privacy (morning)",
+          "privacy_down": "Privacy (evening)",
+          "window_return": "Window closed"
         }
       },
       "target": {
@@ -600,6 +941,17 @@
           "ventilate": "Ventilation",
           "shading": "Shading"
         }
+      },
+      "window_state": {
+        "name": "Window",
+        "state": {
+          "closed": "Closed",
+          "tilted": "Tilted",
+          "open": "Open"
+        }
+      },
+      "next_privacy": {
+        "name": "Next privacy"
       }
     },
     "button": {
@@ -622,7 +974,10 @@
         "state": {
           "inherit": "Inherit",
           "time": "Time",
-          "astro": "Sun"
+          "astro": "Sun",
+          "brightness": "Brightness",
+          "elevation": "Sun elevation",
+          "brightness_elevation": "Brightness and sun elevation"
         }
       },
       "down_mode": {
@@ -630,7 +985,10 @@
         "state": {
           "inherit": "Inherit",
           "time": "Time",
-          "astro": "Sun"
+          "astro": "Sun",
+          "brightness": "Brightness",
+          "elevation": "Sun elevation",
+          "brightness_elevation": "Brightness and sun elevation"
         }
       }
     },
