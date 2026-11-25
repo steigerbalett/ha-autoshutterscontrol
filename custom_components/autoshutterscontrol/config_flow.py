@@ -35,7 +35,9 @@ from .const import (
 )
 from .engine.resolve import inherited_value
 from .engine.settings import (
+    ACTION,
     BOOL,
+    CONDITION,
     ENTITIES,
     ENTITY,
     FLOAT,
@@ -79,15 +81,15 @@ def _selector(setting: Setting, inherit: bool) -> selector.Selector:
             )
         )
     if kind in (INT, FLOAT):
-        return selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=setting.minimum,
-                max=setting.maximum,
-                step=setting.step,
-                unit_of_measurement=setting.unit,
-                mode=selector.NumberSelectorMode.BOX,
-            )
+        config = selector.NumberSelectorConfig(
+            min=setting.minimum,
+            max=setting.maximum,
+            step=setting.step,
+            mode=selector.NumberSelectorMode.BOX,
         )
+        if setting.unit:
+            config["unit_of_measurement"] = setting.unit
+        return selector.NumberSelector(config)
     if kind == TIME:
         return selector.TimeSelector()
     if kind == SELECT:
@@ -122,6 +124,10 @@ def _selector(setting: Setting, inherit: bool) -> selector.Selector:
         return selector.EntitySelector(
             selector.EntitySelectorConfig(domain=list(setting.domains), multiple=True)
         )
+    if kind == CONDITION:
+        return selector.ConditionSelector()
+    if kind == ACTION:
+        return selector.ActionSelector()
     raise ValueError(kind)
 
 
@@ -150,7 +156,7 @@ def _stored_value(setting: Setting, value: Any, inherit: bool) -> Any:
         return value == ON
     if setting.kind == SELECT and value == INHERIT:
         return None
-    if setting.kind == ENTITIES:
+    if setting.kind in (ENTITIES, CONDITION, ACTION):
         return to_storage(setting, value) if value else None
     if setting.kind == MULTI:
         values = [v for v in value if v != NONE_OPTION]
@@ -170,6 +176,8 @@ def _display(setting: Setting, value: Any) -> str:
         return value.strftime("%H:%M")
     if setting.kind in (MULTI, ENTITIES):
         return ", ".join(value) if value else "–"
+    if setting.kind in (CONDITION, ACTION):
+        return f"{len(value)} ×" if value else "–"
     if setting.kind == INT and setting.unit:
         return f"{value} {setting.unit}"
     if setting.kind == FLOAT and setting.unit:
@@ -183,7 +191,17 @@ def build_schema(level: str, section: str, current: Mapping[str, Any]) -> vol.Sc
     fields: dict[Any, Any] = {}
     for setting in settings_for(level, section):
         stored = current.get(setting.key)
-        if level == LEVEL_GLOBAL and stored is None and setting.kind not in (ENTITY, ENTITIES):
+        if (
+            level == LEVEL_GLOBAL
+            and stored is None
+            and setting.kind
+            not in (
+                ENTITY,
+                ENTITIES,
+                CONDITION,
+                ACTION,
+            )
+        ):
             stored = to_storage(setting, setting.default)
         shown = _form_value(setting, stored, inherit)
         if shown is None:
@@ -343,6 +361,18 @@ class AscOptionsFlow(OptionsFlow):
         """Slats."""
         return await self._section("tilt", user_input)
 
+    async def async_step_protection(self, user_input=None) -> ConfigFlowResult:
+        """Rain, wind and frost."""
+        return await self._section("protection", user_input)
+
+    async def async_step_special(self, user_input=None) -> ConfigFlowResult:
+        """Force, pause, party, advent, trigger, wiggle."""
+        return await self._section("special", user_input)
+
+    async def async_step_extra(self, user_input=None) -> ConfigFlowResult:
+        """Extra conditions and actions."""
+        return await self._section("extra", user_input)
+
     async def async_step_reset(self, user_input=None) -> ConfigFlowResult:
         """Reset fields to the default."""
         if user_input is not None:
@@ -453,6 +483,18 @@ class _SettingsSubentryFlow(ConfigSubentryFlow):
     async def async_step_tilt(self, user_input=None) -> SubentryFlowResult:
         """Slats."""
         return await self._section("tilt", user_input)
+
+    async def async_step_protection(self, user_input=None) -> SubentryFlowResult:
+        """Rain, wind and frost."""
+        return await self._section("protection", user_input)
+
+    async def async_step_special(self, user_input=None) -> SubentryFlowResult:
+        """Force, pause, party, advent, trigger, wiggle."""
+        return await self._section("special", user_input)
+
+    async def async_step_extra(self, user_input=None) -> SubentryFlowResult:
+        """Extra conditions and actions."""
+        return await self._section("extra", user_input)
 
     async def async_step_reset(self, user_input=None) -> SubentryFlowResult:
         """Back to the inherited value."""

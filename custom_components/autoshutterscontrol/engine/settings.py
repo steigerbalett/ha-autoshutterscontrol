@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import time
 from typing import Any
 
-ACTIVE_STAGE = 3
+ACTIVE_STAGE = 4
 
 LEVEL_GLOBAL = "global"
 LEVEL_PROFILE = "profile"
@@ -32,6 +32,8 @@ MULTI = "multi"
 ENTITY = "entity"
 TEXT = "text"
 ENTITIES = "entities"
+CONDITION = "condition"
+ACTION = "action"
 
 # Sections (one options page each)
 SEC_SCHEDULE = "schedule"
@@ -45,6 +47,9 @@ SEC_PRIVACY = "privacy"
 SEC_RESIDENTS = "residents"
 SEC_SHADING = "shading"
 SEC_TILT = "tilt"
+SEC_PROTECTION = "protection"
+SEC_SPECIAL = "special"
+SEC_EXTRA = "extra"
 SECTIONS = (
     SEC_SCHEDULE,
     SEC_LIGHT,
@@ -55,8 +60,11 @@ SECTIONS = (
     SEC_SHADING,
     SEC_TILT,
     SEC_PRIVACY,
+    SEC_PROTECTION,
+    SEC_SPECIAL,
     SEC_DRIVE,
     SEC_OVERRIDE,
+    SEC_EXTRA,
 )
 
 # Option values
@@ -122,7 +130,19 @@ KIND_OPEN = "open"
 KIND_CLOSE = "close"
 KIND_VENTILATE = "ventilate"
 KIND_SHADING = "shading"
-DRIVE_KINDS = (KIND_OPEN, KIND_CLOSE, KIND_VENTILATE, KIND_SHADING)
+KIND_TRIGGER = "trigger"
+DRIVE_KINDS = (KIND_OPEN, KIND_CLOSE, KIND_VENTILATE, KIND_SHADING, KIND_TRIGGER)
+
+FROST_OFF = "off"
+FROST_SOFT = "soft"
+FROST_AM = "am"
+FROST_PM = "pm"
+FROST_HARD = "hard"
+FROST_MODES = (FROST_OFF, FROST_SOFT, FROST_AM, FROST_PM, FROST_HARD)
+
+ADVENT_EPIPHANY = "epiphany"
+ADVENT_CANDLEMAS = "candlemas"
+ADVENT_ENDS = (ADVENT_EPIPHANY, ADVENT_CANDLEMAS)
 
 # Residents (ASC states, highest priority first)
 RES_ASLEEP = "asleep"
@@ -303,8 +323,15 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("workday_tomorrow_sensor", ENTITY, None, SEC_SENSORS, domains=("binary_sensor",)),
     Setting("calendar", ENTITY, None, SEC_SENSORS, stage=2, domains=("calendar",)),
     Setting("brightness_sensor", ENTITY, None, SEC_SENSORS, stage=2, domains=("sensor",)),
-    Setting("rain_sensor", ENTITY, None, SEC_SENSORS, stage=4, domains=("sensor", "binary_sensor")),
-    Setting("wind_sensor", ENTITY, None, SEC_SENSORS, stage=4, domains=("sensor",)),
+    Setting(
+        "rain_sensor",
+        ENTITY,
+        None,
+        SEC_SENSORS,
+        stage=4,
+        domains=("sensor", "binary_sensor", "input_boolean", "input_number"),
+    ),
+    Setting("wind_sensor", ENTITY, None, SEC_SENSORS, stage=4, domains=("sensor", "input_number")),
     Setting(
         "outdoor_temperature_sensor",
         ENTITY,
@@ -614,6 +641,175 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("tilt_timeout", INT, 120, SEC_TILT, stage=3, minimum=5, maximum=600, unit="s"),
     Setting("tilt_close_first", BOOL, False, SEC_TILT, stage=3),
     Setting("tilt_tolerance", INT, 2, SEC_TILT, stage=3, minimum=0, maximum=20, unit="%"),
+    # --- weather protection ----------------------------------------------
+    Setting("rain_protection", BOOL, False, SEC_PROTECTION, stage=4),
+    Setting(
+        "rain_threshold",
+        FLOAT,
+        0.0,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=0,
+        maximum=100,
+        step=0.1,
+        unit="mm",
+    ),
+    Setting(
+        "rain_hysteresis",
+        FLOAT,
+        0.0,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=0,
+        maximum=100,
+        step=0.1,
+        unit="mm",
+    ),
+    Setting(
+        "rain_delay_start", INT, 0, SEC_PROTECTION, stage=4, minimum=0, maximum=120, unit="min"
+    ),
+    Setting("rain_delay_end", INT, 15, SEC_PROTECTION, stage=4, minimum=0, maximum=240, unit="min"),
+    Setting("rain_window", BOOL, True, SEC_PROTECTION, stage=4),
+    Setting(
+        "rain_window_states",
+        MULTI,
+        ("tilted", "open"),
+        SEC_PROTECTION,
+        stage=4,
+        options=("tilted", "open"),
+    ),
+    Setting(
+        "rain_window_threshold",
+        FLOAT,
+        None,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=0,
+        maximum=100,
+        step=0.1,
+        unit="mm",
+    ),
+    Setting("rain_window_over_lockout", BOOL, False, SEC_PROTECTION, stage=4),
+    Setting("wind_protection", BOOL, False, SEC_PROTECTION, stage=4),
+    Setting(
+        "wind_threshold",
+        FLOAT,
+        50.0,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=0,
+        maximum=300,
+        step=1,
+        unit="km/h",
+    ),
+    Setting(
+        "wind_hysteresis",
+        FLOAT,
+        20.0,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=0,
+        maximum=300,
+        step=1,
+        unit="km/h",
+    ),
+    Setting("wind_delay_start", INT, 0, SEC_PROTECTION, stage=4, minimum=0, maximum=60, unit="min"),
+    Setting("wind_delay_end", INT, 10, SEC_PROTECTION, stage=4, minimum=0, maximum=240, unit="min"),
+    Setting("frost_mode", SELECT, FROST_OFF, SEC_PROTECTION, stage=4, options=FROST_MODES),
+    Setting(
+        "frost_temp",
+        FLOAT,
+        2.0,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=-20,
+        maximum=10,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "frost_hysteresis",
+        FLOAT,
+        1.0,
+        SEC_PROTECTION,
+        stage=4,
+        minimum=0,
+        maximum=10,
+        step=0.5,
+        unit="K",
+    ),
+    # --- force, party, advent, trigger, wiggle, hardware lock ---------------
+    *(
+        Setting(
+            f"force_{name}",
+            ENTITY,
+            None,
+            SEC_SPECIAL,
+            stage=4,
+            levels=COVER_ONLY,
+            domains=("binary_sensor", "input_boolean", "switch"),
+        )
+        for name in ("close", "open", "ventilate", "shading")
+    ),
+    Setting("force_return", BOOL, True, SEC_SPECIAL, stage=4),
+    Setting(
+        "pause_entity",
+        ENTITY,
+        None,
+        SEC_SPECIAL,
+        stage=4,
+        levels=COVER_ONLY,
+        domains=("binary_sensor", "input_boolean", "switch"),
+    ),
+    Setting("party", BOOL, True, SEC_SPECIAL, stage=4),
+    Setting("advent", BOOL, True, SEC_SPECIAL, stage=4),
+    Setting("advent_end", SELECT, ADVENT_EPIPHANY, SEC_SPECIAL, stage=4, options=ADVENT_ENDS),
+    Setting("trigger_entity", ENTITY, None, SEC_SPECIAL, stage=4, levels=COVER_ONLY),
+    Setting("trigger_value", TEXT, "on", SEC_SPECIAL, stage=4, levels=COVER_ONLY),
+    Setting(
+        "trigger_position",
+        INT,
+        None,
+        SEC_SPECIAL,
+        stage=4,
+        levels=COVER_ONLY,
+        minimum=0,
+        maximum=100,
+        unit="%",
+    ),
+    Setting("trigger_value2", TEXT, None, SEC_SPECIAL, stage=4, levels=COVER_ONLY),
+    Setting(
+        "trigger_position2",
+        INT,
+        None,
+        SEC_SPECIAL,
+        stage=4,
+        levels=COVER_ONLY,
+        minimum=0,
+        maximum=100,
+        unit="%",
+    ),
+    Setting("trigger_return", BOOL, True, SEC_SPECIAL, stage=4, levels=COVER_ONLY),
+    Setting("wiggle_value", INT, 5, SEC_SPECIAL, stage=4, minimum=1, maximum=50, unit="%"),
+    Setting("wiggle_wait", INT, 5, SEC_SPECIAL, stage=4, minimum=1, maximum=120, unit="s"),
+    Setting(
+        "lockout_entity",
+        ENTITY,
+        None,
+        SEC_SPECIAL,
+        stage=4,
+        levels=COVER_ONLY,
+        domains=("switch", "lock", "input_boolean"),
+    ),
+    # --- extra conditions and actions -----------------------------------
+    *(
+        Setting(f"condition_{name}", CONDITION, None, SEC_EXTRA, stage=4)
+        for name in ("all", "open", "close", "ventilate", "shading")
+    ),
+    *(
+        Setting(f"action_{name}", ACTION, None, SEC_EXTRA, stage=4)
+        for name in ("drive", "manual", "override_end", "rain_window")
+    ),
     # --- privacy ----------------------------------------------------------
     Setting("privacy_up_minutes", INT, 0, SEC_PRIVACY, stage=2, minimum=0, maximum=240, unit="min"),
     Setting(
@@ -676,7 +872,7 @@ def to_storage(setting: Setting, value: Any) -> Any:
         if isinstance(value, time):
             return value.strftime("%H:%M:%S")
         return parse_time(value).strftime("%H:%M:%S")
-    if setting.kind in (MULTI, ENTITIES):
+    if setting.kind in (MULTI, ENTITIES, CONDITION, ACTION):
         return list(value)
     if setting.kind == INT:
         return int(value)

@@ -77,8 +77,8 @@ open.
   where it was before ventilating. Only if it was driven because of the window.
 - **Delay when opened / closed**: the state must last this many seconds.
 - **Lock-out protection**: *Soft* or *hard*: while the door is open (tilted only with *Lock-out protection also when tilted*) the
-  cover does not move down. A blocked drive is done as soon as the door is closed. In this version *hard*
-  blocks the same as *soft*; the difference (weather protection waits too) comes with stage 4.
+  cover does not move down. A blocked drive is done as soon as the door is closed. *Hard* also makes
+  rain and wind protection wait and can lock the actuator (see *Hardware lock*).
 
 ## Privacy
 
@@ -175,6 +175,63 @@ shading only the slats are adjusted.
 slats first, then position (Z-Wave). *Close the slats before a new setting* and an own *Tolerance of the
 slats* are available too. Moving the slats by hand counts as a manual drive (not with an own slat entity).
 
+## Rain, wind and frost
+
+Sensors on the page *Sensors*: *Rain sensor* (binary sensor, on = rain, or rain amount), *Wind speed* and
+*Outdoor temperature*. The settings are on the page *Rain, wind and frost*. All protections have a hysteresis
+and waits in both directions; an unavailable sensor keeps the last state.
+
+- **Water protection** (on by default): when it rains and the window is tilted or open (configurable), the
+  cover drives to *Water protection position* (default 0 %). With the lock-out protection at most to the
+  ventilation position, unless *Water protection closes completely despite the lock-out* is on. Once per rain
+  the event `autoshutterscontrol_rain_window` fires (and the extra action *Action at water protection*), e.g.
+  for a notification. Window closed: back to the target.
+- **Rain protection** (off by default, for awnings): drives to *Rain position* when it rains, back after
+  *Wait after the rain* (default 15 min).
+- **Wind protection** (off by default, for venetian blinds and awnings): from *Wind from* (default 50 km/h)
+  to *Wind position*; ends below threshold minus hysteresis (default 20) and after the wait (default 10 min).
+- **Frost protection** (off by default) below *Frost below* (default 2 °C): *Soft* closes only down to
+  *Frost position*, *morning* / *afternoon* blocks drives until / from noon, *No drives at all* blocks everything
+  except rain, wind and force.
+
+Rain and wind protection win over manual override, self defence and all schedules. *Lock-out protection
+hard* also makes rain and wind protection wait until the door is closed.
+
+On the central device the binary sensors *Rain*, *Wind* and *Frost* show the global sensors; per cover
+*Rain protection*, *Water protection*, *Wind protection* and *Frost protection* show what acts now.
+
+## Special functions
+
+Page *Special functions*; fields with entities exist only on the cover.
+
+- **Force functions**: *Force close / open / ventilate / shading*, one entity each (input boolean, switch,
+  binary sensor). While on, the cover holds the position, above all other rules (also with Automatic off or
+  pause). Off: back to the target (*Go back after a force function*).
+- **Pause entity**: while on, this cover does not move automatically; off: target.
+- **Party**: switch *Party* of the central device (off by default). While on, all covers taking part do not
+  move automatically (protections still do); off: target.
+- **Advent**: switch *Advent* of the central device (off by default). From the 1st Sunday of Advent until
+  6 January (or 2 February) the evening closing waits until the button *Release deferred drives* or the action
+  `autoshutterscontrol.release_deferred` releases it; the release lasts until the end of the day.
+- **External trigger**: any entity with up to two values and one position each, e.g. a select *Cinema* → 0 %.
+  When the value ends, the cover drives to its target.
+- **Wiggle**: button *Wiggle* per cover, *Wiggle all* on the central device, or the action
+  `autoshutterscontrol.wiggle`: moves by *Wiggle by* (default 5 %) and back after *Wiggle wait*. Not counted as
+  a manual drive.
+- **Hardware lock**: with *Lock-out protection hard* and an entity in *Hardware lock* (switch, lock, input
+  boolean) the actuator is locked while the door is open and unlocked afterwards. The switch *Hardware lock*
+  of the central device (on by default) turns this off.
+
+## Extra conditions and actions
+
+Page *Extra conditions and actions*, with the editors of Home Assistant:
+
+- Conditions for all drives, for opening, closing, ventilation and shading. If it is false at drive time,
+  the drive is skipped; *Drive to target* catches up. Force and protections are not affected. An invalid
+  condition counts as false (warning in the log).
+- Actions at each drive (variables `cover`, `position`, `reason`, `trigger`), at a manual drive
+  (`position`), at the end of the override and at water protection.
+
 ## Manual override
 
 A drive that did not come from AutoShuttersControl (app, button, wall switch, other automation)
@@ -196,10 +253,12 @@ context; position reports during the *drive time* after its own command also cou
 ## Entities
 
 **Central device**: switches Automatic, Weekend and holiday times, Morning drive, Evening drive,
-Pause, Comfort, Shading, Self defense; sensor House status; buttons Recalculate times, All covers to target.
+Pause, Comfort, Shading, Self defense, Party, Advent, Hardware lock; sensor House status; binary sensors Rain,
+Wind, Frost; buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives.
 
-**Per cover**: switches Automatic and Pause; binary sensors Day, Manual override and Self defense; sensors Next
-opening, Next closing, Next privacy, Last drive reason, Target, Window, Residents, Shading; buttons Drive to target and End manual override;
+**Per cover**: switches Automatic and Pause; binary sensors Day, Manual override, Self defense, Rain
+protection, Water protection, Wind protection, Frost protection and Force function; sensors Next
+opening, Next closing, Next privacy, Last drive reason, Target, Window, Residents, Shading; buttons Drive to target, End manual override and Wiggle;
 selects Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
 
 Pause: nothing is driven, the target is still tracked; when the pause ends the cover drives to its
@@ -214,11 +273,14 @@ target. Automatic off: nothing is driven, and nothing happens when it is turned 
 | `autoshutterscontrol.recalculate` | Recalculate the drive times. |
 | `autoshutterscontrol.clear_override` | End the manual override. |
 | `autoshutterscontrol.set_option` | Set one setting of covers or of a profile; without value it inherits again. |
+| `autoshutterscontrol.wiggle` | Move covers a little and back (function check). |
+| `autoshutterscontrol.release_deferred` | Advent: do the closing deferred today now. |
 
 All actions take `entity_id` (the controlled covers) and/or `profile` (name); empty means all.
 
 Events: `autoshutterscontrol_drive` (every drive, with `reason` and `trigger`) and
-`autoshutterscontrol_manual` (manual drive detected).
+`autoshutterscontrol_manual` (manual drive detected) and `autoshutterscontrol_rain_window` (rain with an open
+window, with `window`, `position`, `driven`, `blocked_by`).
 
 ## Roadmap
 
@@ -226,8 +288,8 @@ Events: `autoshutterscontrol_drive` (every drive, with `reason` and `trigger`) a
 |---|---|
 | 1 | Base, inheritance, arbiter, schedule (time/sun/workday), positions, manual override, delay, EN/DE |
 | 2 | Window contacts (ventilation, comfort, lock-out), brightness, sun elevation, privacy, calendar |
-| 3 (this version) | Residents, self defence, shading with all conditions, slats |
-| 4 | Rain (also with open window), wind, frost, force, party, advent, trigger, wiggle |
+| 3 | Residents, self defence, shading with all conditions, slats |
+| 4 (this version) | Rain (also with open window), wind, frost, force, pause entity, party, advent, trigger, wiggle, hardware lock, extra conditions and actions |
 | 5 | Recovery after restart, validation, logbook, FHEM import, HACS default |
 
 ## Translating

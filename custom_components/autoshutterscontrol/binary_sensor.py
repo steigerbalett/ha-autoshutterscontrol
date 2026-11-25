@@ -9,8 +9,9 @@ from homeassistant.util import dt as dt_util
 
 from . import AscConfigEntry
 from .engine.daynight import PRIVACY_DOWN, PRIVACY_UP, effective_down, effective_up, privacy_times
-from .entity import AscCoverEntity
-from .runtime import CoverController
+from .engine.protection import FROST, RAIN, RAIN_WINDOW, WIND
+from .entity import AscCoverEntity, AscGlobalEntity
+from .runtime import AscManager, CoverController
 
 
 async def async_setup_entry(
@@ -19,12 +20,21 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up binary sensors."""
-    for controller in entry.runtime_data.controllers.values():
+    manager = entry.runtime_data
+    async_add_entities(
+        [GlobalProtectionBinarySensor(manager, kind) for kind in (RAIN, WIND, FROST)]
+    )
+    for controller in manager.controllers.values():
         async_add_entities(
             [
                 DayBinarySensor(controller),
                 OverrideBinarySensor(controller),
                 SelfDefenseBinarySensor(controller),
+                *(
+                    ProtectionBinarySensor(controller, kind)
+                    for kind in (RAIN, RAIN_WINDOW, WIND, FROST)
+                ),
+                ForceBinarySensor(controller),
             ],
             config_subentry_id=controller.subentry_id,
         )
@@ -85,3 +95,42 @@ class SelfDefenseBinarySensor(AscCoverEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.controller.self_defense_active()
+
+
+class GlobalProtectionBinarySensor(AscGlobalEntity, BinarySensorEntity):
+    """Rain, wind or frost by the global sensors (after hysteresis and waits)."""
+
+    def __init__(self, manager: AscManager, kind: str) -> None:
+        super().__init__(manager, f"global_{kind}")
+        self._kind = kind
+
+    @property
+    def is_on(self) -> bool:
+        return self.manager.global_protect[self._kind].active
+
+
+class ProtectionBinarySensor(AscCoverEntity, BinarySensorEntity):
+    """Rain, water, wind or frost protection acting on this cover."""
+
+    def __init__(self, controller: CoverController, kind: str) -> None:
+        super().__init__(controller, f"protection_{kind}")
+        self._kind = kind
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.protections()[self._kind]
+
+
+class ForceBinarySensor(AscCoverEntity, BinarySensorEntity):
+    """On while a force function holds the cover."""
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "force")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.force_kind() is not None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {"function": self.controller.force_kind()}

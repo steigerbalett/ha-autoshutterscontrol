@@ -9,6 +9,8 @@
           "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
           "calendar": "Kalender",
           "brightness_sensor": "Helligkeitssensor",
+          "rain_sensor": "Regensensor",
+          "wind_sensor": "Windgeschwindigkeit",
           "outdoor_temperature_sensor": "Außentemperatur",
           "indoor_temperature_sensor": "Innentemperatur",
           "weather_entity": "Wetter",
@@ -19,6 +21,8 @@
           "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
           "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.",
           "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.",
+          "rain_sensor": "Binärsensor (an = Regen) oder Regenmenge (mm, mm/h).",
+          "wind_sensor": "Sensor in km/h (oder in der Einheit deiner Schwellen).",
           "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.",
           "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.",
           "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.",
@@ -45,8 +49,11 @@
           "shading": "Beschattung",
           "tilt": "Lamellen",
           "privacy": "Sichtschutz",
+          "protection": "Regen, Wind und Frost",
+          "special": "Sonderfunktionen",
           "drive": "Fahrverhalten",
           "override": "Manuelle Übersteuerung",
+          "extra": "Zusatzbedingungen und -aktionen",
           "reset": "Felder auf Standard zurücksetzen",
           "save": "Speichern"
         }
@@ -97,6 +104,8 @@
           "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
           "calendar": "Kalender",
           "brightness_sensor": "Helligkeitssensor",
+          "rain_sensor": "Regensensor",
+          "wind_sensor": "Windgeschwindigkeit",
           "outdoor_temperature_sensor": "Außentemperatur",
           "indoor_temperature_sensor": "Innentemperatur",
           "weather_entity": "Wetter",
@@ -107,6 +116,8 @@
           "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.",
           "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.",
           "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.",
+          "rain_sensor": "Binärsensor (an = Regen) oder Regenmenge (mm, mm/h).",
+          "wind_sensor": "Sensor in km/h (oder in der Einheit deiner Schwellen).",
           "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.",
           "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.",
           "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.",
@@ -126,6 +137,10 @@
           "pos_shading_alt": "Alternative Position Beschattung",
           "pos_privacy": "Position Sichtschutz (abends)",
           "pos_privacy_up": "Position Sichtschutz (morgens)",
+          "pos_frost": "Position Frost",
+          "pos_wind": "Position Wind",
+          "pos_rain": "Position Regen",
+          "pos_rain_window": "Position Wasserschutz",
           "tolerance": "Toleranz"
         },
         "data_description": {
@@ -133,6 +148,10 @@
           "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.",
           "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.",
           "pos_privacy_up": "Leer: wie der Sichtschutz abends.",
+          "pos_frost": "Sanfter Frostschutz: Schließen hält hier an. Leer = aus.",
+          "pos_wind": "Jalousien und Markisen: meist 100 (oben).",
+          "pos_rain": "Markisen: meist 100 (eingefahren).",
+          "pos_rain_window": "Regen bei offenem Fenster. Mit Aussperrschutz höchstens bis zur Lüftungsposition.",
           "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht."
         }
       },
@@ -224,7 +243,7 @@
           "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).",
           "window_close_delay": "Sekunden, die der Kontakt geschlossen bleiben muss.",
           "window_close_return": "Nur nach einer Lüftungsfahrt oder einem Schließen, das auf die Tür gewartet hat.",
-          "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn sie zu ist. Hart sperrt zusätzlich den Aktor (Stufe 4)."
+          "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn die Tür zu ist. Hart wartet auch bei Regen und Wind und kann den Aktor sperren (Seite Sonderfunktionen)."
         }
       },
       "privacy": {
@@ -345,6 +364,84 @@
           "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).",
           "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde."
         }
+      },
+      "protection": {
+        "title": "Regen, Wind und Frost",
+        "description": "Die Sensoren stehen auf der Seite Sensoren. Regen- und Windschutz sind standardmäßig aus; im Profil der Rollläden einschalten, die sie brauchen (Markisen, Jalousien).",
+        "data": {
+          "rain_protection": "Regenschutz",
+          "rain_threshold": "Regen ab",
+          "rain_hysteresis": "Hysterese des Regens",
+          "rain_delay_start": "Wartezeit vor dem Regenschutz",
+          "rain_delay_end": "Wartezeit nach dem Regen",
+          "rain_window": "Wasserschutz bei offenem Fenster",
+          "rain_window_states": "Wasserschutz, wenn das Fenster ist",
+          "rain_window_threshold": "Wasserschutz ab",
+          "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+          "wind_protection": "Windschutz",
+          "wind_threshold": "Wind ab",
+          "wind_hysteresis": "Hysterese des Winds",
+          "wind_delay_start": "Wartezeit vor dem Windschutz",
+          "wind_delay_end": "Wartezeit nach dem Wind",
+          "frost_mode": "Frostschutz",
+          "frost_temp": "Frost unter",
+          "frost_hysteresis": "Hysterese des Frosts"
+        },
+        "data_description": {
+          "rain_protection": "Fährt auf die Position Regen.",
+          "rain_threshold": "Regenmenge über diesem Wert. Ein Binärsensor zählt an als Regen.",
+          "rain_hysteresis": "Der Regen endet erst bei der Schwelle minus diesem Wert.",
+          "rain_delay_start": "Minuten.",
+          "rain_delay_end": "Minuten ohne Regen, bevor der Rollladen zurückfährt.",
+          "rain_window": "Schließt den Rollladen auf die Position Wasserschutz, wenn es regnet und das Fenster offen ist. Löst das Ereignis autoshutterscontrol_rain_window aus.",
+          "rain_window_threshold": "Leer = wie Regen ab.",
+          "rain_window_over_lockout": "Aus: Mit Aussperrschutz fährt der Rollladen höchstens auf die Lüftungsposition.",
+          "wind_protection": "Fährt auf die Position Wind.",
+          "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.",
+          "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.",
+          "frost_mode": "Braucht die Außentemperatur (Seite Sensoren).",
+          "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert."
+        }
+      },
+      "special": {
+        "title": "Sonderfunktionen",
+        "description": "Zwangsfunktionen, Pause, Party, Advent, Trigger und Wackeln. Felder mit Entitäten werden je Rollladen gesetzt.",
+        "data": {
+          "force_return": "Nach einer Zwangsfunktion zurückfahren",
+          "party": "Nimmt am Partymodus teil",
+          "advent": "Nimmt am Adventsmodus teil",
+          "advent_end": "Adventsmodus bis",
+          "wiggle_value": "Wackeln um",
+          "wiggle_wait": "Wartezeit beim Wackeln"
+        },
+        "data_description": {
+          "force_return": "Geht die Zwangs-Entität aus, fährt der Rollladen in den Zielzustand.",
+          "party": "Solange der Schalter Party am zentralen Gerät an ist, fährt der Rollladen nicht automatisch (außer Schutzfunktionen).",
+          "advent": "Solange der Schalter Advent am zentralen Gerät an ist, wartet das abendliche Schließen vom 1. Advent bis zum Enddatum, bis die Taste Aufgeschobene Fahrten freigeben gedrückt wird.",
+          "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).",
+          "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt."
+        }
+      },
+      "extra": {
+        "title": "Zusatzbedingungen und -aktionen",
+        "description": "Bedingungen und Aktionen wie in Automationen. Variablen: cover (Entitäts-ID) und trigger.",
+        "data": {
+          "condition_all": "Bedingung für alle Fahrten",
+          "condition_open": "Bedingung fürs Öffnen",
+          "condition_close": "Bedingung fürs Schließen",
+          "condition_ventilate": "Bedingung fürs Lüften",
+          "condition_shading": "Bedingung für die Beschattung",
+          "action_drive": "Aktion bei jeder Fahrt",
+          "action_manual": "Aktion bei einer Handfahrt",
+          "action_override_end": "Aktion am Ende der Übersteuerung",
+          "action_rain_window": "Aktion beim Wasserschutz"
+        },
+        "data_description": {
+          "condition_all": "Automatische Fahrten nur, wenn sie erfüllt ist. Schutzfunktionen, Zwang und Dienstaufrufe ohne Regeln sind nicht betroffen.",
+          "action_drive": "Variablen: position, reason.",
+          "action_manual": "Variable: position.",
+          "action_rain_window": "Einmal je Regen bei offenem Fenster, z. B. eine Benachrichtigung."
+        }
       }
     }
   },
@@ -376,8 +473,11 @@
             "shading": "Beschattung",
             "tilt": "Lamellen",
             "privacy": "Sichtschutz",
+            "protection": "Regen, Wind und Frost",
+            "special": "Sonderfunktionen",
             "drive": "Fahrverhalten",
             "override": "Manuelle Übersteuerung",
+            "extra": "Zusatzbedingungen und -aktionen",
             "reset": "Auf geerbten Wert zurücksetzen",
             "save": "Speichern"
           }
@@ -445,6 +545,8 @@
             "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
             "calendar": "Kalender",
             "brightness_sensor": "Helligkeitssensor",
+            "rain_sensor": "Regensensor",
+            "wind_sensor": "Windgeschwindigkeit",
             "outdoor_temperature_sensor": "Außentemperatur",
             "indoor_temperature_sensor": "Innentemperatur",
             "weather_entity": "Wetter",
@@ -455,6 +557,8 @@
             "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.\n↳ {inh_calendar}",
             "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}",
+            "rain_sensor": "Binärsensor (an = Regen) oder Regenmenge (mm, mm/h).\n↳ {inh_rain_sensor}",
+            "wind_sensor": "Sensor in km/h (oder in der Einheit deiner Schwellen).\n↳ {inh_wind_sensor}",
             "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.\n↳ {inh_outdoor_temperature_sensor}",
             "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.\n↳ {inh_indoor_temperature_sensor}",
             "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.\n↳ {inh_weather_entity}",
@@ -474,6 +578,10 @@
             "pos_shading_alt": "Alternative Position Beschattung",
             "pos_privacy": "Position Sichtschutz (abends)",
             "pos_privacy_up": "Position Sichtschutz (morgens)",
+            "pos_frost": "Position Frost",
+            "pos_wind": "Position Wind",
+            "pos_rain": "Position Regen",
+            "pos_rain_window": "Position Wasserschutz",
             "tolerance": "Toleranz"
           },
           "data_description": {
@@ -486,6 +594,10 @@
             "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
+            "pos_frost": "Sanfter Frostschutz: Schließen hält hier an. Leer = aus.\n↳ {inh_pos_frost}",
+            "pos_wind": "Jalousien und Markisen: meist 100 (oben).\n↳ {inh_pos_wind}",
+            "pos_rain": "Markisen: meist 100 (eingefahren).\n↳ {inh_pos_rain}",
+            "pos_rain_window": "Regen bei offenem Fenster. Mit Aussperrschutz höchstens bis zur Lüftungsposition.\n↳ {inh_pos_rain_window}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}"
           }
         },
@@ -575,7 +687,7 @@
             "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).\n↳ {inh_window_open_delay}",
             "window_close_delay": "Sekunden, die der Kontakt geschlossen bleiben muss.\n↳ {inh_window_close_delay}",
             "window_close_return": "Nur nach einer Lüftungsfahrt oder einem Schließen, das auf die Tür gewartet hat.\n↳ {inh_window_close_return}",
-            "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn sie zu ist. Hart sperrt zusätzlich den Aktor (Stufe 4).\n↳ {inh_lockout}",
+            "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn die Tür zu ist. Hart wartet auch bei Regen und Wind und kann den Aktor sperren (Seite Sonderfunktionen).\n↳ {inh_lockout}",
             "lockout_tilted": "↳ {inh_lockout_tilted}"
           }
         },
@@ -720,6 +832,94 @@
             "tilt_close_first": "↳ {inh_tilt_close_first}",
             "tilt_tolerance": "↳ {inh_tilt_tolerance}"
           }
+        },
+        "protection": {
+          "title": "Regen, Wind und Frost",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "rain_protection": "Regenschutz",
+            "rain_threshold": "Regen ab",
+            "rain_hysteresis": "Hysterese des Regens",
+            "rain_delay_start": "Wartezeit vor dem Regenschutz",
+            "rain_delay_end": "Wartezeit nach dem Regen",
+            "rain_window": "Wasserschutz bei offenem Fenster",
+            "rain_window_states": "Wasserschutz, wenn das Fenster ist",
+            "rain_window_threshold": "Wasserschutz ab",
+            "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+            "wind_protection": "Windschutz",
+            "wind_threshold": "Wind ab",
+            "wind_hysteresis": "Hysterese des Winds",
+            "wind_delay_start": "Wartezeit vor dem Windschutz",
+            "wind_delay_end": "Wartezeit nach dem Wind",
+            "frost_mode": "Frostschutz",
+            "frost_temp": "Frost unter",
+            "frost_hysteresis": "Hysterese des Frosts"
+          },
+          "data_description": {
+            "rain_protection": "Fährt auf die Position Regen.\n↳ {inh_rain_protection}",
+            "rain_threshold": "Regenmenge über diesem Wert. Ein Binärsensor zählt an als Regen.\n↳ {inh_rain_threshold}",
+            "rain_hysteresis": "Der Regen endet erst bei der Schwelle minus diesem Wert.\n↳ {inh_rain_hysteresis}",
+            "rain_delay_start": "Minuten.\n↳ {inh_rain_delay_start}",
+            "rain_delay_end": "Minuten ohne Regen, bevor der Rollladen zurückfährt.\n↳ {inh_rain_delay_end}",
+            "rain_window": "Schließt den Rollladen auf die Position Wasserschutz, wenn es regnet und das Fenster offen ist. Löst das Ereignis autoshutterscontrol_rain_window aus.\n↳ {inh_rain_window}",
+            "rain_window_states": "↳ {inh_rain_window_states}",
+            "rain_window_threshold": "Leer = wie Regen ab.\n↳ {inh_rain_window_threshold}",
+            "rain_window_over_lockout": "Aus: Mit Aussperrschutz fährt der Rollladen höchstens auf die Lüftungsposition.\n↳ {inh_rain_window_over_lockout}",
+            "wind_protection": "Fährt auf die Position Wind.\n↳ {inh_wind_protection}",
+            "wind_threshold": "↳ {inh_wind_threshold}",
+            "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_wind_hysteresis}",
+            "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.\n↳ {inh_wind_delay_end}",
+            "frost_mode": "Braucht die Außentemperatur (Seite Sensoren).\n↳ {inh_frost_mode}",
+            "frost_temp": "↳ {inh_frost_temp}",
+            "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.\n↳ {inh_frost_hysteresis}"
+          }
+        },
+        "special": {
+          "title": "Sonderfunktionen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "force_return": "Nach einer Zwangsfunktion zurückfahren",
+            "party": "Nimmt am Partymodus teil",
+            "advent": "Nimmt am Adventsmodus teil",
+            "advent_end": "Adventsmodus bis",
+            "wiggle_value": "Wackeln um",
+            "wiggle_wait": "Wartezeit beim Wackeln"
+          },
+          "data_description": {
+            "force_return": "Geht die Zwangs-Entität aus, fährt der Rollladen in den Zielzustand.\n↳ {inh_force_return}",
+            "party": "Solange der Schalter Party am zentralen Gerät an ist, fährt der Rollladen nicht automatisch (außer Schutzfunktionen).\n↳ {inh_party}",
+            "advent": "Solange der Schalter Advent am zentralen Gerät an ist, wartet das abendliche Schließen vom 1. Advent bis zum Enddatum, bis die Taste Aufgeschobene Fahrten freigeben gedrückt wird.\n↳ {inh_advent}",
+            "advent_end": "↳ {inh_advent_end}",
+            "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
+            "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}"
+          }
+        },
+        "extra": {
+          "title": "Zusatzbedingungen und -aktionen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "condition_all": "Bedingung für alle Fahrten",
+            "condition_open": "Bedingung fürs Öffnen",
+            "condition_close": "Bedingung fürs Schließen",
+            "condition_ventilate": "Bedingung fürs Lüften",
+            "condition_shading": "Bedingung für die Beschattung",
+            "action_drive": "Aktion bei jeder Fahrt",
+            "action_manual": "Aktion bei einer Handfahrt",
+            "action_override_end": "Aktion am Ende der Übersteuerung",
+            "action_rain_window": "Aktion beim Wasserschutz"
+          },
+          "data_description": {
+            "condition_all": "Automatische Fahrten nur, wenn sie erfüllt ist. Schutzfunktionen, Zwang und Dienstaufrufe ohne Regeln sind nicht betroffen.\n↳ {inh_condition_all}",
+            "condition_open": "↳ {inh_condition_open}",
+            "condition_close": "↳ {inh_condition_close}",
+            "condition_ventilate": "↳ {inh_condition_ventilate}",
+            "condition_shading": "↳ {inh_condition_shading}",
+            "action_drive": "Variablen: position, reason.\n↳ {inh_action_drive}",
+            "action_manual": "Variable: position.\n↳ {inh_action_manual}",
+            "action_override_end": "↳ {inh_action_override_end}",
+            "action_rain_window": "Einmal je Regen bei offenem Fenster, z. B. eine Benachrichtigung.\n↳ {inh_action_rain_window}"
+          }
         }
       }
     },
@@ -759,8 +959,11 @@
             "shading": "Beschattung",
             "tilt": "Lamellen",
             "privacy": "Sichtschutz",
+            "protection": "Regen, Wind und Frost",
+            "special": "Sonderfunktionen",
             "drive": "Fahrverhalten",
             "override": "Manuelle Übersteuerung",
+            "extra": "Zusatzbedingungen und -aktionen",
             "reset": "Auf geerbten Wert zurücksetzen",
             "save": "Speichern"
           }
@@ -824,6 +1027,10 @@
             "pos_shading_alt": "Alternative Position Beschattung",
             "pos_privacy": "Position Sichtschutz (abends)",
             "pos_privacy_up": "Position Sichtschutz (morgens)",
+            "pos_frost": "Position Frost",
+            "pos_wind": "Position Wind",
+            "pos_rain": "Position Regen",
+            "pos_rain_window": "Position Wasserschutz",
             "tolerance": "Toleranz",
             "invert": "Richtung umkehren",
             "position_entity": "Position aus anderer Entität"
@@ -838,6 +1045,10 @@
             "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
+            "pos_frost": "Sanfter Frostschutz: Schließen hält hier an. Leer = aus.\n↳ {inh_pos_frost}",
+            "pos_wind": "Jalousien und Markisen: meist 100 (oben).\n↳ {inh_pos_wind}",
+            "pos_rain": "Markisen: meist 100 (eingefahren).\n↳ {inh_pos_rain}",
+            "pos_rain_window": "Regen bei offenem Fenster. Mit Aussperrschutz höchstens bis zur Lüftungsposition.\n↳ {inh_pos_rain_window}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}",
             "invert": "Für Rollläden, die 0 % als offen melden.\n↳ {inh_invert}",
             "position_entity": "Sensor oder Zahl mit der Position, falls der Rollladen sie nicht selbst meldet.\n↳ {inh_position_entity}"
@@ -860,6 +1071,8 @@
             "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
             "calendar": "Kalender",
             "brightness_sensor": "Helligkeitssensor",
+            "rain_sensor": "Regensensor",
+            "wind_sensor": "Windgeschwindigkeit",
             "outdoor_temperature_sensor": "Außentemperatur",
             "indoor_temperature_sensor": "Innentemperatur",
             "weather_entity": "Wetter",
@@ -870,6 +1083,8 @@
             "workday_tomorrow_sensor": "Workday mit Tagesversatz 1. Ohne Sensor gelten Montag bis Freitag als Arbeitstage.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Wird genutzt, wenn die Zeiten aus dem Kalender kommen.\n↳ {inh_calendar}",
             "brightness_sensor": "Beleuchtungsstärke in lx, für die Modi Helligkeit und den Sichtschutz nach Helligkeit.\n↳ {inh_brightness_sensor}",
+            "rain_sensor": "Binärsensor (an = Regen) oder Regenmenge (mm, mm/h).\n↳ {inh_rain_sensor}",
+            "wind_sensor": "Sensor in km/h (oder in der Einheit deiner Schwellen).\n↳ {inh_wind_sensor}",
             "outdoor_temperature_sensor": "Für Beschattung und Hitzeschutz.\n↳ {inh_outdoor_temperature_sensor}",
             "indoor_temperature_sensor": "Für die Beschattung, meist je Rollladen oder Profil.\n↳ {inh_indoor_temperature_sensor}",
             "weather_entity": "Wetterlage und Tagesvorhersage für die Beschattung.\n↳ {inh_weather_entity}",
@@ -942,7 +1157,7 @@
             "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).\n↳ {inh_window_open_delay}",
             "window_close_delay": "Sekunden, die der Kontakt geschlossen bleiben muss.\n↳ {inh_window_close_delay}",
             "window_close_return": "Nur nach einer Lüftungsfahrt oder einem Schließen, das auf die Tür gewartet hat.\n↳ {inh_window_close_return}",
-            "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn sie zu ist. Hart sperrt zusätzlich den Aktor (Stufe 4).\n↳ {inh_lockout}",
+            "lockout": "Weich oder hart: Der Rollladen schließt nicht, solange die Tür offen ist, und schließt, wenn die Tür zu ist. Hart wartet auch bei Regen und Wind und kann den Aktor sperren (Seite Sonderfunktionen).\n↳ {inh_lockout}",
             "lockout_tilted": "↳ {inh_lockout_tilted}"
           },
           "title": "Fensterkontakte",
@@ -1117,6 +1332,118 @@
             "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.\n↳ {inh_heat_protection_temp}",
             "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
           }
+        },
+        "special": {
+          "data": {
+            "force_close": "Zwangsweise schließen",
+            "force_open": "Zwangsweise öffnen",
+            "force_ventilate": "Zwangsweise lüften",
+            "force_shading": "Zwangsweise beschatten",
+            "force_return": "Nach einer Zwangsfunktion zurückfahren",
+            "pause_entity": "Pause-Entität",
+            "party": "Nimmt am Partymodus teil",
+            "advent": "Nimmt am Adventsmodus teil",
+            "advent_end": "Adventsmodus bis",
+            "trigger_entity": "Externer Trigger",
+            "trigger_value": "Trigger-Wert",
+            "trigger_position": "Trigger-Position",
+            "trigger_value2": "Zweiter Trigger-Wert",
+            "trigger_position2": "Zweite Trigger-Position",
+            "trigger_return": "Nach dem Trigger zurückfahren",
+            "wiggle_value": "Wackeln um",
+            "wiggle_wait": "Wartezeit beim Wackeln",
+            "lockout_entity": "Hardware-Sperre"
+          },
+          "data_description": {
+            "force_close": "Solange an, bleibt der Rollladen zu, vor allen anderen Regeln.\n↳ {inh_force_close}",
+            "force_open": "Solange an, bleibt der Rollladen offen.\n↳ {inh_force_open}",
+            "force_ventilate": "Solange an, bleibt der Rollladen auf der Lüftungsposition.\n↳ {inh_force_ventilate}",
+            "force_shading": "Solange an, bleibt der Rollladen auf der Beschattungsposition.\n↳ {inh_force_shading}",
+            "force_return": "Geht die Zwangs-Entität aus, fährt der Rollladen in den Zielzustand.\n↳ {inh_force_return}",
+            "pause_entity": "Solange an, fährt dieser Rollladen nicht automatisch.\n↳ {inh_pause_entity}",
+            "party": "Solange der Schalter Party am zentralen Gerät an ist, fährt der Rollladen nicht automatisch (außer Schutzfunktionen).\n↳ {inh_party}",
+            "advent": "Solange der Schalter Advent am zentralen Gerät an ist, wartet das abendliche Schließen vom 1. Advent bis zum Enddatum, bis die Taste Aufgeschobene Fahrten freigeben gedrückt wird.\n↳ {inh_advent}",
+            "advent_end": "↳ {inh_advent_end}",
+            "trigger_entity": "Beliebige Entität, z. B. eine Auswahl oder ein Taster-Helfer.\n↳ {inh_trigger_entity}",
+            "trigger_value": "Zustand, der auf die Trigger-Position fährt.\n↳ {inh_trigger_value}",
+            "trigger_position": "Prozent.\n↳ {inh_trigger_position}",
+            "trigger_value2": "Optional ein zweiter Zustand mit eigener Position.\n↳ {inh_trigger_value2}",
+            "trigger_position2": "↳ {inh_trigger_position2}",
+            "trigger_return": "Endet der Trigger-Zustand, fährt der Rollladen in den Zielzustand.\n↳ {inh_trigger_return}",
+            "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
+            "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}",
+            "lockout_entity": "Schalter, Schloss oder Input Boolean, der den Aktor sperrt, solange die Tür offen ist (Aussperrschutz hart, Schalter Hardware-Sperre am zentralen Gerät).\n↳ {inh_lockout_entity}"
+          },
+          "title": "Sonderfunktionen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert."
+        },
+        "protection": {
+          "title": "Regen, Wind und Frost",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "rain_protection": "Regenschutz",
+            "rain_threshold": "Regen ab",
+            "rain_hysteresis": "Hysterese des Regens",
+            "rain_delay_start": "Wartezeit vor dem Regenschutz",
+            "rain_delay_end": "Wartezeit nach dem Regen",
+            "rain_window": "Wasserschutz bei offenem Fenster",
+            "rain_window_states": "Wasserschutz, wenn das Fenster ist",
+            "rain_window_threshold": "Wasserschutz ab",
+            "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+            "wind_protection": "Windschutz",
+            "wind_threshold": "Wind ab",
+            "wind_hysteresis": "Hysterese des Winds",
+            "wind_delay_start": "Wartezeit vor dem Windschutz",
+            "wind_delay_end": "Wartezeit nach dem Wind",
+            "frost_mode": "Frostschutz",
+            "frost_temp": "Frost unter",
+            "frost_hysteresis": "Hysterese des Frosts"
+          },
+          "data_description": {
+            "rain_protection": "Fährt auf die Position Regen.\n↳ {inh_rain_protection}",
+            "rain_threshold": "Regenmenge über diesem Wert. Ein Binärsensor zählt an als Regen.\n↳ {inh_rain_threshold}",
+            "rain_hysteresis": "Der Regen endet erst bei der Schwelle minus diesem Wert.\n↳ {inh_rain_hysteresis}",
+            "rain_delay_start": "Minuten.\n↳ {inh_rain_delay_start}",
+            "rain_delay_end": "Minuten ohne Regen, bevor der Rollladen zurückfährt.\n↳ {inh_rain_delay_end}",
+            "rain_window": "Schließt den Rollladen auf die Position Wasserschutz, wenn es regnet und das Fenster offen ist. Löst das Ereignis autoshutterscontrol_rain_window aus.\n↳ {inh_rain_window}",
+            "rain_window_states": "↳ {inh_rain_window_states}",
+            "rain_window_threshold": "Leer = wie Regen ab.\n↳ {inh_rain_window_threshold}",
+            "rain_window_over_lockout": "Aus: Mit Aussperrschutz fährt der Rollladen höchstens auf die Lüftungsposition.\n↳ {inh_rain_window_over_lockout}",
+            "wind_protection": "Fährt auf die Position Wind.\n↳ {inh_wind_protection}",
+            "wind_threshold": "↳ {inh_wind_threshold}",
+            "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_wind_hysteresis}",
+            "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.\n↳ {inh_wind_delay_end}",
+            "frost_mode": "Braucht die Außentemperatur (Seite Sensoren).\n↳ {inh_frost_mode}",
+            "frost_temp": "↳ {inh_frost_temp}",
+            "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.\n↳ {inh_frost_hysteresis}"
+          }
+        },
+        "extra": {
+          "title": "Zusatzbedingungen und -aktionen",
+          "description": "Leere Felder erben. ↳ zeigt den geerbten Wert.",
+          "data": {
+            "condition_all": "Bedingung für alle Fahrten",
+            "condition_open": "Bedingung fürs Öffnen",
+            "condition_close": "Bedingung fürs Schließen",
+            "condition_ventilate": "Bedingung fürs Lüften",
+            "condition_shading": "Bedingung für die Beschattung",
+            "action_drive": "Aktion bei jeder Fahrt",
+            "action_manual": "Aktion bei einer Handfahrt",
+            "action_override_end": "Aktion am Ende der Übersteuerung",
+            "action_rain_window": "Aktion beim Wasserschutz"
+          },
+          "data_description": {
+            "condition_all": "Automatische Fahrten nur, wenn sie erfüllt ist. Schutzfunktionen, Zwang und Dienstaufrufe ohne Regeln sind nicht betroffen.\n↳ {inh_condition_all}",
+            "condition_open": "↳ {inh_condition_open}",
+            "condition_close": "↳ {inh_condition_close}",
+            "condition_ventilate": "↳ {inh_condition_ventilate}",
+            "condition_shading": "↳ {inh_condition_shading}",
+            "action_drive": "Variablen: position, reason.\n↳ {inh_action_drive}",
+            "action_manual": "Variable: position.\n↳ {inh_action_manual}",
+            "action_override_end": "↳ {inh_action_override_end}",
+            "action_rain_window": "Einmal je Regen bei offenem Fenster, z. B. eine Benachrichtigung.\n↳ {inh_action_rain_window}"
+          }
         }
       },
       "error": {
@@ -1180,6 +1507,7 @@
         "close": "Schließen",
         "ventilate": "Lüften",
         "shading": "Beschattung",
+        "trigger": "Externer Trigger",
         "none": "Nichts"
       }
     },
@@ -1226,6 +1554,8 @@
         "workday_tomorrow_sensor": "Arbeitstag-Sensor (morgen)",
         "calendar": "Kalender",
         "brightness_sensor": "Helligkeitssensor",
+        "rain_sensor": "Regensensor",
+        "wind_sensor": "Windgeschwindigkeit",
         "outdoor_temperature_sensor": "Außentemperatur",
         "indoor_temperature_sensor": "Innentemperatur",
         "weather_entity": "Wetter",
@@ -1253,6 +1583,10 @@
         "pos_shading_alt": "Alternative Position Beschattung",
         "pos_privacy": "Position Sichtschutz (abends)",
         "pos_privacy_up": "Position Sichtschutz (morgens)",
+        "pos_frost": "Position Frost",
+        "pos_wind": "Position Wind",
+        "pos_rain": "Position Regen",
+        "pos_rain_window": "Position Wasserschutz",
         "tolerance": "Toleranz",
         "invert": "Richtung umkehren",
         "position_entity": "Position aus anderer Entität",
@@ -1308,6 +1642,50 @@
         "tilt_timeout": "Zeitlimit für den Stillstand",
         "tilt_close_first": "Lamellen vor neuer Einstellung erst schließen",
         "tilt_tolerance": "Toleranz der Lamellen",
+        "rain_protection": "Regenschutz",
+        "rain_threshold": "Regen ab",
+        "rain_hysteresis": "Hysterese des Regens",
+        "rain_delay_start": "Wartezeit vor dem Regenschutz",
+        "rain_delay_end": "Wartezeit nach dem Regen",
+        "rain_window": "Wasserschutz bei offenem Fenster",
+        "rain_window_states": "Wasserschutz, wenn das Fenster ist",
+        "rain_window_threshold": "Wasserschutz ab",
+        "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+        "wind_protection": "Windschutz",
+        "wind_threshold": "Wind ab",
+        "wind_hysteresis": "Hysterese des Winds",
+        "wind_delay_start": "Wartezeit vor dem Windschutz",
+        "wind_delay_end": "Wartezeit nach dem Wind",
+        "frost_mode": "Frostschutz",
+        "frost_temp": "Frost unter",
+        "frost_hysteresis": "Hysterese des Frosts",
+        "force_close": "Zwangsweise schließen",
+        "force_open": "Zwangsweise öffnen",
+        "force_ventilate": "Zwangsweise lüften",
+        "force_shading": "Zwangsweise beschatten",
+        "force_return": "Nach einer Zwangsfunktion zurückfahren",
+        "pause_entity": "Pause-Entität",
+        "party": "Nimmt am Partymodus teil",
+        "advent": "Nimmt am Adventsmodus teil",
+        "advent_end": "Adventsmodus bis",
+        "trigger_entity": "Externer Trigger",
+        "trigger_value": "Trigger-Wert",
+        "trigger_position": "Trigger-Position",
+        "trigger_value2": "Zweiter Trigger-Wert",
+        "trigger_position2": "Zweite Trigger-Position",
+        "trigger_return": "Nach dem Trigger zurückfahren",
+        "wiggle_value": "Wackeln um",
+        "wiggle_wait": "Wartezeit beim Wackeln",
+        "lockout_entity": "Hardware-Sperre",
+        "condition_all": "Bedingung für alle Fahrten",
+        "condition_open": "Bedingung fürs Öffnen",
+        "condition_close": "Bedingung fürs Schließen",
+        "condition_ventilate": "Bedingung fürs Lüften",
+        "condition_shading": "Bedingung für die Beschattung",
+        "action_drive": "Aktion bei jeder Fahrt",
+        "action_manual": "Aktion bei einer Handfahrt",
+        "action_override_end": "Aktion am Ende der Übersteuerung",
+        "action_rain_window": "Aktion beim Wasserschutz",
         "privacy_up_minutes": "Morgens: Minuten vor dem Öffnen",
         "privacy_down_minutes": "Abends: Minuten vor dem Schließen",
         "privacy_brightness": "Abends: wenn dunkler als",
@@ -1447,6 +1825,29 @@
         "first": "Erst Lamellen, dann Position",
         "inherit": "Erben"
       }
+    },
+    "frost_mode": {
+      "options": {
+        "off": "Aus",
+        "soft": "Sanft: nicht ganz schließen (Position Frost)",
+        "am": "Vormittags nicht fahren (bis 12 Uhr)",
+        "pm": "Nachmittags und abends nicht fahren",
+        "hard": "Gar nicht fahren",
+        "inherit": "Erben"
+      }
+    },
+    "advent_end": {
+      "options": {
+        "epiphany": "Heilige Drei Könige (6. Januar)",
+        "candlemas": "Mariä Lichtmess (2. Februar)",
+        "inherit": "Erben"
+      }
+    },
+    "rain_window_states": {
+      "options": {
+        "tilted": "Gekippt",
+        "open": "Offen"
+      }
     }
   },
   "entity": {
@@ -1480,6 +1881,15 @@
       },
       "global_self_defense": {
         "name": "Selbstschutz"
+      },
+      "global_party": {
+        "name": "Party"
+      },
+      "global_advent": {
+        "name": "Advent"
+      },
+      "global_hardware_lock": {
+        "name": "Hardware-Sperre"
       }
     },
     "binary_sensor": {
@@ -1491,6 +1901,30 @@
       },
       "self_defense": {
         "name": "Selbstschutz"
+      },
+      "global_rain": {
+        "name": "Regen"
+      },
+      "global_wind": {
+        "name": "Wind"
+      },
+      "global_frost": {
+        "name": "Frost"
+      },
+      "protection_rain": {
+        "name": "Regenschutz"
+      },
+      "protection_rain_window": {
+        "name": "Wasserschutz"
+      },
+      "protection_wind": {
+        "name": "Windschutz"
+      },
+      "protection_frost": {
+        "name": "Frostschutz"
+      },
+      "force": {
+        "name": "Zwangsfunktion"
       }
     },
     "sensor": {
@@ -1515,7 +1949,13 @@
           "sleep": "Bewohner schlafen",
           "self_defense": "Selbstschutz",
           "shading": "Beschattung",
-          "heat": "Hitzeschutz"
+          "heat": "Hitzeschutz",
+          "force": "Zwangsfunktion",
+          "rain": "Regenschutz",
+          "rain_window": "Wasserschutz",
+          "wind": "Windschutz",
+          "trigger": "Externer Trigger",
+          "wiggle": "Wackeln"
         }
       },
       "target": {
@@ -1524,7 +1964,8 @@
           "open": "Offen",
           "close": "Geschlossen",
           "ventilate": "Lüften",
-          "shading": "Beschattung"
+          "shading": "Beschattung",
+          "trigger": "Externer Trigger"
         }
       },
       "window_state": {
@@ -1582,6 +2023,15 @@
       },
       "clear_override": {
         "name": "Übersteuerung beenden"
+      },
+      "global_wiggle": {
+        "name": "Alle wackeln"
+      },
+      "global_release_deferred": {
+        "name": "Aufgeschobene Fahrten freigeben"
+      },
+      "wiggle": {
+        "name": "Wackeln"
       }
     },
     "select": {
@@ -1746,6 +2196,34 @@
         "value": {
           "name": "Wert",
           "description": "Neuer Wert. Zeiten als HH:MM, Listen als Liste."
+        }
+      }
+    },
+    "wiggle": {
+      "name": "Wackeln",
+      "description": "Fährt Rollläden ein Stück und zurück (Funktionsprüfung).",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Leer: alle Rollläden."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
+        }
+      }
+    },
+    "release_deferred": {
+      "name": "Aufgeschobene Fahrten freigeben",
+      "description": "Advent: holt das heute aufgeschobene abendliche Schließen jetzt nach.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Leer: alle Rollläden."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
         }
       }
     }

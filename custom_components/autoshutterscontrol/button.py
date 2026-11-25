@@ -20,11 +20,20 @@ async def async_setup_entry(
     """Set up buttons."""
     manager = entry.runtime_data
     async_add_entities(
-        [GlobalButton(manager, "global_recalculate"), GlobalButton(manager, "global_apply_target")]
+        [
+            GlobalButton(manager, "global_recalculate"),
+            GlobalButton(manager, "global_apply_target"),
+            GlobalButton(manager, "global_wiggle"),
+            GlobalButton(manager, "global_release_deferred"),
+        ]
     )
     for controller in manager.controllers.values():
         async_add_entities(
-            [CoverButton(controller, "apply_target"), CoverButton(controller, "clear_override")],
+            [
+                CoverButton(controller, "apply_target"),
+                CoverButton(controller, "clear_override"),
+                CoverButton(controller, "wiggle"),
+            ],
             config_subentry_id=controller.subentry_id,
         )
 
@@ -40,6 +49,13 @@ class GlobalButton(AscGlobalEntity, ButtonEntity):
         if self._key == "global_recalculate":
             self.manager.recalculate()
             return
+        if self._key == "global_release_deferred":
+            self.manager.release_deferred()
+            return
+        if self._key == "global_wiggle":
+            for controller in self.manager.controllers.values():
+                controller.wiggle()
+            return
         for controller in self.manager.controllers.values():
             controller.evaluate(TRIGGER_APPLY_TARGET)
 
@@ -54,5 +70,7 @@ class CoverButton(AscCoverEntity, ButtonEntity):
     async def async_press(self) -> None:
         if self._key == "apply_target":
             self.controller.evaluate(TRIGGER_APPLY_TARGET)
+        elif self._key == "wiggle":
+            self.controller.wiggle()
         else:
             self.controller.clear_override()

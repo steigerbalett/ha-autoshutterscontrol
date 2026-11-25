@@ -25,7 +25,9 @@ from .const import (
     SERVICE_CLEAR_OVERRIDE,
     SERVICE_DRIVE,
     SERVICE_RECALCULATE,
+    SERVICE_RELEASE_DEFERRED,
     SERVICE_SET_OPTION,
+    SERVICE_WIGGLE,
     SUBENTRY_PROFILE,
 )
 from .engine.arbiter import TRIGGER_APPLY_TARGET
@@ -131,6 +133,15 @@ def async_setup_services(hass: HomeAssistant) -> None:
         for controller in _targets(manager, call):
             controller.clear_override()
 
+    async def wiggle(call: ServiceCall) -> None:
+        manager = _manager(hass)
+        for controller in _targets(manager, call):
+            controller.wiggle()
+
+    async def release_deferred(call: ServiceCall) -> None:
+        manager = _manager(hass)
+        manager.release_deferred(_targets(manager, call))
+
     async def set_option(call: ServiceCall) -> None:
         manager = _manager(hass)
         setting = BY_KEY[call.data[ATTR_OPTION]]
@@ -184,6 +195,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_CLEAR_OVERRIDE, clear_override, schema=TARGET_ONLY_SCHEMA
     )
     hass.services.async_register(DOMAIN, SERVICE_SET_OPTION, set_option, schema=SET_OPTION_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_WIGGLE, wiggle, schema=TARGET_ONLY_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, SERVICE_RELEASE_DEFERRED, release_deferred, schema=TARGET_ONLY_SCHEMA
+    )
 
 
 def _write(hass: HomeAssistant, entry, subentry, key: str, value: Any) -> None:

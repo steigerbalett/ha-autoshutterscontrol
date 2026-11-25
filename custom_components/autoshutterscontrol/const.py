@@ -27,6 +27,7 @@ SIGNAL_COVER_UPDATE: Final = f"{DOMAIN}_cover_update_{{}}"
 # Events
 EVENT_DRIVE: Final = f"{DOMAIN}_drive"
 EVENT_MANUAL: Final = f"{DOMAIN}_manual"
+EVENT_RAIN_WINDOW: Final = f"{DOMAIN}_rain_window"
 
 # Global runtime switches (stored, not part of the settings)
 SWITCH_AUTOMATIC: Final = "automatic"
@@ -37,6 +38,9 @@ SWITCH_PAUSE: Final = "pause"
 SWITCH_COMFORT: Final = "comfort"
 SWITCH_SHADING: Final = "shading"
 SWITCH_SELF_DEFENSE: Final = "self_defense"
+SWITCH_PARTY: Final = "party"
+SWITCH_ADVENT: Final = "advent"
+SWITCH_HARDWARE_LOCK: Final = "hardware_lock"
 
 GLOBAL_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
@@ -47,6 +51,9 @@ GLOBAL_SWITCHES: Final = {
     SWITCH_COMFORT: False,
     SWITCH_SHADING: True,
     SWITCH_SELF_DEFENSE: False,
+    SWITCH_PARTY: False,
+    SWITCH_ADVENT: False,
+    SWITCH_HARDWARE_LOCK: True,
 }
 
 # Per cover runtime switches
@@ -69,6 +76,8 @@ SERVICE_RECALCULATE: Final = "recalculate"
 SERVICE_APPLY_TARGET: Final = "apply_target"
 SERVICE_CLEAR_OVERRIDE: Final = "clear_override"
 SERVICE_SET_OPTION: Final = "set_option"
+SERVICE_WIGGLE: Final = "wiggle"
+SERVICE_RELEASE_DEFERRED: Final = "release_deferred"
 
 ATTR_POSITION: Final = "position"
 ATTR_NAMED_POSITION: Final = "named_position"

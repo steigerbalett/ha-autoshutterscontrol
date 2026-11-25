@@ -76,3 +76,23 @@ set_option:
     value:
       selector:
         object:
+wiggle:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+release_deferred:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:

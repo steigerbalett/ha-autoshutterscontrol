@@ -9,6 +9,8 @@
           "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
           "calendar": "Calendar",
           "brightness_sensor": "Brightness sensor",
+          "rain_sensor": "Rain sensor",
+          "wind_sensor": "Wind speed",
           "outdoor_temperature_sensor": "Outdoor temperature",
           "indoor_temperature_sensor": "Indoor temperature",
           "weather_entity": "Weather",
@@ -19,6 +21,8 @@
           "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.",
           "calendar": "Used when the times come from the calendar.",
           "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.",
+          "rain_sensor": "Binary sensor (on = rain) or rain amount (mm, mm/h).",
+          "wind_sensor": "Sensor in km/h (or the unit of your thresholds).",
           "outdoor_temperature_sensor": "For shading and heat protection.",
           "indoor_temperature_sensor": "For shading, usually set per cover or profile.",
           "weather_entity": "Weather condition and daily forecast for shading.",
@@ -45,8 +49,11 @@
           "shading": "Shading",
           "tilt": "Slats",
           "privacy": "Privacy",
+          "protection": "Rain, wind and frost",
+          "special": "Special functions",
           "drive": "Drive behaviour",
           "override": "Manual override",
+          "extra": "Extra conditions and actions",
           "reset": "Reset fields to the default",
           "save": "Save"
         }
@@ -97,6 +104,8 @@
           "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
           "calendar": "Calendar",
           "brightness_sensor": "Brightness sensor",
+          "rain_sensor": "Rain sensor",
+          "wind_sensor": "Wind speed",
           "outdoor_temperature_sensor": "Outdoor temperature",
           "indoor_temperature_sensor": "Indoor temperature",
           "weather_entity": "Weather",
@@ -107,6 +116,8 @@
           "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.",
           "calendar": "Used when the times come from the calendar.",
           "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.",
+          "rain_sensor": "Binary sensor (on = rain) or rain amount (mm, mm/h).",
+          "wind_sensor": "Sensor in km/h (or the unit of your thresholds).",
           "outdoor_temperature_sensor": "For shading and heat protection.",
           "indoor_temperature_sensor": "For shading, usually set per cover or profile.",
           "weather_entity": "Weather condition and daily forecast for shading.",
@@ -126,6 +137,10 @@
           "pos_shading_alt": "Alternative shading position",
           "pos_privacy": "Privacy position (evening)",
           "pos_privacy_up": "Privacy position (morning)",
+          "pos_frost": "Frost position",
+          "pos_wind": "Wind position",
+          "pos_rain": "Rain position",
+          "pos_rain_window": "Water protection position",
           "tolerance": "Tolerance"
         },
         "data_description": {
@@ -133,6 +148,10 @@
           "pos_comfort": "Used for a fully open window while the switch Comfort is on.",
           "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.",
           "pos_privacy_up": "Empty: same as the evening privacy position.",
+          "pos_frost": "Soft frost protection: closing stops here. Empty = off.",
+          "pos_wind": "Venetian blinds and awnings: usually 100 (up).",
+          "pos_rain": "Awnings: usually 100 (retracted).",
+          "pos_rain_window": "Rain with an open window. With the lock-out protection at most the ventilation position.",
           "tolerance": "A cover within this distance of a position counts as being there."
         }
       },
@@ -224,7 +243,7 @@
           "window_open_delay": "Seconds the contact must stay open (against fluttering).",
           "window_close_delay": "Seconds the contact must stay closed.",
           "window_close_return": "Only after a ventilation drive or a closing that waited for the door.",
-          "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard additionally locks the actuator (stage 4)."
+          "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard also waits with rain and wind and can lock the actuator (page Special functions)."
         }
       },
       "privacy": {
@@ -345,6 +364,84 @@
           "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).",
           "tilt_timeout": "After this time the slats are set even if no standstill was reported."
         }
+      },
+      "protection": {
+        "title": "Rain, wind and frost",
+        "description": "Sensors are on the page Sensors. Rain and wind protection are off by default; switch them on in the profile of the covers that need them (awnings, venetian blinds).",
+        "data": {
+          "rain_protection": "Rain protection",
+          "rain_threshold": "Rain from",
+          "rain_hysteresis": "Hysteresis of the rain",
+          "rain_delay_start": "Wait before rain protection",
+          "rain_delay_end": "Wait after the rain",
+          "rain_window": "Water protection with an open window",
+          "rain_window_states": "Water protection when the window is",
+          "rain_window_threshold": "Water protection from",
+          "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+          "wind_protection": "Wind protection",
+          "wind_threshold": "Wind from",
+          "wind_hysteresis": "Hysteresis of the wind",
+          "wind_delay_start": "Wait before wind protection",
+          "wind_delay_end": "Wait after the wind",
+          "frost_mode": "Frost protection",
+          "frost_temp": "Frost below",
+          "frost_hysteresis": "Hysteresis of the frost"
+        },
+        "data_description": {
+          "rain_protection": "Drives to the rain position.",
+          "rain_threshold": "Rain amount above this value. A binary sensor counts on as rain.",
+          "rain_hysteresis": "Rain ends only at or below the threshold minus this value.",
+          "rain_delay_start": "Minutes.",
+          "rain_delay_end": "Minutes without rain before the cover goes back.",
+          "rain_window": "Closes the cover to the water protection position when it rains and the window is open. Fires the event autoshutterscontrol_rain_window.",
+          "rain_window_threshold": "Empty = the same as Rain from.",
+          "rain_window_over_lockout": "Off: with the lock-out protection the cover goes at most to the ventilation position.",
+          "wind_protection": "Drives to the wind position.",
+          "wind_hysteresis": "Wind ends only below the threshold minus this value.",
+          "wind_delay_end": "Minutes with calm wind before the cover goes back.",
+          "frost_mode": "Needs the outdoor temperature (page Sensors).",
+          "frost_hysteresis": "Frost ends only above the threshold plus this value."
+        }
+      },
+      "special": {
+        "title": "Special functions",
+        "description": "Force functions, pause, party, advent, trigger and wiggle. Fields with entities are set per cover.",
+        "data": {
+          "force_return": "Go back after a force function",
+          "party": "Takes part in the party mode",
+          "advent": "Takes part in the advent mode",
+          "advent_end": "Advent mode until",
+          "wiggle_value": "Wiggle by",
+          "wiggle_wait": "Wiggle wait"
+        },
+        "data_description": {
+          "force_return": "When the force entity turns off, the cover goes to its target.",
+          "party": "While the switch Party of the central device is on, the cover does not move automatically (except protections).",
+          "advent": "While the switch Advent of the central device is on, the evening closing waits from the 1st Sunday of Advent until the end date, until the button Release deferred drives is pressed.",
+          "wiggle_value": "Percent for the function check (button Wiggle).",
+          "wiggle_wait": "Seconds before the cover goes back."
+        }
+      },
+      "extra": {
+        "title": "Extra conditions and actions",
+        "description": "Conditions and actions like in automations. Variables: cover (entity id) and trigger.",
+        "data": {
+          "condition_all": "Condition for all drives",
+          "condition_open": "Condition for opening",
+          "condition_close": "Condition for closing",
+          "condition_ventilate": "Condition for ventilation",
+          "condition_shading": "Condition for shading",
+          "action_drive": "Action at each drive",
+          "action_manual": "Action at a manual drive",
+          "action_override_end": "Action at the end of the override",
+          "action_rain_window": "Action at water protection"
+        },
+        "data_description": {
+          "condition_all": "Automatic drives only when it is true. Protections, force and service calls without rules are not affected.",
+          "action_drive": "Variables: position, reason.",
+          "action_manual": "Variable: position.",
+          "action_rain_window": "Once per rain with an open window, e.g. a notification."
+        }
       }
     }
   },
@@ -376,8 +473,11 @@
             "shading": "Shading",
             "tilt": "Slats",
             "privacy": "Privacy",
+            "protection": "Rain, wind and frost",
+            "special": "Special functions",
             "drive": "Drive behaviour",
             "override": "Manual override",
+            "extra": "Extra conditions and actions",
             "reset": "Back to the inherited value",
             "save": "Save"
           }
@@ -445,6 +545,8 @@
             "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
             "calendar": "Calendar",
             "brightness_sensor": "Brightness sensor",
+            "rain_sensor": "Rain sensor",
+            "wind_sensor": "Wind speed",
             "outdoor_temperature_sensor": "Outdoor temperature",
             "indoor_temperature_sensor": "Indoor temperature",
             "weather_entity": "Weather",
@@ -455,6 +557,8 @@
             "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Used when the times come from the calendar.\n↳ {inh_calendar}",
             "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}",
+            "rain_sensor": "Binary sensor (on = rain) or rain amount (mm, mm/h).\n↳ {inh_rain_sensor}",
+            "wind_sensor": "Sensor in km/h (or the unit of your thresholds).\n↳ {inh_wind_sensor}",
             "outdoor_temperature_sensor": "For shading and heat protection.\n↳ {inh_outdoor_temperature_sensor}",
             "indoor_temperature_sensor": "For shading, usually set per cover or profile.\n↳ {inh_indoor_temperature_sensor}",
             "weather_entity": "Weather condition and daily forecast for shading.\n↳ {inh_weather_entity}",
@@ -474,6 +578,10 @@
             "pos_shading_alt": "Alternative shading position",
             "pos_privacy": "Privacy position (evening)",
             "pos_privacy_up": "Privacy position (morning)",
+            "pos_frost": "Frost position",
+            "pos_wind": "Wind position",
+            "pos_rain": "Rain position",
+            "pos_rain_window": "Water protection position",
             "tolerance": "Tolerance"
           },
           "data_description": {
@@ -486,6 +594,10 @@
             "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
+            "pos_frost": "Soft frost protection: closing stops here. Empty = off.\n↳ {inh_pos_frost}",
+            "pos_wind": "Venetian blinds and awnings: usually 100 (up).\n↳ {inh_pos_wind}",
+            "pos_rain": "Awnings: usually 100 (retracted).\n↳ {inh_pos_rain}",
+            "pos_rain_window": "Rain with an open window. With the lock-out protection at most the ventilation position.\n↳ {inh_pos_rain_window}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}"
           }
         },
@@ -575,7 +687,7 @@
             "window_open_delay": "Seconds the contact must stay open (against fluttering).\n↳ {inh_window_open_delay}",
             "window_close_delay": "Seconds the contact must stay closed.\n↳ {inh_window_close_delay}",
             "window_close_return": "Only after a ventilation drive or a closing that waited for the door.\n↳ {inh_window_close_return}",
-            "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard additionally locks the actuator (stage 4).\n↳ {inh_lockout}",
+            "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard also waits with rain and wind and can lock the actuator (page Special functions).\n↳ {inh_lockout}",
             "lockout_tilted": "↳ {inh_lockout_tilted}"
           }
         },
@@ -720,6 +832,94 @@
             "tilt_close_first": "↳ {inh_tilt_close_first}",
             "tilt_tolerance": "↳ {inh_tilt_tolerance}"
           }
+        },
+        "protection": {
+          "title": "Rain, wind and frost",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "rain_protection": "Rain protection",
+            "rain_threshold": "Rain from",
+            "rain_hysteresis": "Hysteresis of the rain",
+            "rain_delay_start": "Wait before rain protection",
+            "rain_delay_end": "Wait after the rain",
+            "rain_window": "Water protection with an open window",
+            "rain_window_states": "Water protection when the window is",
+            "rain_window_threshold": "Water protection from",
+            "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+            "wind_protection": "Wind protection",
+            "wind_threshold": "Wind from",
+            "wind_hysteresis": "Hysteresis of the wind",
+            "wind_delay_start": "Wait before wind protection",
+            "wind_delay_end": "Wait after the wind",
+            "frost_mode": "Frost protection",
+            "frost_temp": "Frost below",
+            "frost_hysteresis": "Hysteresis of the frost"
+          },
+          "data_description": {
+            "rain_protection": "Drives to the rain position.\n↳ {inh_rain_protection}",
+            "rain_threshold": "Rain amount above this value. A binary sensor counts on as rain.\n↳ {inh_rain_threshold}",
+            "rain_hysteresis": "Rain ends only at or below the threshold minus this value.\n↳ {inh_rain_hysteresis}",
+            "rain_delay_start": "Minutes.\n↳ {inh_rain_delay_start}",
+            "rain_delay_end": "Minutes without rain before the cover goes back.\n↳ {inh_rain_delay_end}",
+            "rain_window": "Closes the cover to the water protection position when it rains and the window is open. Fires the event autoshutterscontrol_rain_window.\n↳ {inh_rain_window}",
+            "rain_window_states": "↳ {inh_rain_window_states}",
+            "rain_window_threshold": "Empty = the same as Rain from.\n↳ {inh_rain_window_threshold}",
+            "rain_window_over_lockout": "Off: with the lock-out protection the cover goes at most to the ventilation position.\n↳ {inh_rain_window_over_lockout}",
+            "wind_protection": "Drives to the wind position.\n↳ {inh_wind_protection}",
+            "wind_threshold": "↳ {inh_wind_threshold}",
+            "wind_hysteresis": "Wind ends only below the threshold minus this value.\n↳ {inh_wind_hysteresis}",
+            "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_delay_end": "Minutes with calm wind before the cover goes back.\n↳ {inh_wind_delay_end}",
+            "frost_mode": "Needs the outdoor temperature (page Sensors).\n↳ {inh_frost_mode}",
+            "frost_temp": "↳ {inh_frost_temp}",
+            "frost_hysteresis": "Frost ends only above the threshold plus this value.\n↳ {inh_frost_hysteresis}"
+          }
+        },
+        "special": {
+          "title": "Special functions",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "force_return": "Go back after a force function",
+            "party": "Takes part in the party mode",
+            "advent": "Takes part in the advent mode",
+            "advent_end": "Advent mode until",
+            "wiggle_value": "Wiggle by",
+            "wiggle_wait": "Wiggle wait"
+          },
+          "data_description": {
+            "force_return": "When the force entity turns off, the cover goes to its target.\n↳ {inh_force_return}",
+            "party": "While the switch Party of the central device is on, the cover does not move automatically (except protections).\n↳ {inh_party}",
+            "advent": "While the switch Advent of the central device is on, the evening closing waits from the 1st Sunday of Advent until the end date, until the button Release deferred drives is pressed.\n↳ {inh_advent}",
+            "advent_end": "↳ {inh_advent_end}",
+            "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
+            "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}"
+          }
+        },
+        "extra": {
+          "title": "Extra conditions and actions",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "condition_all": "Condition for all drives",
+            "condition_open": "Condition for opening",
+            "condition_close": "Condition for closing",
+            "condition_ventilate": "Condition for ventilation",
+            "condition_shading": "Condition for shading",
+            "action_drive": "Action at each drive",
+            "action_manual": "Action at a manual drive",
+            "action_override_end": "Action at the end of the override",
+            "action_rain_window": "Action at water protection"
+          },
+          "data_description": {
+            "condition_all": "Automatic drives only when it is true. Protections, force and service calls without rules are not affected.\n↳ {inh_condition_all}",
+            "condition_open": "↳ {inh_condition_open}",
+            "condition_close": "↳ {inh_condition_close}",
+            "condition_ventilate": "↳ {inh_condition_ventilate}",
+            "condition_shading": "↳ {inh_condition_shading}",
+            "action_drive": "Variables: position, reason.\n↳ {inh_action_drive}",
+            "action_manual": "Variable: position.\n↳ {inh_action_manual}",
+            "action_override_end": "↳ {inh_action_override_end}",
+            "action_rain_window": "Once per rain with an open window, e.g. a notification.\n↳ {inh_action_rain_window}"
+          }
         }
       }
     },
@@ -759,8 +959,11 @@
             "shading": "Shading",
             "tilt": "Slats",
             "privacy": "Privacy",
+            "protection": "Rain, wind and frost",
+            "special": "Special functions",
             "drive": "Drive behaviour",
             "override": "Manual override",
+            "extra": "Extra conditions and actions",
             "reset": "Back to the inherited value",
             "save": "Save"
           }
@@ -824,6 +1027,10 @@
             "pos_shading_alt": "Alternative shading position",
             "pos_privacy": "Privacy position (evening)",
             "pos_privacy_up": "Privacy position (morning)",
+            "pos_frost": "Frost position",
+            "pos_wind": "Wind position",
+            "pos_rain": "Rain position",
+            "pos_rain_window": "Water protection position",
             "tolerance": "Tolerance",
             "invert": "Invert direction",
             "position_entity": "Position from another entity"
@@ -838,6 +1045,10 @@
             "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.\n↳ {inh_pos_shading_alt}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
+            "pos_frost": "Soft frost protection: closing stops here. Empty = off.\n↳ {inh_pos_frost}",
+            "pos_wind": "Venetian blinds and awnings: usually 100 (up).\n↳ {inh_pos_wind}",
+            "pos_rain": "Awnings: usually 100 (retracted).\n↳ {inh_pos_rain}",
+            "pos_rain_window": "Rain with an open window. With the lock-out protection at most the ventilation position.\n↳ {inh_pos_rain_window}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}",
             "invert": "For covers that report 0 % as open.\n↳ {inh_invert}",
             "position_entity": "Sensor or number with the position, if the cover itself does not report it.\n↳ {inh_position_entity}"
@@ -860,6 +1071,8 @@
             "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
             "calendar": "Calendar",
             "brightness_sensor": "Brightness sensor",
+            "rain_sensor": "Rain sensor",
+            "wind_sensor": "Wind speed",
             "outdoor_temperature_sensor": "Outdoor temperature",
             "indoor_temperature_sensor": "Indoor temperature",
             "weather_entity": "Weather",
@@ -870,6 +1083,8 @@
             "workday_tomorrow_sensor": "Workday integration with a days offset of 1. Without a sensor Monday to Friday are workdays.\n↳ {inh_workday_tomorrow_sensor}",
             "calendar": "Used when the times come from the calendar.\n↳ {inh_calendar}",
             "brightness_sensor": "Illuminance in lx, for the modes Brightness and the privacy by brightness.\n↳ {inh_brightness_sensor}",
+            "rain_sensor": "Binary sensor (on = rain) or rain amount (mm, mm/h).\n↳ {inh_rain_sensor}",
+            "wind_sensor": "Sensor in km/h (or the unit of your thresholds).\n↳ {inh_wind_sensor}",
             "outdoor_temperature_sensor": "For shading and heat protection.\n↳ {inh_outdoor_temperature_sensor}",
             "indoor_temperature_sensor": "For shading, usually set per cover or profile.\n↳ {inh_indoor_temperature_sensor}",
             "weather_entity": "Weather condition and daily forecast for shading.\n↳ {inh_weather_entity}",
@@ -942,7 +1157,7 @@
             "window_open_delay": "Seconds the contact must stay open (against fluttering).\n↳ {inh_window_open_delay}",
             "window_close_delay": "Seconds the contact must stay closed.\n↳ {inh_window_close_delay}",
             "window_close_return": "Only after a ventilation drive or a closing that waited for the door.\n↳ {inh_window_close_return}",
-            "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard additionally locks the actuator (stage 4).\n↳ {inh_lockout}",
+            "lockout": "Soft or hard: the cover does not close while the door is open and closes when the door is closed. Hard also waits with rain and wind and can lock the actuator (page Special functions).\n↳ {inh_lockout}",
             "lockout_tilted": "↳ {inh_lockout_tilted}"
           },
           "title": "Window contacts",
@@ -1117,6 +1332,118 @@
             "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.\n↳ {inh_heat_protection_temp}",
             "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
           }
+        },
+        "special": {
+          "data": {
+            "force_close": "Force close",
+            "force_open": "Force open",
+            "force_ventilate": "Force ventilate",
+            "force_shading": "Force shading",
+            "force_return": "Go back after a force function",
+            "pause_entity": "Pause entity",
+            "party": "Takes part in the party mode",
+            "advent": "Takes part in the advent mode",
+            "advent_end": "Advent mode until",
+            "trigger_entity": "External trigger",
+            "trigger_value": "Trigger value",
+            "trigger_position": "Trigger position",
+            "trigger_value2": "Second trigger value",
+            "trigger_position2": "Second trigger position",
+            "trigger_return": "Go back after the trigger",
+            "wiggle_value": "Wiggle by",
+            "wiggle_wait": "Wiggle wait",
+            "lockout_entity": "Hardware lock"
+          },
+          "data_description": {
+            "force_close": "While on, the cover stays closed, above all other rules.\n↳ {inh_force_close}",
+            "force_open": "While on, the cover stays open.\n↳ {inh_force_open}",
+            "force_ventilate": "While on, the cover stays at the ventilation position.\n↳ {inh_force_ventilate}",
+            "force_shading": "While on, the cover stays at the shading position.\n↳ {inh_force_shading}",
+            "force_return": "When the force entity turns off, the cover goes to its target.\n↳ {inh_force_return}",
+            "pause_entity": "While on, this cover does not move automatically.\n↳ {inh_pause_entity}",
+            "party": "While the switch Party of the central device is on, the cover does not move automatically (except protections).\n↳ {inh_party}",
+            "advent": "While the switch Advent of the central device is on, the evening closing waits from the 1st Sunday of Advent until the end date, until the button Release deferred drives is pressed.\n↳ {inh_advent}",
+            "advent_end": "↳ {inh_advent_end}",
+            "trigger_entity": "Any entity, e.g. an input select or a button helper.\n↳ {inh_trigger_entity}",
+            "trigger_value": "State that drives to the trigger position.\n↳ {inh_trigger_value}",
+            "trigger_position": "Percent.\n↳ {inh_trigger_position}",
+            "trigger_value2": "Optional second state with its own position.\n↳ {inh_trigger_value2}",
+            "trigger_position2": "↳ {inh_trigger_position2}",
+            "trigger_return": "When the trigger state ends, the cover goes to its target.\n↳ {inh_trigger_return}",
+            "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
+            "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}",
+            "lockout_entity": "Switch, lock or input boolean that locks the actuator while the door is open (lock-out protection hard, switch Hardware lock of the central device).\n↳ {inh_lockout_entity}"
+          },
+          "title": "Special functions",
+          "description": "Empty fields inherit. ↳ shows the inherited value."
+        },
+        "protection": {
+          "title": "Rain, wind and frost",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "rain_protection": "Rain protection",
+            "rain_threshold": "Rain from",
+            "rain_hysteresis": "Hysteresis of the rain",
+            "rain_delay_start": "Wait before rain protection",
+            "rain_delay_end": "Wait after the rain",
+            "rain_window": "Water protection with an open window",
+            "rain_window_states": "Water protection when the window is",
+            "rain_window_threshold": "Water protection from",
+            "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+            "wind_protection": "Wind protection",
+            "wind_threshold": "Wind from",
+            "wind_hysteresis": "Hysteresis of the wind",
+            "wind_delay_start": "Wait before wind protection",
+            "wind_delay_end": "Wait after the wind",
+            "frost_mode": "Frost protection",
+            "frost_temp": "Frost below",
+            "frost_hysteresis": "Hysteresis of the frost"
+          },
+          "data_description": {
+            "rain_protection": "Drives to the rain position.\n↳ {inh_rain_protection}",
+            "rain_threshold": "Rain amount above this value. A binary sensor counts on as rain.\n↳ {inh_rain_threshold}",
+            "rain_hysteresis": "Rain ends only at or below the threshold minus this value.\n↳ {inh_rain_hysteresis}",
+            "rain_delay_start": "Minutes.\n↳ {inh_rain_delay_start}",
+            "rain_delay_end": "Minutes without rain before the cover goes back.\n↳ {inh_rain_delay_end}",
+            "rain_window": "Closes the cover to the water protection position when it rains and the window is open. Fires the event autoshutterscontrol_rain_window.\n↳ {inh_rain_window}",
+            "rain_window_states": "↳ {inh_rain_window_states}",
+            "rain_window_threshold": "Empty = the same as Rain from.\n↳ {inh_rain_window_threshold}",
+            "rain_window_over_lockout": "Off: with the lock-out protection the cover goes at most to the ventilation position.\n↳ {inh_rain_window_over_lockout}",
+            "wind_protection": "Drives to the wind position.\n↳ {inh_wind_protection}",
+            "wind_threshold": "↳ {inh_wind_threshold}",
+            "wind_hysteresis": "Wind ends only below the threshold minus this value.\n↳ {inh_wind_hysteresis}",
+            "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_delay_end": "Minutes with calm wind before the cover goes back.\n↳ {inh_wind_delay_end}",
+            "frost_mode": "Needs the outdoor temperature (page Sensors).\n↳ {inh_frost_mode}",
+            "frost_temp": "↳ {inh_frost_temp}",
+            "frost_hysteresis": "Frost ends only above the threshold plus this value.\n↳ {inh_frost_hysteresis}"
+          }
+        },
+        "extra": {
+          "title": "Extra conditions and actions",
+          "description": "Empty fields inherit. ↳ shows the inherited value.",
+          "data": {
+            "condition_all": "Condition for all drives",
+            "condition_open": "Condition for opening",
+            "condition_close": "Condition for closing",
+            "condition_ventilate": "Condition for ventilation",
+            "condition_shading": "Condition for shading",
+            "action_drive": "Action at each drive",
+            "action_manual": "Action at a manual drive",
+            "action_override_end": "Action at the end of the override",
+            "action_rain_window": "Action at water protection"
+          },
+          "data_description": {
+            "condition_all": "Automatic drives only when it is true. Protections, force and service calls without rules are not affected.\n↳ {inh_condition_all}",
+            "condition_open": "↳ {inh_condition_open}",
+            "condition_close": "↳ {inh_condition_close}",
+            "condition_ventilate": "↳ {inh_condition_ventilate}",
+            "condition_shading": "↳ {inh_condition_shading}",
+            "action_drive": "Variables: position, reason.\n↳ {inh_action_drive}",
+            "action_manual": "Variable: position.\n↳ {inh_action_manual}",
+            "action_override_end": "↳ {inh_action_override_end}",
+            "action_rain_window": "Once per rain with an open window, e.g. a notification.\n↳ {inh_action_rain_window}"
+          }
         }
       },
       "error": {
@@ -1180,6 +1507,7 @@
         "close": "Closing",
         "ventilate": "Ventilation",
         "shading": "Shading",
+        "trigger": "External trigger",
         "none": "Nothing"
       }
     },
@@ -1226,6 +1554,8 @@
         "workday_tomorrow_sensor": "Workday sensor (tomorrow)",
         "calendar": "Calendar",
         "brightness_sensor": "Brightness sensor",
+        "rain_sensor": "Rain sensor",
+        "wind_sensor": "Wind speed",
         "outdoor_temperature_sensor": "Outdoor temperature",
         "indoor_temperature_sensor": "Indoor temperature",
         "weather_entity": "Weather",
@@ -1253,6 +1583,10 @@
         "pos_shading_alt": "Alternative shading position",
         "pos_privacy": "Privacy position (evening)",
         "pos_privacy_up": "Privacy position (morning)",
+        "pos_frost": "Frost position",
+        "pos_wind": "Wind position",
+        "pos_rain": "Rain position",
+        "pos_rain_window": "Water protection position",
         "tolerance": "Tolerance",
         "invert": "Invert direction",
         "position_entity": "Position from another entity",
@@ -1308,6 +1642,50 @@
         "tilt_timeout": "Time limit for standstill",
         "tilt_close_first": "Close the slats before a new setting",
         "tilt_tolerance": "Tolerance of the slats",
+        "rain_protection": "Rain protection",
+        "rain_threshold": "Rain from",
+        "rain_hysteresis": "Hysteresis of the rain",
+        "rain_delay_start": "Wait before rain protection",
+        "rain_delay_end": "Wait after the rain",
+        "rain_window": "Water protection with an open window",
+        "rain_window_states": "Water protection when the window is",
+        "rain_window_threshold": "Water protection from",
+        "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+        "wind_protection": "Wind protection",
+        "wind_threshold": "Wind from",
+        "wind_hysteresis": "Hysteresis of the wind",
+        "wind_delay_start": "Wait before wind protection",
+        "wind_delay_end": "Wait after the wind",
+        "frost_mode": "Frost protection",
+        "frost_temp": "Frost below",
+        "frost_hysteresis": "Hysteresis of the frost",
+        "force_close": "Force close",
+        "force_open": "Force open",
+        "force_ventilate": "Force ventilate",
+        "force_shading": "Force shading",
+        "force_return": "Go back after a force function",
+        "pause_entity": "Pause entity",
+        "party": "Takes part in the party mode",
+        "advent": "Takes part in the advent mode",
+        "advent_end": "Advent mode until",
+        "trigger_entity": "External trigger",
+        "trigger_value": "Trigger value",
+        "trigger_position": "Trigger position",
+        "trigger_value2": "Second trigger value",
+        "trigger_position2": "Second trigger position",
+        "trigger_return": "Go back after the trigger",
+        "wiggle_value": "Wiggle by",
+        "wiggle_wait": "Wiggle wait",
+        "lockout_entity": "Hardware lock",
+        "condition_all": "Condition for all drives",
+        "condition_open": "Condition for opening",
+        "condition_close": "Condition for closing",
+        "condition_ventilate": "Condition for ventilation",
+        "condition_shading": "Condition for shading",
+        "action_drive": "Action at each drive",
+        "action_manual": "Action at a manual drive",
+        "action_override_end": "Action at the end of the override",
+        "action_rain_window": "Action at water protection",
         "privacy_up_minutes": "Morning: minutes before opening",
         "privacy_down_minutes": "Evening: minutes before closing",
         "privacy_brightness": "Evening: when darker than",
@@ -1447,6 +1825,29 @@
         "first": "Slats first, then position",
         "inherit": "Inherit"
       }
+    },
+    "frost_mode": {
+      "options": {
+        "off": "Off",
+        "soft": "Soft: do not close completely (frost position)",
+        "am": "No drives in the morning (until noon)",
+        "pm": "No drives in the afternoon and evening",
+        "hard": "No drives at all",
+        "inherit": "Inherit"
+      }
+    },
+    "advent_end": {
+      "options": {
+        "epiphany": "Epiphany (6 January)",
+        "candlemas": "Candlemas (2 February)",
+        "inherit": "Inherit"
+      }
+    },
+    "rain_window_states": {
+      "options": {
+        "tilted": "Tilted",
+        "open": "Open"
+      }
     }
   },
   "entity": {
@@ -1480,6 +1881,15 @@
       },
       "global_self_defense": {
         "name": "Self defense"
+      },
+      "global_party": {
+        "name": "Party"
+      },
+      "global_advent": {
+        "name": "Advent"
+      },
+      "global_hardware_lock": {
+        "name": "Hardware lock"
       }
     },
     "binary_sensor": {
@@ -1491,6 +1901,30 @@
       },
       "self_defense": {
         "name": "Self defense"
+      },
+      "global_rain": {
+        "name": "Rain"
+      },
+      "global_wind": {
+        "name": "Wind"
+      },
+      "global_frost": {
+        "name": "Frost"
+      },
+      "protection_rain": {
+        "name": "Rain protection"
+      },
+      "protection_rain_window": {
+        "name": "Water protection"
+      },
+      "protection_wind": {
+        "name": "Wind protection"
+      },
+      "protection_frost": {
+        "name": "Frost protection"
+      },
+      "force": {
+        "name": "Force function"
       }
     },
     "sensor": {
@@ -1515,7 +1949,13 @@
           "sleep": "Residents asleep",
           "self_defense": "Self defense",
           "shading": "Shading",
-          "heat": "Heat protection"
+          "heat": "Heat protection",
+          "force": "Force function",
+          "rain": "Rain protection",
+          "rain_window": "Water protection",
+          "wind": "Wind protection",
+          "trigger": "External trigger",
+          "wiggle": "Wiggle"
         }
       },
       "target": {
@@ -1524,7 +1964,8 @@
           "open": "Open",
           "close": "Closed",
           "ventilate": "Ventilation",
-          "shading": "Shading"
+          "shading": "Shading",
+          "trigger": "External trigger"
         }
       },
       "window_state": {
@@ -1582,6 +2023,15 @@
       },
       "clear_override": {
         "name": "End manual override"
+      },
+      "global_wiggle": {
+        "name": "Wiggle all"
+      },
+      "global_release_deferred": {
+        "name": "Release deferred drives"
+      },
+      "wiggle": {
+        "name": "Wiggle"
       }
     },
     "select": {
@@ -1746,6 +2196,34 @@
         "value": {
           "name": "Value",
           "description": "New value. Times as HH:MM, lists as a list."
+        }
+      }
+    },
+    "wiggle": {
+      "name": "Wiggle",
+      "description": "Moves covers a little and back (function check).",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Empty: all covers."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
+        }
+      }
+    },
+    "release_deferred": {
+      "name": "Release deferred drives",
+      "description": "Advent: does the evening closing deferred today now.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Empty: all covers."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
         }
       }
     }

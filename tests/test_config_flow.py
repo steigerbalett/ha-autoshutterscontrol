@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -250,3 +252,54 @@ async def test_stage3_pages(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
     cfg = entry.runtime_data.controllers["sub_cover"].cfg
     assert cfg["residents_house"] == ("person.anna", "person.ben")
+
+
+async def test_stage4_pages(hass: HomeAssistant) -> None:
+    await setup_hass(hass)
+    set_cover(hass)
+    entry = await setup_entry(hass)
+    condition = [{"condition": "state", "entity_id": "input_boolean.allow", "state": "on"}]
+    action = [{"action": "persistent_notification.create", "data": {"message": "rain"}}]
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert {"protection", "special", "extra"} <= set(result["menu_options"])
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "protection"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"frost_mode": "soft", "rain_window_states": ["open"]}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "extra"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"condition_all": condition, "action_rain_window": action}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "save"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    settings = entry.options["settings"]
+    assert settings["frost_mode"] == "soft"
+    assert settings["rain_window_states"] == ["open"]
+    # The selectors store the normalized form
+    assert settings["condition_all"][0]["entity_id"] == ["input_boolean.allow"]
+    assert settings["action_rain_window"][0]["action"] == "persistent_notification.create"
+    json.dumps(settings)
+    await hass.async_block_till_done()
+    # Cover: force entity and trigger on the page Special functions
+    result = await entry.start_subentry_reconfigure_flow(hass, "sub_cover")
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "special"}
+    )
+    assert "force_close" in result["data_schema"].schema
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"force_close": "input_boolean.storm", "trigger_entity": "input_select.mode"},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "save"}
+    )
+    cover = entry.subentries["sub_cover"].data["settings"]
+    assert cover["force_close"] == "input_boolean.storm"
+    assert cover["trigger_entity"] == "input_select.mode"

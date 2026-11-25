@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0b1
+
+Stage 4 of the concept.
+
+- Rain, wind and frost with thresholds, hysteresis and waits in both directions; unavailable sensors keep
+  the last state. Water protection (on by default): rain with a tilted/open window drives to the water
+  protection position, limited to the ventilation position by the lock-out protection unless allowed;
+  event `autoshutterscontrol_rain_window` once per rain. Rain and wind protection (off by default) drive to
+  their positions and win over manual override, self defense and schedules. Frost modes soft (frost
+  position), morning, afternoon, hard.
+- Lock-out protection hard: rain and wind protection wait too; optional hardware lock entity (switch, lock,
+  input boolean) locked while the door is open, global switch Hardware lock.
+- Force close/open/ventilate/shading per cover (above everything, back to target when off), pause entity,
+  party (global switch, participation per cover), advent (evening closing deferred from the 1st Sunday of
+  Advent until 6 January or 2 February, release by button or action), external trigger with two values,
+  wiggle (button, action).
+- Extra conditions (all drives, open, close, ventilate, shading) and actions (each drive, manual drive,
+  end of override, water protection) with the Home Assistant editors.
+- New entities: switches Party, Advent, Hardware lock; binary sensors Rain, Wind, Frost; buttons Wiggle all,
+  Release deferred drives; per cover binary sensors Rain/Water/Wind/Frost protection and Force function,
+  button Wiggle. New actions `wiggle` and `release_deferred`.
+- Direction rules and extra conditions do not apply to force and protections.
+
 ## 0.3.0b1
 
 Stage 3 of the concept.

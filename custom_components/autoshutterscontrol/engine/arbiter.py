@@ -1,17 +1,19 @@
 """The arbiter: every function reports a wish, the arbiter picks one drive.
 
-Priorities follow section 5 of the concept (lower wins). Stage 3 knows the
-blocks of priority 0, self defense (5), lock-out (7), manual override (8),
-window (10), residents (11), shading (12), privacy (13) and schedule (14).
+Priorities follow section 5 of the concept (lower wins): blocks of priority 0
+(automatic, pause, extra condition, availability), force (1), rain with an
+open window (2), wind and rain (3), frost (4), self defense (5), party and
+advent (6), lock-out (7), manual override (8), external trigger (9), window
+(10), residents (11), shading (12), privacy (13) and schedule (14).
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
-from .settings import KIND_CLOSE, KIND_OPEN, KIND_SHADING, KIND_VENTILATE
+from .settings import KIND_CLOSE, KIND_OPEN, KIND_SHADING, KIND_TRIGGER, KIND_VENTILATE
 
 # Priorities (lower wins)
 PRIO_FORCE = 1
@@ -41,6 +43,10 @@ TRIGGER_PRIVACY = "privacy"
 TRIGGER_RESIDENTS = "residents"
 TRIGGER_SHADING = "shading"
 TRIGGER_SHADING_END = "shading_end"
+TRIGGER_PROTECTION = "protection"
+TRIGGER_FORCE = "force"
+TRIGGER_EXTERNAL = "external"
+TRIGGER_RELEASE = "release"
 SCHEDULE_TRIGGERS = frozenset({TRIGGER_SCHEDULE_UP, TRIGGER_SCHEDULE_DOWN})
 
 # Reasons of a wish (stored as keys, translated only for display)
@@ -57,6 +63,16 @@ REASON_SLEEP = "sleep"
 REASON_SELF_DEFENSE = "self_defense"
 REASON_SHADING = "shading"
 REASON_HEAT = "heat"
+REASON_FORCE = "force"
+REASON_RAIN = "rain"
+REASON_RAIN_WINDOW = "rain_window"
+REASON_WIND = "wind"
+REASON_TRIGGER = "trigger"
+REASON_WIGGLE = "wiggle"
+# Drives that are undone when their cause ends
+TEMPORARY_REASONS = frozenset(
+    {REASON_FORCE, REASON_RAIN, REASON_RAIN_WINDOW, REASON_WIND, REASON_TRIGGER, REASON_WIGGLE}
+)
 
 # Why nothing was driven
 BLOCK_AUTOMATIC_OFF = "automatic_off"
@@ -70,6 +86,10 @@ BLOCK_DIRECTION = "direction"
 BLOCK_AT_TARGET = "at_target"
 BLOCK_LOCKOUT = "lockout"
 BLOCK_NOT_SHADED = "not_shaded"
+BLOCK_FROST = "frost"
+BLOCK_PARTY = "party"
+BLOCK_ADVENT = "advent"
+BLOCK_CONDITION = "condition"
 
 
 @dataclass(frozen=True)
@@ -96,7 +116,18 @@ class Situation:
     current_position: float | None = None
     override_active: bool = False
     lockout: bool = False
+    lockout_hard: bool = False
     done_today: frozenset[str] = field(default_factory=frozenset)
+    frost_block: bool = False
+    frost_soft: bool = False
+    party: bool = False
+    advent: bool = False
+    condition_all: bool = True
+    # Drive kinds whose extra condition is false
+    blocked_kinds: frozenset[str] = field(default_factory=frozenset)
+    # The last drive was temporary (force, rain, wind, trigger, wiggle): going back
+    # to the target is not limited by the direction rules
+    after_temporary: bool = False
 
 
 @dataclass(frozen=True)
@@ -219,6 +250,53 @@ def shading_wish(
     return Wish(PRIO_SHADING, "shading", KIND_SHADING, shading_position(cfg, alternative), reason)
 
 
+_FORCE = {
+    "close": (KIND_CLOSE, "pos_closed"),
+    "open": (KIND_OPEN, "pos_open"),
+    "ventilate": (KIND_VENTILATE, "pos_ventilate"),
+    "shading": (KIND_SHADING, "pos_shading"),
+}
+
+
+def force_wish(cfg: Mapping[str, Any], force: str | None) -> Wish | None:
+    """Force entity on: drive without any further check."""
+    if force not in _FORCE:
+        return None
+    kind, key = _FORCE[force]
+    return Wish(PRIO_FORCE, "force", kind, cfg[key], REASON_FORCE, bypass_rules=True)
+
+
+def rain_window_wish(cfg: Mapping[str, Any], active: bool, lockout: bool) -> Wish | None:
+    """Rain with an open or tilted window: close (water protection).
+
+    With lock-out protection the cover only goes down to the ventilation
+    position, unless water protection is set to win over the lock-out.
+    """
+    if not active:
+        return None
+    position = cfg["pos_rain_window"]
+    if lockout and not cfg["rain_window_over_lockout"]:
+        position = max(position, cfg["pos_ventilate"])
+    return Wish(PRIO_RAIN_WINDOW, "rain_window", KIND_CLOSE, position, REASON_RAIN_WINDOW)
+
+
+def weather_wishes(cfg: Mapping[str, Any], wind: bool, rain: bool) -> list[Wish]:
+    """Wind and rain protection position."""
+    out = []
+    if wind:
+        out.append(Wish(PRIO_WIND_RAIN, "wind", KIND_CLOSE, cfg["pos_wind"], REASON_WIND))
+    if rain:
+        out.append(Wish(PRIO_WIND_RAIN, "rain", KIND_CLOSE, cfg["pos_rain"], REASON_RAIN))
+    return out
+
+
+def trigger_wish(position: int | None) -> Wish | None:
+    """External trigger active: its position."""
+    if position is None:
+        return None
+    return Wish(PRIO_TRIGGER, "trigger", KIND_TRIGGER, position, REASON_TRIGGER)
+
+
 def build_wishes(
     cfg: Mapping[str, Any],
     *,
@@ -234,8 +312,14 @@ def build_wishes(
     shaded: bool = False,
     heat: bool = False,
     shading_alt: bool = False,
+    force: str | None = None,
+    rain_window: bool = False,
+    wind: bool = False,
+    rain: bool = False,
+    lockout: bool = False,
+    trigger_pos: int | None = None,
 ) -> list[Wish]:
-    """All wishes (self defense, window, residents, shading, privacy, schedule).
+    """All wishes, from force down to the schedule.
 
     ``morning_enabled``/``evening_enabled`` include the presence modes.
     """
@@ -257,7 +341,14 @@ def build_wishes(
     win = None
     if not sleeping or cfg["sleep_allow_ventilate"]:
         win = window_wish(window, base, current, trigger)
-    return [w for w in (defense, win, res, shade, priv, sched) if w is not None]
+    top = [
+        force_wish(cfg, force),
+        rain_window_wish(cfg, rain_window, lockout),
+        *weather_wishes(cfg, wind, rain),
+        defense,
+        trigger_wish(trigger_pos),
+    ]
+    return [w for w in (*top, win, res, shade, priv, sched) if w is not None]
 
 
 def _blocked(situation: Situation, wish: Wish | None, block: str) -> Decision:
@@ -280,11 +371,23 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
     """
     candidates = sorted((w for w in wishes if w is not None), key=lambda w: w.priority)
     wish = candidates[0] if candidates else None
+    if (
+        wish is not None
+        and situation.frost_soft
+        and not wish.bypass_rules
+        and wish.priority > PRIO_FROST
+        and wish.kind == KIND_CLOSE
+        and cfg["pos_frost"] is not None
+        and wish.position < cfg["pos_frost"]
+    ):
+        # Soft frost protection: do not close completely
+        wish = replace(wish, position=cfg["pos_frost"])
 
-    # Priority 0: nothing moves, the target is still tracked
-    if not situation.automatic:
+    # Priority 0: nothing moves, the target is still tracked (force functions do)
+    forced = wish is not None and wish.priority == PRIO_FORCE
+    if not situation.automatic and not forced:
         return _blocked(situation, wish, BLOCK_AUTOMATIC_OFF)
-    if situation.paused:
+    if situation.paused and not forced:
         return _blocked(situation, wish, BLOCK_PAUSED)
     if not situation.available:
         return _blocked(situation, wish, BLOCK_UNAVAILABLE)
@@ -292,8 +395,16 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         return _blocked(situation, wish, BLOCK_MOVING)
     if wish is None:
         return _blocked(situation, None, BLOCK_NO_WISH)
+    # Force and the protections ignore extra conditions and direction limits
+    protective = wish.priority <= PRIO_SELF_DEFENSE
+    if (
+        not wish.bypass_rules
+        and not protective
+        and (not situation.condition_all or wish.kind in situation.blocked_kinds)
+    ):
+        return _blocked(situation, wish, BLOCK_CONDITION)
 
-    if situation.trigger == TRIGGER_WINDOW and wish.source != "window":
+    if situation.trigger == TRIGGER_WINDOW and wish.source not in ("window", "rain_window"):
         # Opening a window only ever starts a ventilation drive
         return _blocked(situation, wish, BLOCK_NO_WISH)
     if situation.trigger == TRIGGER_SHADING and wish.source != "shading":
@@ -301,6 +412,12 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         return _blocked(situation, wish, BLOCK_NO_WISH)
 
     if not wish.bypass_rules:
+        if situation.frost_block and wish.priority > PRIO_FROST:
+            return _blocked(situation, wish, BLOCK_FROST)
+        if situation.party and wish.priority > PRIO_PARTY:
+            return _blocked(situation, wish, BLOCK_PARTY)
+        if situation.advent and wish.kind == KIND_CLOSE and wish.priority > PRIO_PARTY:
+            return _blocked(situation, wish, BLOCK_ADVENT)
         if (
             situation.override_active
             and wish.priority > PRIO_OVERRIDE
@@ -325,7 +442,12 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         if current is not None and not any(abs(current - p) <= tol for p in shading_positions):
             # Moved away from the shading position (by hand, window ...): leave it
             return _blocked(situation, wish, BLOCK_NOT_SHADED)
-    if situation.lockout and not wish.bypass_rules and wish.priority > PRIO_LOCKOUT:
+    if (
+        situation.lockout
+        and not wish.bypass_rules
+        and wish.source != "rain_window"
+        and (situation.lockout_hard or wish.priority > PRIO_LOCKOUT)
+    ):
         if (current is None and wish.kind == KIND_CLOSE) or (
             current is not None and wish.position < current - tol
         ):
@@ -333,7 +455,7 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
     if current is not None:
         if abs(current - wish.position) <= tol:
             return _blocked(situation, wish, BLOCK_AT_TARGET)
-        if not wish.bypass_rules:
+        if not wish.bypass_rules and not protective and not situation.after_temporary:
             if (
                 wish.kind == KIND_VENTILATE
                 and situation.trigger == TRIGGER_WINDOW

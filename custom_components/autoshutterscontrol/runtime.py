@@ -35,7 +35,14 @@ from homeassistant.const import (
     STATE_UNKNOWN,
 )
 from homeassistant.core import CALLBACK_TYPE, Context, Event, HomeAssistant, State, callback
-from homeassistant.helpers import device_registry as dr, issue_registry as ir
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import (
+    condition as ha_condition,
+    config_validation as cv,
+    device_registry as dr,
+    issue_registry as ir,
+    script as ha_script,
+)
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_call_later,
@@ -47,6 +54,7 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
 from .const import (
     CONF_COVER_ENTITY,
@@ -57,6 +65,7 @@ from .const import (
     DOMAIN,
     EVENT_DRIVE,
     EVENT_MANUAL,
+    EVENT_RAIN_WINDOW,
     FORECAST_SECONDS,
     GLOBAL_SWITCHES,
     SIGNAL_COVER_UPDATE,
@@ -66,10 +75,13 @@ from .const import (
     STORE_SAVE_DELAY,
     SUBENTRY_COVER,
     SUBENTRY_PROFILE,
+    SWITCH_ADVENT,
     SWITCH_AUTOMATIC,
     SWITCH_COMFORT,
     SWITCH_EVENING,
+    SWITCH_HARDWARE_LOCK,
     SWITCH_MORNING,
+    SWITCH_PARTY,
     SWITCH_PAUSE,
     SWITCH_SELF_DEFENSE,
     SWITCH_SHADING,
@@ -81,12 +93,19 @@ from .engine.arbiter import (
     BLOCK_LOCKOUT,
     REASON_HEAT,
     REASON_MANUAL,
+    REASON_RAIN_WINDOW,
     REASON_SERVICE,
     REASON_SHADING,
+    REASON_WIGGLE,
     REASON_WINDOW_RETURN,
+    TEMPORARY_REASONS,
     TRIGGER_APPLY_TARGET,
+    TRIGGER_EXTERNAL,
+    TRIGGER_FORCE,
     TRIGGER_OVERRIDE_END,
     TRIGGER_PRIVACY,
+    TRIGGER_PROTECTION,
+    TRIGGER_RELEASE,
     TRIGGER_RESIDENTS,
     TRIGGER_RESUME,
     TRIGGER_SCHEDULE_DOWN,
@@ -115,6 +134,20 @@ from .engine.daynight import (
     privacy_times,
 )
 from .engine.override import manual_counts_as_scheduled, override_until
+from .engine.protection import (
+    FROST,
+    PROTECTIONS,
+    RAIN,
+    RAIN_WINDOW,
+    WIND,
+    Protection,
+    above,
+    as_value,
+    at_least,
+    below,
+    frost_effect,
+    step as protection_step,
+)
 from .engine.residents import (
     SLEEPING,
     Source,
@@ -126,6 +159,12 @@ from .engine.residents import (
 from .engine.resolve import ResolvedConfig, resolve
 from .engine.schedule import DaySchedule, day_schedule, default_workday, next_events
 from .engine.settings import (
+    FROST_OFF,
+    KIND_CLOSE,
+    KIND_OPEN,
+    KIND_SHADING,
+    KIND_VENTILATE,
+    LOCKOUT_HARD,
     MODE_RESIDENTS,
     PRESENCE_OFF,
     RES_ABSENT,
@@ -153,6 +192,7 @@ from .engine.shading import (
     step as shading_step,
     sun_left,
 )
+from .engine.special import advent_active, trigger_position, wiggle_target
 from .engine.sun import Location, SunCalculator
 from .engine.tilt import shading_tilt, tilt_for
 from .engine.window import lockout_active, window_position, window_state
@@ -163,12 +203,69 @@ _UNUSABLE = (None, STATE_UNAVAILABLE, STATE_UNKNOWN)
 STARTUP_GRACE = 30  # seconds after start without manual detection
 
 
+def _never(*_args: Any, **_kwargs: Any) -> bool:
+    """Condition that never holds (invalid configuration)."""
+    return False
+
+
 def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value else None
 
 
+def protection_raw(
+    cfg: Mapping[str, Any],
+    kind: str,
+    rain: float | bool | None,
+    wind: float | None,
+    temp: float | None,
+    active: bool,
+) -> bool | None:
+    """Raw state (threshold + hysteresis) of one protection; None = keep."""
+    if kind == RAIN:
+        return above(rain, cfg["rain_threshold"], cfg["rain_hysteresis"], active)
+    if kind == RAIN_WINDOW:
+        threshold = cfg["rain_window_threshold"]
+        if threshold is None:
+            threshold = cfg["rain_threshold"]
+        return above(rain, threshold, cfg["rain_hysteresis"], active)
+    if kind == WIND:
+        return at_least(wind, cfg["wind_threshold"], cfg["wind_hysteresis"], active)
+    return below(temp, cfg["frost_temp"], cfg["frost_hysteresis"], active)
+
+
+def protection_delays(cfg: Mapping[str, Any], kind: str) -> tuple[int, int]:
+    """Waits (minutes) before a protection starts and ends."""
+    if kind == RAIN:
+        return cfg["rain_delay_start"], cfg["rain_delay_end"]
+    if kind == RAIN_WINDOW:
+        # Water does not wait
+        return 0, cfg["rain_delay_end"]
+    if kind == WIND:
+        return cfg["wind_delay_start"], cfg["wind_delay_end"]
+    return 0, 0
+
+
 def _parse(value: str | None) -> datetime | None:
     return dt_util.parse_datetime(value) if value else None
+
+
+def _state_value(hass: HomeAssistant, entity_id: str | None) -> str | None:
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id)
+    if state is None or state.state in _UNUSABLE:
+        return None
+    return state.state
+
+
+def _number(hass: HomeAssistant, entity_id: str | None) -> float | None:
+    value = _state_value(hass, entity_id)
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
 
 
 class AscManager:
@@ -190,6 +287,8 @@ class AscManager:
         # Weather forecast per entity: (monotonic time of fetch, max temperature today)
         self.forecasts: dict[str, tuple[float, float | None]] = {}
         self._forecast_pending: set[str] = set()
+        # Rain / wind / frost of the global sensors (central device)
+        self.global_protect: dict[str, Protection] = {k: Protection() for k in PROTECTIONS}
 
     # --- configuration ----------------------------------------------------
 
@@ -348,8 +447,10 @@ class AscManager:
                 self.data["covers"].pop(sub_id)
 
         for controller in self.controllers.values():
+            await controller.async_compile()
             controller.async_start()
         self._subscribe_residents()
+        self.global_protection(dt_util.utcnow())
 
         self._unsubs.append(
             async_track_time_change(self.hass, self._midnight, hour=0, minute=0, second=5)
@@ -361,8 +462,32 @@ class AscManager:
 
     @callback
     def _tick(self, now: datetime) -> None:
+        self.global_protection(now)
         for controller in self.controllers.values():
             controller.tick()
+
+    @callback
+    def global_protection(self, now: datetime) -> None:
+        cfg = self.global_cfg
+        changed = False
+        rain = as_value(_state_value(self.hass, cfg["rain_sensor"]))
+        wind = _number(self.hass, cfg["wind_sensor"])
+        temp = _number(self.hass, cfg["outdoor_temperature_sensor"])
+        for kind in (RAIN, WIND, FROST):
+            old = self.global_protect[kind]
+            raw = protection_raw(cfg, kind, rain, wind, temp, old.active)
+            new = protection_step(old, raw, now, *protection_delays(cfg, kind))
+            if new.active != old.active:
+                changed = True
+            self.global_protect[kind] = new
+        if changed:
+            async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+
+    @callback
+    def release_deferred(self, controllers=None) -> None:
+        """Advent: do the deferred evening drives now."""
+        for controller in controllers or self.controllers.values():
+            controller.release_advent()
 
     async def async_stop(self) -> None:
         """Stop everything and save."""
@@ -383,6 +508,9 @@ class AscManager:
             sub = self.entry.subentries[controller.subentry_id]
             controller.name = sub.title
             controller.async_reconfigure(sub.data[CONF_COVER_ENTITY])
+            self.entry.async_create_background_task(
+                self.hass, controller.async_compile(), f"{DOMAIN} compile {controller.cover_entity}"
+            )
         self._subscribe_residents()
         async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
 
@@ -425,6 +553,13 @@ class AscManager:
         if key in (SWITCH_SHADING, SWITCH_SELF_DEFENSE) and old != value:
             for controller in self.controllers.values():
                 controller.tick()
+        if key == SWITCH_HARDWARE_LOCK and old != value:
+            for controller in self.controllers.values():
+                controller.apply_hardware_lock()
+        if key in (SWITCH_PARTY, SWITCH_ADVENT) and old and not value:
+            # Deferred drives are calculated again
+            for controller in self.controllers.values():
+                controller.evaluate(TRIGGER_RESUME)
         if key == SWITCH_PAUSE and old and not value:
             for controller in self.controllers.values():
                 controller.evaluate(TRIGGER_RESUME)
@@ -480,6 +615,15 @@ class CoverController:
         self._tilt_wait: tuple[int, int, Context] | None = None
         self._unsub_tilt: CALLBACK_TYPE | None = None
         self._unsub_position: CALLBACK_TYPE | None = None
+        self._unsub_wiggle: CALLBACK_TYPE | None = None
+        # Last usable state of force / pause / trigger entities
+        self._last_states: dict[str, str] = {}
+        self._force: str | None = None
+        self._trigger_pos: int | None = None
+        self._frost_effect: tuple[bool, bool] = (False, False)
+        self._rain_window_notified = False
+        self._conditions: dict[str, list[Any]] = {}
+        self._actions: dict[str, Any] = {}
 
     # --- life cycle ---------------------------------------------------------
 
@@ -491,6 +635,9 @@ class CoverController:
         self.window_state = self._read_window()
         self.recalculate()
         self._res_key = self._residents_key(dt_util.utcnow())
+        self._force = self.force_kind()
+        self._trigger_pos = self.trigger_pos()
+        self._protection_tick(dt_util.utcnow(), evaluate=False)
         self._unsub_started = async_at_started(self.hass, self._on_started)
 
     @callback
@@ -507,6 +654,7 @@ class CoverController:
             "_unsub_privacy",
             "_unsub_tilt",
             "_unsub_position",
+            "_unsub_wiggle",
         ):
             unsub = getattr(self, name)
             if unsub:
@@ -525,6 +673,9 @@ class CoverController:
         self.window_state = self._read_window()
         self.recalculate()
         self._res_key = self._residents_key(dt_util.utcnow())
+        self._force = self.force_kind()
+        self._trigger_pos = self.trigger_pos()
+        self.apply_hardware_lock()
 
     def _subscribe(self) -> None:
         self._unsub_listeners.append(
@@ -565,6 +716,35 @@ class CoverController:
         if residents:
             self._unsub_listeners.append(
                 async_track_state_change_event(self.hass, residents, self._on_residents_change)
+            )
+        special = [
+            e
+            for e in (
+                self.cfg["force_close"],
+                self.cfg["force_open"],
+                self.cfg["force_ventilate"],
+                self.cfg["force_shading"],
+                self.cfg["pause_entity"],
+                self.cfg["trigger_entity"],
+            )
+            if e
+        ]
+        if special:
+            self._unsub_listeners.append(
+                async_track_state_change_event(self.hass, special, self._on_special_change)
+            )
+        weather = [
+            e
+            for e in (
+                self.cfg["rain_sensor"],
+                self.cfg["wind_sensor"],
+                self.cfg["outdoor_temperature_sensor"],
+            )
+            if e
+        ]
+        if weather:
+            self._unsub_listeners.append(
+                async_track_state_change_event(self.hass, weather, self._on_weather_change)
             )
         if self.cfg["shading_alt_entity"]:
             self._unsub_listeners.append(
@@ -838,6 +1018,7 @@ class CoverController:
             EVENT_MANUAL,
             {"entity_id": self.cover_entity, "name": self.name, "position": position},
         )
+        self.run_action("manual", {"position": position})
         self.notify()
 
     @callback
@@ -851,6 +1032,7 @@ class CoverController:
         self.state["override"] = None
         self._save()
         self.notify()
+        self.run_action("override_end", {})
         if apply if apply is not None else self.cfg["override_return"]:
             self.evaluate(TRIGGER_OVERRIDE_END)
 
@@ -965,6 +1147,7 @@ class CoverController:
     def tick(self) -> None:
         """Check the dynamic modes and the privacy by brightness."""
         now = dt_util.now(self.tz)
+        self._protection_tick(now)
         self._check_residents(now)
         self._shading_tick(now)
         today = now.astimezone(self.tz).date()
@@ -1005,6 +1188,249 @@ class CoverController:
             self._set_mark(now, PRIVACY_DOWN)
             self.evaluate(TRIGGER_PRIVACY, delayed=True)
             self.recalculate(fetch=False)
+
+    # --- rain, wind, frost ------------------------------------------------------
+
+    def protection(self, kind: str) -> bool:
+        """Protection active (after hysteresis and waits)."""
+        return bool(((self.state.get("protect") or {}).get(kind) or {}).get("active"))
+
+    def protections(self) -> dict[str, bool]:
+        """Which protections act on this cover now."""
+        cfg = self.cfg
+        rain_window = (
+            cfg["rain_window"]
+            and self.protection(RAIN_WINDOW)
+            and self.window_state in cfg["rain_window_states"]
+        )
+        return {
+            RAIN: bool(cfg["rain_protection"] and self.protection(RAIN)),
+            RAIN_WINDOW: bool(rain_window),
+            WIND: bool(cfg["wind_protection"] and self.protection(WIND)),
+            FROST: cfg["frost_mode"] != FROST_OFF and self.protection(FROST),
+        }
+
+    def _frost_now(self, now: datetime) -> tuple[bool, bool]:
+        local = now.astimezone(self.tz).time().replace(tzinfo=None)
+        return frost_effect(self.cfg, self.protections()[FROST], local)
+
+    @callback
+    def _protection_tick(self, now: datetime, *, evaluate: bool = True) -> None:
+        cfg = self.cfg
+        stored = self.state.setdefault("protect", {})
+        before = self.protections()
+        rain = as_value(_state_value(self.hass, cfg["rain_sensor"]))
+        wind = _number(self.hass, cfg["wind_sensor"])
+        temp = _number(self.hass, cfg["outdoor_temperature_sensor"])
+        changed = False
+        for kind in PROTECTIONS:
+            data = stored.get(kind) or {}
+            old = Protection(bool(data.get("active")), _parse(data.get("pending")))
+            raw = protection_raw(cfg, kind, rain, wind, temp, old.active)
+            new = protection_step(old, raw, now, *protection_delays(cfg, kind))
+            if new != old:
+                stored[kind] = {"active": new.active, "pending": _iso(new.pending_since)}
+                changed = True
+        if changed:
+            self._save()
+            self.notify()
+        after = self.protections()
+        frost = self._frost_now(now)
+        frost_changed = frost != self._frost_effect
+        self._frost_effect = frost
+        if evaluate and (after != before or frost_changed):
+            self.evaluate(TRIGGER_PROTECTION)
+
+    @callback
+    def _on_weather_change(self, _event: Event) -> None:
+        now = dt_util.now(self.tz)
+        self.manager.global_protection(now)
+        self._protection_tick(now)
+
+    # --- force, pause entity, external trigger ---------------------------------
+
+    def _entity_state(self, entity_id: str | None) -> str | None:
+        """State of an entity; the last known one while unavailable."""
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        if state is not None and state.state not in _UNUSABLE:
+            self._last_states[entity_id] = state.state
+            return state.state
+        return self._last_states.get(entity_id)
+
+    def force_kind(self) -> str | None:
+        """Active force function (close, open, ventilate, shading) or None."""
+        for name in ("close", "open", "ventilate", "shading"):
+            if self._entity_state(self.cfg[f"force_{name}"]) == STATE_ON:
+                return name
+        return None
+
+    @property
+    def pause_entity_on(self) -> bool:
+        """Pause by the entity of this cover."""
+        return self._entity_state(self.cfg["pause_entity"]) == STATE_ON
+
+    def trigger_pos(self) -> int | None:
+        """Position of the external trigger, None if not active."""
+        return trigger_position(self.cfg, self._entity_state(self.cfg["trigger_entity"]))
+
+    @callback
+    def _on_special_change(self, event: Event) -> None:
+        entity_id = event.data.get("entity_id")
+        old_state: State | None = event.data.get("old_state")
+        new_state: State | None = event.data.get("new_state")
+        if entity_id == self.cfg["pause_entity"]:
+            self.notify()
+            was_on = old_state is not None and old_state.state == STATE_ON
+            if was_on and new_state is not None and new_state.state == STATE_OFF:
+                self.evaluate(TRIGGER_RESUME)
+            return
+        force = self.force_kind()
+        if force != self._force:
+            ended = force is None
+            self._force = force
+            self.notify()
+            if not ended or self.cfg["force_return"]:
+                self.evaluate(TRIGGER_FORCE)
+            return
+        position = self.trigger_pos()
+        if position != self._trigger_pos:
+            ended = position is None
+            self._trigger_pos = position
+            self.notify()
+            if not ended or self.cfg["trigger_return"]:
+                self.evaluate(TRIGGER_EXTERNAL)
+
+    # --- party, advent ------------------------------------------------------------
+
+    def advent_now(self, now: datetime | None = None) -> bool:
+        """Advent defers the closing of this cover now."""
+        if not (self.manager.switches[SWITCH_ADVENT] and self.cfg["advent"]):
+            return False
+        day = (now or dt_util.now(self.tz)).astimezone(self.tz).date()
+        if self.state.get("advent_released") == day.isoformat():
+            return False
+        return advent_active(self.cfg, day)
+
+    @callback
+    def release_advent(self) -> None:
+        """Do the closing deferred by advent now (for today)."""
+        today = dt_util.now(self.tz).date().isoformat()
+        self.state["advent_released"] = today
+        self._save()
+        self.evaluate(TRIGGER_RELEASE)
+
+    # --- wiggle, hardware lock --------------------------------------------------
+
+    @callback
+    def wiggle(self) -> bool:
+        """Move a little and back (function check)."""
+        current = self.current_position()
+        if current is None or not self.available or self._unsub_wiggle:
+            return False
+        self._drive(wiggle_target(self.cfg, current), REASON_WIGGLE, None)
+        self._unsub_wiggle = async_call_later(
+            self.hass,
+            self.cfg["wiggle_wait"],
+            partial(self._wiggle_back, int(round(current))),
+        )
+        return True
+
+    @callback
+    def _wiggle_back(self, position: int, _now: datetime) -> None:
+        self._unsub_wiggle = None
+        self._drive(position, REASON_WIGGLE, None)
+
+    @callback
+    def apply_hardware_lock(self) -> None:
+        """Hard lock-out: lock the actuator while the door is open."""
+        entity = self.cfg["lockout_entity"]
+        if not entity or self.cfg["lockout"] != LOCKOUT_HARD:
+            return
+        want = self.manager.switches[SWITCH_HARDWARE_LOCK] and lockout_active(
+            self.cfg, self.window_state
+        )
+        if self.state.get("hardware_lock", False) == want:
+            return
+        self.state["hardware_lock"] = want
+        self._save()
+        domain = entity.split(".", 1)[0]
+        if domain == "lock":
+            service = "lock" if want else "unlock"
+        else:
+            service = "turn_on" if want else "turn_off"
+        self.hass.async_create_task(
+            self.hass.services.async_call(
+                domain, service, {ATTR_ENTITY_ID: entity}, blocking=False
+            ),
+            f"{DOMAIN} hardware lock {entity}",
+        )
+
+    # --- extra conditions and actions -------------------------------------------
+
+    async def async_compile(self) -> None:
+        """Prepare the extra conditions and actions of this cover."""
+        conditions: dict[str, list[Any]] = {}
+        actions: dict[str, Any] = {}
+        for name in ("all", "open", "close", "ventilate", "shading"):
+            config = self.cfg[f"condition_{name}"]
+            if not config:
+                continue
+            try:
+                validated = await ha_condition.async_validate_conditions_config(
+                    self.hass, cv.CONDITIONS_SCHEMA(list(config))
+                )
+                conditions[name] = [
+                    await ha_condition.async_from_config(self.hass, c) for c in validated
+                ]
+            except (HomeAssistantError, vol.Invalid) as err:
+                _LOGGER.warning("%s: extra condition %s invalid: %s", self.name, name, err)
+                conditions[name] = [_never]
+        for name in ("drive", "manual", "override_end", "rain_window"):
+            config = self.cfg[f"action_{name}"]
+            if not config:
+                continue
+            try:
+                validated = await ha_script.async_validate_actions_config(
+                    self.hass, cv.SCRIPT_SCHEMA(list(config))
+                )
+            except (HomeAssistantError, vol.Invalid) as err:
+                _LOGGER.warning("%s: extra action %s invalid: %s", self.name, name, err)
+                continue
+            actions[name] = ha_script.Script(
+                self.hass,
+                validated,
+                f"ASC {self.name} {name}",
+                DOMAIN,
+                script_mode=ha_script.SCRIPT_MODE_PARALLEL,
+                max_runs=10,
+            )
+        self._conditions = conditions
+        self._actions = actions
+
+    def condition_ok(self, name: str, variables: dict[str, Any]) -> bool:
+        """Extra condition of a drive kind (True if not set)."""
+        checks = self._conditions.get(name)
+        if not checks:
+            return True
+        try:
+            return all(bool(check(self.hass, variables)) for check in checks)
+        except HomeAssistantError as err:
+            _LOGGER.debug("%s: condition %s failed: %s", self.name, name, err)
+            return False
+
+    def run_action(
+        self, name: str, variables: dict[str, Any], context: Context | None = None
+    ) -> None:
+        """Run an extra action in the background."""
+        action = self._actions.get(name)
+        if action is None:
+            return
+        variables = {"cover": self.cover_entity, "name": self.name, **variables}
+        self.hass.async_create_task(
+            action.async_run(variables, context=context), f"{DOMAIN} action {name}"
+        )
 
     # --- residents and self defense -------------------------------------------
 
@@ -1314,16 +1740,37 @@ class CoverController:
 
     def situation(self, trigger: str, now: datetime) -> Situation:
         """Collect the inputs of the arbiter."""
+        variables = {"cover": self.cover_entity, "trigger": trigger}
+        frost = self._frost_now(now)
         return Situation(
             trigger=trigger,
             automatic=self.manager.switches[SWITCH_AUTOMATIC] and self.switches[SWITCH_AUTOMATIC],
-            paused=self.manager.switches[SWITCH_PAUSE] or self.switches[SWITCH_PAUSE],
+            paused=self.manager.switches[SWITCH_PAUSE]
+            or self.switches[SWITCH_PAUSE]
+            or self.pause_entity_on,
             available=self.available,
             moving=self.moving and not self._own_drive_running(),
             current_position=self.current_position(),
             override_active=self.override_active,
             done_today=self.done_today(now),
             lockout=lockout_active(self.cfg, self.window_state),
+            lockout_hard=self.cfg["lockout"] == LOCKOUT_HARD,
+            frost_block=frost[0],
+            frost_soft=frost[1],
+            party=self.manager.switches[SWITCH_PARTY] and self.cfg["party"],
+            advent=self.advent_now(now),
+            condition_all=self.condition_ok("all", variables),
+            blocked_kinds=frozenset(
+                kind
+                for kind, name in (
+                    (KIND_OPEN, "open"),
+                    (KIND_CLOSE, "close"),
+                    (KIND_VENTILATE, "ventilate"),
+                    (KIND_SHADING, "shading"),
+                )
+                if not self.condition_ok(name, variables)
+            ),
+            after_temporary=(self.state.get("last") or {}).get("reason") in TEMPORARY_REASONS,
         )
 
     def target(self, trigger: str = TRIGGER_APPLY_TARGET) -> Decision:
@@ -1350,6 +1797,10 @@ class CoverController:
             shaded=shaded and self.manager.switches[SWITCH_SHADING],
             heat=heat and self.manager.switches[SWITCH_SHADING],
             shading_alt=bool(self._is_on(self.cfg["shading_alt_entity"])),
+            force=self.force_kind(),
+            lockout=situation.lockout,
+            trigger_pos=self.trigger_pos(),
+            **{k: v for k, v in self.protections().items() if k != FROST},
         )
         return decide(self.cfg, situation, wishes)
 
@@ -1358,6 +1809,21 @@ class CoverController:
         """Ask the arbiter and drive if it says so."""
         decision = self.target(trigger)
         self._record(decision)
+        if decision.reason == REASON_RAIN_WINDOW:
+            if not self._rain_window_notified:
+                self._rain_window_notified = True
+                data = {
+                    "entity_id": self.cover_entity,
+                    "name": self.name,
+                    "window": self.window_state,
+                    "position": decision.position,
+                    "driven": decision.drive,
+                    "blocked_by": decision.blocked_by,
+                }
+                self.hass.bus.async_fire(EVENT_RAIN_WINDOW, data)
+                self.run_action("rain_window", data)
+        else:
+            self._rain_window_notified = False
         if decision.blocked_by == BLOCK_LOCKOUT:
             # Drive again when the door is closed
             self.state["lockout_deferred"] = True
@@ -1418,10 +1884,13 @@ class CoverController:
         state = self.cover_state
         if state is None:
             return
-        if source == "window" and not self.state.get("window_drive"):
+        if source == "rain_window":
+            # Back to the target when the window is closed
+            self.state["window_drive"] = {"previous": None}
+        elif source == "window" and not self.state.get("window_drive"):
             # Remember where the cover was, for "back to the previous position"
             self.state["window_drive"] = {"previous": self.current_position()}
-        elif source != "window" and trigger != TRIGGER_WINDOW_CLOSED:
+        elif source != "window" and trigger != TRIGGER_WINDOW_CLOSED and reason != REASON_WIGGLE:
             self.state.pop("window_drive", None)
         context = Context()
         self._own_contexts.append(context.id)
@@ -1482,6 +1951,11 @@ class CoverController:
             context=context,
         )
         _LOGGER.debug("%s: drive to %s (%s, %s)", self.cover_entity, position, reason, trigger)
+        self.run_action(
+            "drive",
+            {"position": position, "tilt": tilt, "reason": reason, "trigger": trigger},
+            context,
+        )
         self.notify()
 
     @callback
@@ -1610,6 +2084,7 @@ class CoverController:
         if new is None or new == old:
             return
         self.window_state = new
+        self.apply_hardware_lock()
         self.notify()
         if new != WINDOW_CLOSED:
             self.evaluate(TRIGGER_WINDOW)

@@ -77,8 +77,8 @@ geschlossen, gekippt oder offen.
   *Vorherige Position*, zurück, wo er vor dem Lüften stand. Nur wenn wegen des Fensters gefahren wurde.
 - **Verzögerung beim Öffnen / Schließen**: so viele Sekunden muss der Zustand bestehen.
 - **Aussperrschutz**: *Weich* oder *hart*: Solange die Tür offen ist (gekippt nur mit *Aussperrschutz auch bei gekippt*), fährt
-  der Rollladen nicht nach unten. Eine gesperrte Fahrt wird nachgeholt, sobald die Tür zu ist. *Hart* sperrt
-  in dieser Version genauso wie *weich*; der Unterschied (auch Wetterschutz wartet) kommt mit Stufe 4.
+  der Rollladen nicht nach unten. Eine gesperrte Fahrt wird nachgeholt, sobald die Tür zu ist. *Hart* lässt
+  zusätzlich Regen- und Windschutz warten und kann den Aktor sperren (siehe *Hardware-Sperre*).
 
 ## Sichtschutz
 
@@ -178,6 +178,63 @@ leer = Lamellen bleiben. *Beschattungsstufen nach Sonnenhöhe*: bis zu 4 Stufen 
 oder erst Lamellen, dann Position (Z-Wave). *Lamellen vor neuer Einstellung erst schließen* und eine eigene
 *Toleranz der Lamellen* gibt es ebenfalls. Lamellen von Hand verstellen zählt als Handfahrt (nicht bei einer eigenen Lamellen-Entität).
 
+## Regen, Wind und Frost
+
+Sensoren auf der Seite *Sensoren*: *Regensensor* (Binärsensor, an = Regen, oder Regenmenge), *Windgeschwindigkeit*
+und *Außentemperatur*. Die Einstellungen stehen auf der Seite *Regen, Wind und Frost*. Alle Schutzfunktionen
+haben eine Hysterese und Wartezeiten in beide Richtungen; ein nicht verfügbarer Sensor behält den letzten Zustand.
+
+- **Wasserschutz** (Standard an): Regnet es und ist das Fenster gekippt oder offen (einstellbar), fährt der
+  Rollladen auf *Position Wasserschutz* (Standard 0 %). Mit Aussperrschutz höchstens bis zur Lüftungsposition,
+  außer *Wasserschutz schließt trotz Aussperrschutz ganz* ist an. Einmal je Regen kommt das Ereignis
+  `autoshutterscontrol_rain_window` (und die Zusatzaktion *Aktion beim Wasserschutz*), z. B. für eine
+  Benachrichtigung. Fenster zu: zurück in den Zielzustand.
+- **Regenschutz** (Standard aus, für Markisen): fährt bei Regen auf *Position Regen*, nach *Wartezeit nach dem
+  Regen* (Standard 15 min) zurück.
+- **Windschutz** (Standard aus, für Jalousien und Markisen): ab *Wind ab* (Standard 50 km/h) auf *Position Wind*;
+  endet unter Schwelle minus Hysterese (Standard 20) und nach der Wartezeit (Standard 10 min).
+- **Frostschutz** (Standard aus) unter *Frost unter* (Standard 2 °C): *Sanft* schließt nur bis *Position Frost*,
+  *Vormittags* bzw. *Nachmittags* sperrt Fahrten bis bzw. ab 12 Uhr, *Gar nicht fahren* sperrt alles außer
+  Regen, Wind und Zwang.
+
+Regen- und Windschutz gehen vor Übersteuerung, Selbstschutz und allen Fahrplänen. *Aussperrschutz hart*
+lässt auch Regen- und Windschutz warten, bis die Tür zu ist.
+
+Am zentralen Gerät zeigen die Binärsensoren *Regen*, *Wind* und *Frost* die globalen Sensoren, je Rollladen
+*Regenschutz*, *Wasserschutz*, *Windschutz* und *Frostschutz*, was gerade wirkt.
+
+## Sonderfunktionen
+
+Seite *Sonderfunktionen*; Felder mit Entitäten gibt es nur am Rollladen.
+
+- **Zwangsfunktionen**: *Zwangsweise schließen / öffnen / lüften / beschatten*, je eine Entität (Input Boolean,
+  Schalter, Binärsensor). Solange an, hält der Rollladen die Position, vor allen anderen Regeln (auch bei
+  Automatik aus oder Pause). Aus: zurück in den Zielzustand (*Nach einer Zwangsfunktion zurückfahren*).
+- **Pause-Entität**: solange an, fährt dieser Rollladen nicht automatisch; aus: Zielzustand.
+- **Party**: Schalter *Party* am zentralen Gerät (Standard aus). Solange an, fahren alle teilnehmenden
+  Rollläden nicht automatisch (Schutzfunktionen schon); aus: Zielzustand.
+- **Advent**: Schalter *Advent* am zentralen Gerät (Standard aus). Vom 1. Advent bis 6. Januar (oder 2. Februar)
+  wartet das abendliche Schließen, bis die Taste *Aufgeschobene Fahrten freigeben* oder die Aktion
+  `autoshutterscontrol.release_deferred` es freigibt; die Freigabe gilt bis zum Ende des Tages.
+- **Externer Trigger**: eine beliebige Entität mit bis zu zwei Werten und je einer Position, z. B. eine
+  Auswahl *Kino* → 0 %. Endet der Wert, fährt der Rollladen in den Zielzustand.
+- **Wackeln**: Taste *Wackeln* je Rollladen, *Alle wackeln* am zentralen Gerät, oder Aktion
+  `autoshutterscontrol.wiggle`: fährt um *Wackeln um* (Standard 5 %) und nach *Wartezeit beim Wackeln* zurück.
+  Zählt nicht als Handfahrt.
+- **Hardware-Sperre**: Mit *Aussperrschutz hart* und einer Entität unter *Hardware-Sperre* (Schalter,
+  Schloss, Input Boolean) wird der Aktor gesperrt, solange die Tür offen ist, und danach entsperrt. Schalter
+  *Hardware-Sperre* am zentralen Gerät (Standard an) schaltet das ab.
+
+## Zusatzbedingungen und -aktionen
+
+Seite *Zusatzbedingungen und -aktionen*, mit den Editoren von Home Assistant:
+
+- Bedingungen für alle Fahrten, fürs Öffnen, Schließen, Lüften und die Beschattung. Ist sie zur Fahrzeit
+  nicht erfüllt, entfällt die Fahrt; *Zielzustand anfahren* holt sie nach. Zwang und Schutzfunktionen sind nicht
+  betroffen. Eine ungültige Bedingung gilt als nicht erfüllt (Warnung im Log).
+- Aktionen bei jeder Fahrt (Variablen `cover`, `position`, `reason`, `trigger`), bei einer Handfahrt
+  (`position`), am Ende der Übersteuerung und beim Wasserschutz.
+
 ## Manuelle Übersteuerung
 
 Eine Fahrt, die nicht von AutoShuttersControl kommt (App, Taster, Wandschalter, andere Automation), startet
@@ -199,12 +256,14 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 ## Entitäten
 
 **Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause,
-Komfort, Beschattung, Selbstschutz; Sensor Haus-Status;
-Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand.
+Komfort, Beschattung, Selbstschutz, Party, Advent, Hardware-Sperre; Sensor Haus-Status; Binärsensoren Regen,
+Wind, Frost; Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand, Alle wackeln, Aufgeschobene
+Fahrten freigeben.
 
-**Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag, Manuelle Übersteuerung und Selbstschutz; Sensoren
-Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Fenster, Bewohner, Beschattung; Knöpfe Zielzustand anfahren und
-Übersteuerung beenden; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
+**Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
+Regenschutz, Wasserschutz, Windschutz, Frostschutz und Zwangsfunktion; Sensoren
+Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Fenster, Bewohner, Beschattung; Knöpfe Zielzustand anfahren,
+Übersteuerung beenden und Wackeln; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.
 
 Pause: es wird nicht gefahren, der Zielzustand läuft mit; endet die Pause, fährt der Rollladen ihn an.
@@ -219,11 +278,14 @@ Automatik aus: es wird nicht gefahren, und beim Einschalten passiert nichts.
 | `autoshutterscontrol.recalculate` | Fahrzeiten neu berechnen. |
 | `autoshutterscontrol.clear_override` | Manuelle Übersteuerung beenden. |
 | `autoshutterscontrol.set_option` | Eine Einstellung von Rollläden oder einem Profil setzen; ohne Wert erbt sie wieder. |
+| `autoshutterscontrol.wiggle` | Rollläden ein Stück und zurück fahren (Funktionsprüfung). |
+| `autoshutterscontrol.release_deferred` | Advent: das heute aufgeschobene Schließen jetzt fahren. |
 
 Alle Aktionen nehmen `entity_id` (die gesteuerten Rollläden) und/oder `profile` (Name); leer heißt alle.
 
 Ereignisse: `autoshutterscontrol_drive` (jede Fahrt, mit `reason` und `trigger`) und
-`autoshutterscontrol_manual` (Handfahrt erkannt).
+`autoshutterscontrol_manual` (Handfahrt erkannt) und `autoshutterscontrol_rain_window` (Regen bei offenem
+Fenster, mit `window`, `position`, `driven`, `blocked_by`).
 
 ## Fahrplan
 
@@ -231,8 +293,8 @@ Ereignisse: `autoshutterscontrol_drive` (jede Fahrt, mit `reason` und `trigger`)
 |---|---|
 | 1 | Grundgerüst, Erben, Entscheider, Zeitplan (Zeit/Sonne/Arbeitstag), Positionen, Übersteuerung, Verzögerung, EN/DE |
 | 2 | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
-| 3 (diese Version) | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
-| 4 | Regen (auch bei offenem Fenster), Wind, Frost, Force, Party, Advent, Trigger, Wackeln |
+| 3 | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
+| 4 (diese Version) | Regen (auch bei offenem Fenster), Wind, Frost, Zwang, Pause-Entität, Party, Advent, Trigger, Wackeln, Hardware-Sperre, Zusatzbedingungen und -aktionen |
 | 5 | Nachholen nach Neustart, Plausibilitätsprüfung, Logbuch, FHEM-Import, HACS-Standard |
 
 ## Übersetzen
