@@ -1,9 +1,17 @@
 name: Validate
 
+# The checks HACS/Marketplace default requires: the HACS action without ignored
+# checks and hassfest. Weekly as well, because both change over time.
+
 on:
   push:
   pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   hacs:
@@ -13,7 +21,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          ignore: brands
   hassfest:
     runs-on: ubuntu-latest
     steps:
