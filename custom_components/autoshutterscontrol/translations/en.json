@@ -383,6 +383,7 @@
           "rain_window_states": "Water protection when the window is",
           "rain_window_threshold": "Water protection from",
           "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+          "rain_window_return": "Back after the rain",
           "wind_protection": "Wind protection",
           "wind_threshold": "Wind from",
           "wind_hysteresis": "Hysteresis of the wind",
@@ -401,6 +402,7 @@
           "rain_window": "Closes the cover to the water protection position when it rains and the window is open. Fires the event autoshutterscontrol_rain_window.",
           "rain_window_threshold": "Empty = the same as Rain from.",
           "rain_window_over_lockout": "Off: with the lock-out protection the cover goes at most to the ventilation position.",
+          "rain_window_return": "Previous position: when it is dry again or the window is closed, the cover goes back to where it was before the water protection, unless something else applies by now (other drive time, shading, manual drive ...). Target state: always the current target.",
           "wind_protection": "Drives to the wind position.",
           "wind_hysteresis": "Wind ends only below the threshold minus this value.",
           "wind_delay_end": "Minutes with calm wind before the cover goes back.",
@@ -877,6 +879,7 @@
             "rain_window_states": "Water protection when the window is",
             "rain_window_threshold": "Water protection from",
             "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+            "rain_window_return": "Back after the rain",
             "wind_protection": "Wind protection",
             "wind_threshold": "Wind from",
             "wind_hysteresis": "Hysteresis of the wind",
@@ -896,6 +899,7 @@
             "rain_window_states": "↳ {inh_rain_window_states}",
             "rain_window_threshold": "Empty = the same as Rain from.\n↳ {inh_rain_window_threshold}",
             "rain_window_over_lockout": "Off: with the lock-out protection the cover goes at most to the ventilation position.\n↳ {inh_rain_window_over_lockout}",
+            "rain_window_return": "Previous position: when it is dry again or the window is closed, the cover goes back to where it was before the water protection, unless something else applies by now (other drive time, shading, manual drive ...). Target state: always the current target.\n↳ {inh_rain_window_return}",
             "wind_protection": "Drives to the wind position.\n↳ {inh_wind_protection}",
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Wind ends only below the threshold minus this value.\n↳ {inh_wind_hysteresis}",
@@ -1434,6 +1438,7 @@
             "rain_window_states": "Water protection when the window is",
             "rain_window_threshold": "Water protection from",
             "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+            "rain_window_return": "Back after the rain",
             "wind_protection": "Wind protection",
             "wind_threshold": "Wind from",
             "wind_hysteresis": "Hysteresis of the wind",
@@ -1453,6 +1458,7 @@
             "rain_window_states": "↳ {inh_rain_window_states}",
             "rain_window_threshold": "Empty = the same as Rain from.\n↳ {inh_rain_window_threshold}",
             "rain_window_over_lockout": "Off: with the lock-out protection the cover goes at most to the ventilation position.\n↳ {inh_rain_window_over_lockout}",
+            "rain_window_return": "Previous position: when it is dry again or the window is closed, the cover goes back to where it was before the water protection, unless something else applies by now (other drive time, shading, manual drive ...). Target state: always the current target.\n↳ {inh_rain_window_return}",
             "wind_protection": "Drives to the wind position.\n↳ {inh_wind_protection}",
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Wind ends only below the threshold minus this value.\n↳ {inh_wind_hysteresis}",
@@ -1695,6 +1701,7 @@
         "rain_window_states": "Water protection when the window is",
         "rain_window_threshold": "Water protection from",
         "rain_window_over_lockout": "Water protection closes completely despite the lock-out",
+        "rain_window_return": "Back after the rain",
         "wind_protection": "Wind protection",
         "wind_threshold": "Wind from",
         "wind_hysteresis": "Hysteresis of the wind",
@@ -1772,6 +1779,13 @@
       }
     },
     "window_close_return": {
+      "options": {
+        "target": "Target state",
+        "previous": "Previous position",
+        "inherit": "Inherit"
+      }
+    },
+    "rain_window_return": {
       "options": {
         "target": "Target state",
         "previous": "Previous position",
@@ -2000,6 +2014,7 @@
           "privacy_up": "Privacy (morning)",
           "privacy_down": "Privacy (evening)",
           "window_return": "Window closed",
+          "rain_return": "After the rain",
           "sleep": "Residents asleep",
           "self_defense": "Self defense",
           "shading": "Shading",

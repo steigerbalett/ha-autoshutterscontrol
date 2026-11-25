@@ -99,11 +99,17 @@ from .const import (
 )
 from .engine.arbiter import (
     BLOCK_AT_TARGET,
+    BLOCK_DIRECTION,
+    BLOCK_DONE_BY_MANUAL,
     BLOCK_LOCKOUT,
+    BLOCK_NO_WISH,
+    BLOCK_NOT_SHADED,
+    BLOCK_OVERRIDE,
     BLOCK_UNAVAILABLE,
     LOGGED_BLOCKS,
     REASON_HEAT,
     REASON_MANUAL,
+    REASON_RAIN_RETURN,
     REASON_RAIN_WINDOW,
     REASON_SERVICE,
     REASON_SHADING,
@@ -289,6 +295,21 @@ def _number(hass: HomeAssistant, entity_id: str | None) -> float | None:
         return float(value)
     except ValueError:
         return None
+
+
+# The target is not driven only for these reasons, so the return after the rain may drive
+RAIN_RETURN_BLOCKS = frozenset(
+    {
+        None,
+        BLOCK_AT_TARGET,
+        BLOCK_DIRECTION,
+        BLOCK_DONE_BY_MANUAL,
+        BLOCK_LOCKOUT,
+        BLOCK_NO_WISH,
+        BLOCK_NOT_SHADED,
+        BLOCK_OVERRIDE,
+    }
+)
 
 
 class AscManager:
@@ -698,6 +719,7 @@ class CoverController:
         self._trigger_pos: int | None = None
         self._frost_effect: tuple[bool, bool] = (False, False)
         self._rain_window_notified = False
+        self._base: list[Any] | None = None
         self._conditions: dict[str, list[Any]] = {}
         self._actions: dict[str, Any] = {}
         self._unsub_recovery: CALLBACK_TYPE | None = None
@@ -1985,6 +2007,12 @@ class CoverController:
             trigger_pos=self.trigger_pos(),
             **{k: v for k, v in self.protections().items() if k != FROST},
         )
+        # What would apply without water protection (for the return after the rain)
+        base = next(
+            (w for w in sorted(wishes, key=lambda w: w.priority) if w.source != "rain_window"),
+            None,
+        )
+        self._base = None if base is None else [base.source, base.kind, base.position]
         self._inputs = {
             "situation": _plain(asdict(situation)),
             "wishes": [_plain(asdict(w)) for w in wishes],
@@ -2003,7 +2031,7 @@ class CoverController:
     @callback
     def evaluate(self, trigger: str, *, delayed: bool = False) -> Decision:
         """Ask the arbiter and drive if it says so."""
-        decision = self.target(trigger)
+        decision = self._rain_return(self.target(trigger))
         self._record(decision)
         if decision.blocked_by == BLOCK_UNAVAILABLE and decision.position is not None:
             # Remember for catching up when the cover is back
@@ -2052,6 +2080,49 @@ class CoverController:
         self._drive(decision.position, decision.reason, trigger, decision.source)  # type: ignore[arg-type]
         return decision
 
+    def _rain_return(self, decision: Decision) -> Decision:
+        """Water protection ended: back to the position before it.
+
+        Only while the same target applies as when the rain started (same
+        function, same position, same manual override); otherwise the current
+        target wins.
+        """
+        if decision.source == "rain_window":
+            return decision
+        stored = self.state.pop("rain_return", None)
+        if stored is None:
+            return decision
+        self._save()
+        previous = stored.get("previous")
+        if (
+            self.cfg["rain_window_return"] != RETURN_PREVIOUS
+            or previous is None
+            or stored.get("base") != self._base
+            or stored.get("override") != self.override_active
+            or decision.blocked_by not in RAIN_RETURN_BLOCKS
+        ):
+            return decision
+        previous = int(round(previous))
+        current = self.current_position()
+        tol = self.cfg["tolerance"]
+        if (
+            current is not None
+            and previous < current - tol
+            and lockout_active(self.cfg, self.window_state)
+        ):
+            # Never down while the door is open
+            return decision
+        at_target = current is not None and abs(current - previous) <= tol
+        return Decision(
+            trigger=decision.trigger,
+            drive=not at_target,
+            kind=KIND_OPEN if current is None or previous > current else KIND_CLOSE,
+            position=previous,
+            reason=REASON_RAIN_RETURN,
+            source="rain_return",
+            blocked_by=BLOCK_AT_TARGET if at_target else None,
+        )
+
     def _cancel_delay(self) -> None:
         if self._unsub_delay:
             self._unsub_delay()
@@ -2087,9 +2158,18 @@ class CoverController:
         state = self.cover_state
         if state is None:
             return
+        if source != "rain_window":
+            self.state.pop("rain_return", None)
         if source == "rain_window":
             # Back to the target when the window is closed
             self.state["window_drive"] = {"previous": None}
+            if "rain_return" not in self.state:
+                # Where the cover was and what applied, for the return after the rain
+                self.state["rain_return"] = {
+                    "previous": self.current_position(),
+                    "base": self._base,
+                    "override": self.override_active,
+                }
         elif source == "window" and not self.state.get("window_drive"):
             # Remember where the cover was, for "back to the previous position"
             self.state["window_drive"] = {"previous": self.current_position()}

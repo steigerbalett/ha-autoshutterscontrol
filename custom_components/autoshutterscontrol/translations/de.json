@@ -383,6 +383,7 @@
           "rain_window_states": "Wasserschutz, wenn das Fenster ist",
           "rain_window_threshold": "Wasserschutz ab",
           "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+          "rain_window_return": "Zurück nach dem Regen",
           "wind_protection": "Windschutz",
           "wind_threshold": "Wind ab",
           "wind_hysteresis": "Hysterese des Winds",
@@ -401,6 +402,7 @@
           "rain_window": "Schließt den Rollladen auf die Position Wasserschutz, wenn es regnet und das Fenster offen ist. Löst das Ereignis autoshutterscontrol_rain_window aus.",
           "rain_window_threshold": "Leer = wie Regen ab.",
           "rain_window_over_lockout": "Aus: Mit Aussperrschutz fährt der Rollladen höchstens auf die Lüftungsposition.",
+          "rain_window_return": "Vorherige Position: Ist es wieder trocken oder das Fenster zu, fährt der Rollladen dorthin zurück, wo er vor dem Wasserschutz stand, außer inzwischen gilt etwas anderes (andere Fahrzeit, Beschattung, Handfahrt …). Zielzustand: immer der aktuelle Zielzustand.",
           "wind_protection": "Fährt auf die Position Wind.",
           "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.",
           "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.",
@@ -877,6 +879,7 @@
             "rain_window_states": "Wasserschutz, wenn das Fenster ist",
             "rain_window_threshold": "Wasserschutz ab",
             "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+            "rain_window_return": "Zurück nach dem Regen",
             "wind_protection": "Windschutz",
             "wind_threshold": "Wind ab",
             "wind_hysteresis": "Hysterese des Winds",
@@ -896,6 +899,7 @@
             "rain_window_states": "↳ {inh_rain_window_states}",
             "rain_window_threshold": "Leer = wie Regen ab.\n↳ {inh_rain_window_threshold}",
             "rain_window_over_lockout": "Aus: Mit Aussperrschutz fährt der Rollladen höchstens auf die Lüftungsposition.\n↳ {inh_rain_window_over_lockout}",
+            "rain_window_return": "Vorherige Position: Ist es wieder trocken oder das Fenster zu, fährt der Rollladen dorthin zurück, wo er vor dem Wasserschutz stand, außer inzwischen gilt etwas anderes (andere Fahrzeit, Beschattung, Handfahrt …). Zielzustand: immer der aktuelle Zielzustand.\n↳ {inh_rain_window_return}",
             "wind_protection": "Fährt auf die Position Wind.\n↳ {inh_wind_protection}",
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_wind_hysteresis}",
@@ -1434,6 +1438,7 @@
             "rain_window_states": "Wasserschutz, wenn das Fenster ist",
             "rain_window_threshold": "Wasserschutz ab",
             "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+            "rain_window_return": "Zurück nach dem Regen",
             "wind_protection": "Windschutz",
             "wind_threshold": "Wind ab",
             "wind_hysteresis": "Hysterese des Winds",
@@ -1453,6 +1458,7 @@
             "rain_window_states": "↳ {inh_rain_window_states}",
             "rain_window_threshold": "Leer = wie Regen ab.\n↳ {inh_rain_window_threshold}",
             "rain_window_over_lockout": "Aus: Mit Aussperrschutz fährt der Rollladen höchstens auf die Lüftungsposition.\n↳ {inh_rain_window_over_lockout}",
+            "rain_window_return": "Vorherige Position: Ist es wieder trocken oder das Fenster zu, fährt der Rollladen dorthin zurück, wo er vor dem Wasserschutz stand, außer inzwischen gilt etwas anderes (andere Fahrzeit, Beschattung, Handfahrt …). Zielzustand: immer der aktuelle Zielzustand.\n↳ {inh_rain_window_return}",
             "wind_protection": "Fährt auf die Position Wind.\n↳ {inh_wind_protection}",
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_wind_hysteresis}",
@@ -1695,6 +1701,7 @@
         "rain_window_states": "Wasserschutz, wenn das Fenster ist",
         "rain_window_threshold": "Wasserschutz ab",
         "rain_window_over_lockout": "Wasserschutz schließt trotz Aussperrschutz ganz",
+        "rain_window_return": "Zurück nach dem Regen",
         "wind_protection": "Windschutz",
         "wind_threshold": "Wind ab",
         "wind_hysteresis": "Hysterese des Winds",
@@ -1772,6 +1779,13 @@
       }
     },
     "window_close_return": {
+      "options": {
+        "target": "Zielzustand",
+        "previous": "Vorherige Position",
+        "inherit": "Erben"
+      }
+    },
+    "rain_window_return": {
       "options": {
         "target": "Zielzustand",
         "previous": "Vorherige Position",
@@ -2000,6 +2014,7 @@
           "privacy_up": "Sichtschutz (morgens)",
           "privacy_down": "Sichtschutz (abends)",
           "window_return": "Fenster geschlossen",
+          "rain_return": "Nach dem Regen",
           "sleep": "Bewohner schlafen",
           "self_defense": "Selbstschutz",
           "shading": "Beschattung",

@@ -2,9 +2,12 @@
 
 ## Installation
 
-1. HACS → drei Punkte → *Benutzerdefinierte Repositories* → `https://github.com/steigerbalett/ha-autoshutterscontrol`, Typ *Integration*.
-2. *AutoShuttersControl for HA* installieren und Home Assistant neu starten.
-3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → AutoShuttersControl for HA*.
+1. *Einstellungen → Marketplace* (ab Home Assistant 2026.11, vorher HACS) → drei Punkte → *Benutzerdefinierte
+   Repositories* → `https://github.com/steigerbalett/ha-autoshutterscontrol`, Typ *Integration*. Oder den Button
+   in der [README](../../README.md#installation) drücken.
+2. Versionen 0.x sind Pre-Releases: beim Repository *Beta-Versionen anzeigen* einschalten.
+3. *AutoShuttersControl for HA* installieren und Home Assistant neu starten.
+4. *Einstellungen → Geräte & Dienste → Integration hinzufügen → AutoShuttersControl for HA*.
 
 Nötig ist Home Assistant 2026.10 oder neuer.
 
@@ -196,7 +199,15 @@ haben eine Hysterese und Wartezeiten in beide Richtungen; ein nicht verfügbarer
   Rollladen auf *Position Wasserschutz* (Standard 0 %). Mit Aussperrschutz höchstens bis zur Lüftungsposition,
   außer *Wasserschutz schließt trotz Aussperrschutz ganz* ist an. Einmal je Regen kommt das Ereignis
   `autoshutterscontrol_rain_window` (und die Zusatzaktion *Aktion beim Wasserschutz*), z. B. für eine
-  Benachrichtigung. Fenster zu: zurück in den Zielzustand.
+  Benachrichtigung.
+  - *Zurück nach dem Regen* (Standard *Vorherige Position*): Ist es wieder trocken (nach *Wartezeit nach dem
+    Regen*) oder das Fenster zu, fährt der Rollladen auf die Position von vor dem Wasserschutz, z. B. auf die
+    40 %, die du vorher von Hand eingestellt hattest.
+  - Gilt inzwischen etwas anderes, fährt er stattdessen in den neuen Zielzustand. Das ist der Fall, wenn
+    seitdem die Abend- oder Morgenfahrt fällig war, die Beschattung begonnen oder geendet hat, eine Übersteuerung
+    begonnen oder geendet hat (auch durch eine Handfahrt während des Regens) oder sich die Positionen geändert
+    haben.
+  - Mit *Zielzustand* geht es immer in den aktuellen Zielzustand (Verhalten bis 0.6.0).
 - **Regenschutz** (Standard aus, für Markisen): fährt bei Regen auf *Position Regen*, nach *Wartezeit nach dem
   Regen* (Standard 15 min) zurück.
 - **Windschutz** (Standard aus, für Jalousien und Markisen): ab *Wind ab* (Standard 50 km/h) auf *Position Wind*;

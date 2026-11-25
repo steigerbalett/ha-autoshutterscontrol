@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from freezegun.api import FrozenDateTimeFactory
 from homeassistant.const import ATTR_ENTITY_ID
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant
 from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -460,3 +460,97 @@ async def test_back_after_trigger_ignores_direction_rules(hass: HomeAssistant, n
     follow(hass, calls, 100)
     await put(hass, TRIGGER, "normal")
     assert calls[-1].data["position"] == 80
+
+
+# --- water protection: back after the rain ---------------------------------
+
+RAIN_RETURN_COVER = {"window_open_sensor": WINDOW, "ventilate_enabled": False}
+
+
+async def _rain(hass: HomeAssistant, calls: list, settings: dict | None = None) -> None:
+    await setup_entry(
+        hass,
+        {**TIME_MODE, "rain_sensor": RAIN, "pos_rain_window": 0, **(settings or {})},
+        [cover_subentry(settings=RAIN_RETURN_COVER)],
+    )
+
+
+async def _dry(hass: HomeAssistant, freezer: FrozenDateTimeFactory, when) -> None:
+    await put(hass, RAIN, "off")
+    # Default wait after the rain: 15 minutes
+    await tick(hass, freezer, when + timedelta(minutes=16))
+
+
+async def test_back_to_manual_position(hass: HomeAssistant, noon, freezer) -> None:
+    calls = noon
+    await _rain(hass, calls)
+    set_cover(hass, position=40)  # by hand
+    await hass.async_block_till_done()
+    await put(hass, WINDOW, "on")
+    await put(hass, RAIN, "on")
+    assert calls[-1].data["position"] == 0
+    follow(hass, calls, 0)
+    await _dry(hass, freezer, local(2026, 11, 25, 12, 0))
+    assert calls[-1].data["position"] == 40
+    assert reason(hass) == "rain_return"
+
+
+async def test_back_when_window_closed(hass: HomeAssistant, noon) -> None:
+    calls = noon
+    await _rain(hass, calls)
+    set_cover(hass, position=60)
+    await hass.async_block_till_done()
+    await put(hass, WINDOW, "on")
+    await put(hass, RAIN, "on")
+    follow(hass, calls, 0)
+    await put(hass, WINDOW, "off")
+    assert calls[-1].data["position"] == 60
+    assert reason(hass) == "rain_return"
+
+
+async def test_target_when_evening_came(hass: HomeAssistant, noon, freezer) -> None:
+    calls = noon
+    await _rain(
+        hass, calls, {"time_down_early_workday": "13:00", "time_down_late_workday": "13:00"}
+    )
+    set_cover(hass, position=40)
+    await hass.async_block_till_done()
+    await put(hass, WINDOW, "on")
+    await put(hass, RAIN, "on")
+    follow(hass, calls, 0)
+    await tick(hass, freezer, local(2026, 11, 25, 13, 30))
+    count = len(calls)
+    # Dry in the evening: the evening target (closed) applies, not the old 40 %
+    await _dry(hass, freezer, local(2026, 11, 25, 13, 30))
+    assert all(c.data.get("position") != 40 for c in calls[count:])
+    assert reason(hass) != "rain_return"
+
+
+async def test_manual_drive_during_rain_wins(hass: HomeAssistant, noon, freezer) -> None:
+    calls = noon
+    await _rain(hass, calls)
+    await put(hass, WINDOW, "on")
+    await put(hass, RAIN, "on")
+    assert calls[-1].data["position"] == 0
+    follow(hass, calls, 0)
+    set_cover(hass, position=30, context=Context(user_id="user"))  # by hand while it rains
+    await hass.async_block_till_done()
+    count = len(calls)
+    await _dry(hass, freezer, local(2026, 11, 25, 12, 0))
+    # Not back to the position before the rain: the manual drive counts as something new,
+    # so the current target applies (the override does not block opening by default)
+    assert [c.data.get("position") for c in calls[count:]] == [100]
+    assert reason(hass) == "day_open"
+
+
+async def test_setting_target(hass: HomeAssistant, noon, freezer) -> None:
+    calls = noon
+    await _rain(hass, calls, {"rain_window_return": "target"})
+    set_cover(hass, position=40)
+    await hass.async_block_till_done()
+    await put(hass, WINDOW, "on")
+    await put(hass, RAIN, "on")
+    follow(hass, calls, 0)
+    await _dry(hass, freezer, local(2026, 11, 25, 12, 0))
+    assert calls[-1].data["position"] == 100
+    assert reason(hass) == "day_open"

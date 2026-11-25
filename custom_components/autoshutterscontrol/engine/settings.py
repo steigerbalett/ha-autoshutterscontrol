@@ -696,6 +696,14 @@ SETTINGS: tuple[Setting, ...] = (
         unit="mm",
     ),
     Setting("rain_window_over_lockout", BOOL, False, SEC_PROTECTION, stage=4),
+    Setting(
+        "rain_window_return",
+        SELECT,
+        RETURN_PREVIOUS,
+        SEC_PROTECTION,
+        stage=4,
+        options=WINDOW_RETURNS,
+    ),
     Setting("wind_protection", BOOL, False, SEC_PROTECTION, stage=4),
     Setting(
         "wind_threshold",

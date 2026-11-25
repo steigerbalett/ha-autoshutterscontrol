@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1
+
+- Water protection: when it is dry again or the window is closed, the cover goes back to its position from
+  before the water protection, unless another target applies by now (other drive, shading, manual
+  override). New setting *Back after the rain* (previous position / target state, default previous
+  position). New drive reason "After the rain".
+- Workflow "Release draft": after every push to main a draft release for the version in manifest.json, with
+  the CHANGELOG section as notes. Versions 0.x and betas are marked as pre-release.
+
 ## 0.6.0b1
 
 - Alternative profile per cover while an entity shows a value (e.g. summer/winter, CCA `instance_active`,

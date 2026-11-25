@@ -2,9 +2,12 @@
 
 ## Installation
 
-1. HACS → three dots → *Custom repositories* → `https://github.com/steigerbalett/ha-autoshutterscontrol`, type *Integration*.
-2. Install *AutoShuttersControl for HA* and restart Home Assistant.
-3. *Settings → Devices & services → Add integration → AutoShuttersControl for HA*.
+1. *Settings → Marketplace* (Home Assistant 2026.11 and newer, before that HACS) → three dots → *Custom
+   repositories* → `https://github.com/steigerbalett/ha-autoshutterscontrol`, type *Integration*. Or press the
+   button in the [README](../../README.md#installation).
+2. Versions 0.x are pre-releases: switch on *Show beta versions* for the repository.
+3. Install *AutoShuttersControl for HA* and restart Home Assistant.
+4. *Settings → Devices & services → Add integration → AutoShuttersControl for HA*.
 
 Home Assistant 2026.10 or newer is needed.
 
@@ -193,7 +196,14 @@ and waits in both directions; an unavailable sensor keeps the last state.
   cover drives to *Water protection position* (default 0 %). With the lock-out protection at most to the
   ventilation position, unless *Water protection closes completely despite the lock-out* is on. Once per rain
   the event `autoshutterscontrol_rain_window` fires (and the extra action *Action at water protection*), e.g.
-  for a notification. Window closed: back to the target.
+  for a notification.
+  - *Back after the rain* (default *Previous position*): when it is dry again (after *Wait after the rain*) or
+    the window is closed, the cover goes back to its position from before the water protection, e.g. to the
+    40 % you had set by hand.
+  - If something else applies by now, it goes to the new target instead: the evening or morning drive was due
+    in the meantime, shading started or ended, a manual override started or ended (also by a manual drive
+    during the rain) or the positions changed.
+  - With *Target state* it always goes to the current target (behaviour up to 0.6.0).
 - **Rain protection** (off by default, for awnings): drives to *Rain position* when it rains, back after
   *Wait after the rain* (default 15 min).
 - **Wind protection** (off by default, for venetian blinds and awnings): from *Wind from* (default 50 km/h)

@@ -1,6 +1,7 @@
 """Create or update the draft release for the version in manifest.json.
 
 Used by .github/workflows/release-draft.yml. Needs the gh CLI with GH_TOKEN, REPO and TARGET set.
+The draft gets autoshutterscontrol.zip (installed by HACS/Marketplace, counted as download).
 A release that is already published is never touched.
 """
 
@@ -12,10 +13,13 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import tempfile
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "custom_components" / "autoshutterscontrol" / "manifest.json"
 CHANGELOG = ROOT / "CHANGELOG.md"
+ZIP_NAME = "autoshutterscontrol.zip"
 
 
 def version() -> str:
@@ -39,8 +43,17 @@ def notes(ver: str, text: str) -> str:
 
 
 def prerelease(ver: str) -> bool:
-    """Tell whether a version is a beta, alpha or release candidate."""
-    return re.search(r"(a|b|rc)\d+$", ver) is not None
+    """Tell whether a version is a pre-release: 0.x, beta, alpha or release candidate."""
+    return ver.startswith("0.") or re.search(r"(a|b|rc)\d+$", ver) is not None
+
+
+def build_zip(path: Path) -> None:
+    """Zip the integration (its files at the top level, as HACS expects)."""
+    component = MANIFEST.parent
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file in sorted(component.rglob("*")):
+            if file.is_file() and "__pycache__" not in file.parts:
+                zf.write(file, file.relative_to(component).as_posix())
 
 
 def gh(*args: str, data: dict | None = None) -> str:
@@ -89,6 +102,14 @@ def main() -> int:
     else:
         gh("-X", "POST", f"repos/{repo}/releases", data=data)
         print(f"Created the draft {tag}.")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        archive = Path(tmp) / ZIP_NAME
+        build_zip(archive)
+        subprocess.run(
+            ["gh", "release", "upload", tag, str(archive), "--clobber", "-R", repo], check=True
+        )
+    print(f"Uploaded {ZIP_NAME}.")
     return 0
 
 
