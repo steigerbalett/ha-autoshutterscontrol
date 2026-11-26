@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.9.0
+
+- Drive check (*Check every drive*, default on): after the drive time the cover must be at its position;
+  otherwise the command is sent once more, and if that does not arrive either the diagnostic binary sensor
+  *Stuck* turns on and a repair issue appears. Both clear at the next drive that arrives.
+- Horizon per window: the button *Sun has left the window* stores the direction and elevation of the sun as a
+  point of the horizon (field *Horizon of the window*, editable). Below the horizon the sun does not count as
+  on the window (shading, glare, hot day).
+- Shading by the depth of the sun: with window sill, window height and *Sun may reach into the room* the cover
+  goes down only as far as needed, never below the shading position.
+- Glare protection (default off): own position for bright sun on the window, whatever the temperature, only
+  by day and not while nobody is at home. Binary sensor *Glare protection*, drive reason "Glare protection".
+- Temperature limits: close above or below an outdoor temperature (1 °C hysteresis). Binary sensor *Winter*
+  (24 hour mean of the outdoor temperature below *Winter below*, default 12 °C), usable as the entity of the
+  alternative profile.
+- *Nobody at home: heat limits lower by* (default 0 = off).
+- Switch *Holiday*: the morning and the evening drive shift every day by random minutes (*Holiday: shift the
+  times up to*, default 30), the same after a restart.
+- Lock: select *Lock* per cover and action `autoshutterscontrol.set_lock` (hold, force open, force closed,
+  optionally with a duration). Ends with a manual drive or *End manual override*.
+- Wind protection drives to: wind position (as before), nearest end, always open or always closed. A cover
+  moved by hand in between goes back to an end.
+
 ## 0.8.0
 
 - Devices: the entities of a cover are now shown on the device of the real cover (as the helpers of Home

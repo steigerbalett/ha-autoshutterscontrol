@@ -141,6 +141,7 @@
           "pos_comfort": "Position Komfort",
           "pos_shading": "Position Beschattung",
           "pos_shading_alt": "Alternative Position Beschattung",
+          "pos_glare": "Blendschutz-Position",
           "pos_privacy": "Position Sichtschutz (abends)",
           "pos_privacy_up": "Position Sichtschutz (morgens)",
           "pos_frost": "Position Frost",
@@ -153,6 +154,7 @@
           "pos_sleep": "Solange die Bewohner schlafen. Leer = Position geschlossen.",
           "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.",
           "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.",
+          "pos_glare": "Position während des Blendschutzes.",
           "pos_privacy_up": "Leer: wie der Sichtschutz abends.",
           "pos_frost": "Sanfter Frostschutz: Schließen hält hier an. Leer = aus.",
           "pos_wind": "Jalousien und Markisen: meist 100 (oben).",
@@ -172,6 +174,7 @@
           "close_never_up": "Schließen fährt nie nach oben",
           "recovery": "Verpasste Fahrten nachholen",
           "logbook": "Logbuch-Einträge",
+          "drive_check": "Jede Fahrt prüfen",
           "panel": "Übersicht in der Seitenleiste",
           "drive_stagger": "Gestaffelt fahren",
           "quiet_start": "Ruhezeit von",
@@ -188,6 +191,7 @@
           "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.",
           "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.",
           "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.",
+          "drive_check": "Nach der Fahrzeit muss der Rollladen auf seiner Position stehen (± Toleranz). Sonst wird der Befehl einmal neu gesendet; kommt er auch dann nicht an, geht der Sensor Hängt an und ein Reparatur-Hinweis erscheint.",
           "panel": "Seite AutoShuttersControl in der Seitenleiste mit allen Rollläden (Zeiten, Modi, Ziel, letzte Fahrt, Beschattung) und allen verknüpften Sensoren mit ihren Werten, wie die ASC Configuration and Information Summary in FHEM.",
           "drive_stagger": "Sekunden zwischen dem Start von Rollläden, die zur gleichen Zeit fahren sollen (Funk, Strom). Nicht bei Zwang, Regen-, Wind- und Wasserschutz. 0 = alle gleichzeitig.",
           "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.",
@@ -350,6 +354,13 @@
           "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
           "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
           "window_azimuth": "Fensterrichtung",
+          "sun_depth": "Sonne darf in den Raum bis",
+          "glare": "Blendschutz",
+          "glare_brightness_start": "Blendschutz ab Helligkeit",
+          "glare_brightness_end": "Blendschutz endet unter Helligkeit",
+          "glare_delay_start": "Blendschutz nach",
+          "glare_delay_end": "Blendschutz endet nach",
+          "away_heat_offset": "Niemand zu Hause: Hitzegrenzen niedriger um",
           "shading_alt_entity": "Entität für die alternative Position"
         },
         "data_description": {
@@ -371,6 +382,11 @@
           "hot_day_temp": "Vorhergesagte Höchsttemperatur von heute (Vorhersage-Sensor oder Wetter-Entität), ab der ein Tag als heiß gilt.",
           "hot_day_sunny": "Die vorhergesagte Wetterlage von heute muss eine der Wetterlagen für die Beschattung sein (nur mit Wetter-Entität).",
           "window_azimuth": "Richtung, in die das Fenster zeigt (0 Nord, 90 Ost, 180 Süd, 270 West), für den automatischen Lamellenwinkel. Leer: Mitte des Sonnenrichtungs-Bereichs.",
+          "sun_depth": "So weit darf direkte Sonne über den Boden fallen. Mit Brüstung und Fensterhöhe (pro Rollladen) fährt die Beschattung nur so weit herunter wie nötig: Hohe Sonne lässt den Großteil des Fensters offen. Nie unter die Beschattungsposition. Leer: aus.",
+          "glare": "Bei greller Sonne auf dem Fenster auf die Blendschutz-Position fahren, unabhängig von der Temperatur, auch im Winter. Nur tagsüber, nicht wenn niemand zu Hause ist.",
+          "glare_brightness_start": "Ohne Helligkeitssensor entscheidet sonniges Wetter.",
+          "glare_delay_end": "Er endet sofort, wenn die Sonne das Fenster verlässt.",
+          "away_heat_offset": "Solange niemand zu Hause ist (abwesend, verreist oder Urlaub), liegen die Temperaturgrenzen der Beschattung und des Hitzeschutzes um diesen Wert niedriger. 0: aus.",
           "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition."
         }
       },
@@ -425,10 +441,14 @@
           "wind_threshold": "Wind ab",
           "wind_hysteresis": "Hysterese des Winds",
           "wind_delay_start": "Wartezeit vor dem Windschutz",
+          "wind_mode": "Windschutz fährt auf",
           "wind_delay_end": "Wartezeit nach dem Wind",
           "frost_mode": "Frostschutz",
           "frost_temp": "Frost unter",
-          "frost_hysteresis": "Hysterese des Frosts"
+          "frost_hysteresis": "Hysterese des Frosts",
+          "close_above_temp": "Schließen über Außentemperatur",
+          "close_below_temp": "Schließen unter Außentemperatur",
+          "winter_temp": "Winter unter (24-Stunden-Mittel)"
         },
         "data_description": {
           "rain_protection": "Fährt auf die Position Regen.",
@@ -442,9 +462,13 @@
           "rain_window_return": "Vorherige Position: Ist es wieder trocken oder das Fenster zu, fährt der Rollladen dorthin zurück, wo er vor dem Wasserschutz stand, außer inzwischen gilt etwas anderes (andere Fahrzeit, Beschattung, Handfahrt …). Zielzustand: immer der aktuelle Zielzustand.",
           "wind_protection": "Fährt auf die Position Wind.",
           "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.",
+          "wind_mode": "Nur ganz auf oder ganz zu: Ein halb offener Rollladen fängt den Wind. Näheres Ende: das Ende, das näher an dem liegt, was die anderen Funktionen gerade wollen. Ein von Hand dazwischen gefahrener Rollladen fährt wieder an ein Ende.",
           "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.",
           "frost_mode": "Braucht die Außentemperatur (Seite Sensoren).",
-          "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert."
+          "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.",
+          "close_above_temp": "Schließt, solange die Außentemperatur darüber liegt, bis sie wieder 1 °C niedriger ist. Leer: aus.",
+          "close_below_temp": "Schließt, solange die Außentemperatur darunter liegt, bis sie wieder 1 °C höher ist. Leer: aus.",
+          "winter_temp": "Der Binärsensor Winter ist an, solange das Mittel der Außentemperatur der letzten 24 Stunden darunter liegt (1 °C Hysterese). Als Entität für das alternative Profil nutzbar."
         }
       },
       "special": {
@@ -458,6 +482,7 @@
           "advent_start_date": "Eigener Beginn (TT.MM.)",
           "advent_end": "Adventsmodus bis",
           "advent_end_date": "Eigenes Ende (TT.MM.)",
+          "holiday_shift": "Urlaub: Zeiten verschieben bis",
           "wiggle_value": "Wackeln um",
           "wiggle_wait": "Wartezeit beim Wackeln"
         },
@@ -468,6 +493,7 @@
           "advent_start": "1. Advent (jedes Jahr neu berechnet) oder ein fester Tag.",
           "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.",
           "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.",
+          "holiday_shift": "Mit dem Schalter Urlaub verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten, für jeden Rollladen anders und nach einem Neustart gleich. 0: keine Verschiebung.",
           "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).",
           "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt."
         }
@@ -656,6 +682,7 @@
             "pos_comfort": "Position Komfort",
             "pos_shading": "Position Beschattung",
             "pos_shading_alt": "Alternative Position Beschattung",
+            "pos_glare": "Blendschutz-Position",
             "pos_privacy": "Position Sichtschutz (abends)",
             "pos_privacy_up": "Position Sichtschutz (morgens)",
             "pos_frost": "Position Frost",
@@ -672,6 +699,7 @@
             "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.\n↳ {inh_pos_comfort}",
             "pos_shading": "↳ {inh_pos_shading}",
             "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.\n↳ {inh_pos_shading_alt}",
+            "pos_glare": "Position während des Blendschutzes.\n↳ {inh_pos_glare}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
             "pos_frost": "Sanfter Frostschutz: Schließen hält hier an. Leer = aus.\n↳ {inh_pos_frost}",
@@ -692,6 +720,7 @@
             "close_never_up": "Schließen fährt nie nach oben",
             "recovery": "Verpasste Fahrten nachholen",
             "logbook": "Logbuch-Einträge",
+            "drive_check": "Jede Fahrt prüfen",
             "quiet_start": "Ruhezeit von",
             "quiet_end": "Ruhezeit bis",
             "quiet_start_entity": "Ruhezeit von (Entität)",
@@ -706,6 +735,7 @@
             "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}",
             "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.\n↳ {inh_recovery}",
             "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}",
+            "drive_check": "Nach der Fahrzeit muss der Rollladen auf seiner Position stehen (± Toleranz). Sonst wird der Befehl einmal neu gesendet; kommt er auch dann nicht an, geht der Sensor Hängt an und ein Reparatur-Hinweis erscheint.\n↳ {inh_drive_check}",
             "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.\n↳ {inh_quiet_start}",
             "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).\n↳ {inh_quiet_end}",
             "quiet_start_entity": "Beginn aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.\n↳ {inh_quiet_start_entity}",
@@ -868,6 +898,13 @@
             "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
             "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
             "window_azimuth": "Fensterrichtung",
+            "sun_depth": "Sonne darf in den Raum bis",
+            "glare": "Blendschutz",
+            "glare_brightness_start": "Blendschutz ab Helligkeit",
+            "glare_brightness_end": "Blendschutz endet unter Helligkeit",
+            "glare_delay_start": "Blendschutz nach",
+            "glare_delay_end": "Blendschutz endet nach",
+            "away_heat_offset": "Niemand zu Hause: Hitzegrenzen niedriger um",
             "shading_alt_entity": "Entität für die alternative Position"
           },
           "data_description": {
@@ -900,6 +937,13 @@
             "hot_day_temp": "Vorhergesagte Höchsttemperatur von heute (Vorhersage-Sensor oder Wetter-Entität), ab der ein Tag als heiß gilt.\n↳ {inh_hot_day_temp}",
             "hot_day_sunny": "Die vorhergesagte Wetterlage von heute muss eine der Wetterlagen für die Beschattung sein (nur mit Wetter-Entität).\n↳ {inh_hot_day_sunny}",
             "window_azimuth": "Richtung, in die das Fenster zeigt (0 Nord, 90 Ost, 180 Süd, 270 West), für den automatischen Lamellenwinkel. Leer: Mitte des Sonnenrichtungs-Bereichs.\n↳ {inh_window_azimuth}",
+            "sun_depth": "So weit darf direkte Sonne über den Boden fallen. Mit Brüstung und Fensterhöhe (pro Rollladen) fährt die Beschattung nur so weit herunter wie nötig: Hohe Sonne lässt den Großteil des Fensters offen. Nie unter die Beschattungsposition. Leer: aus.\n↳ {inh_sun_depth}",
+            "glare": "Bei greller Sonne auf dem Fenster auf die Blendschutz-Position fahren, unabhängig von der Temperatur, auch im Winter. Nur tagsüber, nicht wenn niemand zu Hause ist.\n↳ {inh_glare}",
+            "glare_brightness_start": "Ohne Helligkeitssensor entscheidet sonniges Wetter.\n↳ {inh_glare_brightness_start}",
+            "glare_brightness_end": "↳ {inh_glare_brightness_end}",
+            "glare_delay_start": "↳ {inh_glare_delay_start}",
+            "glare_delay_end": "Er endet sofort, wenn die Sonne das Fenster verlässt.\n↳ {inh_glare_delay_end}",
+            "away_heat_offset": "Solange niemand zu Hause ist (abwesend, verreist oder Urlaub), liegen die Temperaturgrenzen der Beschattung und des Hitzeschutzes um diesen Wert niedriger. 0: aus.\n↳ {inh_away_heat_offset}",
             "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -963,10 +1007,13 @@
             "wind_threshold": "Wind ab",
             "wind_hysteresis": "Hysterese des Winds",
             "wind_delay_start": "Wartezeit vor dem Windschutz",
+            "wind_mode": "Windschutz fährt auf",
             "wind_delay_end": "Wartezeit nach dem Wind",
             "frost_mode": "Frostschutz",
             "frost_temp": "Frost unter",
-            "frost_hysteresis": "Hysterese des Frosts"
+            "frost_hysteresis": "Hysterese des Frosts",
+            "close_above_temp": "Schließen über Außentemperatur",
+            "close_below_temp": "Schließen unter Außentemperatur"
           },
           "data_description": {
             "rain_protection": "Fährt auf die Position Regen.\n↳ {inh_rain_protection}",
@@ -983,10 +1030,13 @@
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_wind_hysteresis}",
             "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_mode": "Nur ganz auf oder ganz zu: Ein halb offener Rollladen fängt den Wind. Näheres Ende: das Ende, das näher an dem liegt, was die anderen Funktionen gerade wollen. Ein von Hand dazwischen gefahrener Rollladen fährt wieder an ein Ende.\n↳ {inh_wind_mode}",
             "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.\n↳ {inh_wind_delay_end}",
             "frost_mode": "Braucht die Außentemperatur (Seite Sensoren).\n↳ {inh_frost_mode}",
             "frost_temp": "↳ {inh_frost_temp}",
-            "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.\n↳ {inh_frost_hysteresis}"
+            "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.\n↳ {inh_frost_hysteresis}",
+            "close_above_temp": "Schließt, solange die Außentemperatur darüber liegt, bis sie wieder 1 °C niedriger ist. Leer: aus.\n↳ {inh_close_above_temp}",
+            "close_below_temp": "Schließt, solange die Außentemperatur darunter liegt, bis sie wieder 1 °C höher ist. Leer: aus.\n↳ {inh_close_below_temp}"
           }
         },
         "special": {
@@ -1000,6 +1050,7 @@
             "advent_start_date": "Eigener Beginn (TT.MM.)",
             "advent_end": "Adventsmodus bis",
             "advent_end_date": "Eigenes Ende (TT.MM.)",
+            "holiday_shift": "Urlaub: Zeiten verschieben bis",
             "wiggle_value": "Wackeln um",
             "wiggle_wait": "Wartezeit beim Wackeln"
           },
@@ -1011,6 +1062,7 @@
             "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
             "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.\n↳ {inh_advent_end_date}",
+            "holiday_shift": "Mit dem Schalter Urlaub verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten, für jeden Rollladen anders und nach einem Neustart gleich. 0: keine Verschiebung.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}"
           }
@@ -1162,6 +1214,7 @@
             "pos_comfort": "Position Komfort",
             "pos_shading": "Position Beschattung",
             "pos_shading_alt": "Alternative Position Beschattung",
+            "pos_glare": "Blendschutz-Position",
             "pos_privacy": "Position Sichtschutz (abends)",
             "pos_privacy_up": "Position Sichtschutz (morgens)",
             "pos_frost": "Position Frost",
@@ -1180,6 +1233,7 @@
             "pos_comfort": "Für ein ganz geöffnetes Fenster, solange der Schalter Komfort an ist.\n↳ {inh_pos_comfort}",
             "pos_shading": "↳ {inh_pos_shading}",
             "pos_shading_alt": "Gilt, solange die Entität für die alternative Position (Seite Beschattung) an ist.\n↳ {inh_pos_shading_alt}",
+            "pos_glare": "Position während des Blendschutzes.\n↳ {inh_pos_glare}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Leer: wie der Sichtschutz abends.\n↳ {inh_pos_privacy_up}",
             "pos_frost": "Sanfter Frostschutz: Schließen hält hier an. Leer = aus.\n↳ {inh_pos_frost}",
@@ -1239,6 +1293,7 @@
             "close_never_up": "Schließen fährt nie nach oben",
             "recovery": "Verpasste Fahrten nachholen",
             "logbook": "Logbuch-Einträge",
+            "drive_check": "Jede Fahrt prüfen",
             "quiet_start": "Ruhezeit von",
             "quiet_end": "Ruhezeit bis",
             "quiet_start_entity": "Ruhezeit von (Entität)",
@@ -1253,6 +1308,7 @@
             "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}",
             "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.\n↳ {inh_recovery}",
             "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}",
+            "drive_check": "Nach der Fahrzeit muss der Rollladen auf seiner Position stehen (± Toleranz). Sonst wird der Befehl einmal neu gesendet; kommt er auch dann nicht an, geht der Sensor Hängt an und ein Reparatur-Hinweis erscheint.\n↳ {inh_drive_check}",
             "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.\n↳ {inh_quiet_start}",
             "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).\n↳ {inh_quiet_end}",
             "quiet_start_entity": "Beginn aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.\n↳ {inh_quiet_start_entity}",
@@ -1469,6 +1525,16 @@
             "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
             "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
             "window_azimuth": "Fensterrichtung",
+            "horizon": "Horizont des Fensters",
+            "window_sill": "Brüstung über dem Boden",
+            "window_height": "Fensterhöhe",
+            "sun_depth": "Sonne darf in den Raum bis",
+            "glare": "Blendschutz",
+            "glare_brightness_start": "Blendschutz ab Helligkeit",
+            "glare_brightness_end": "Blendschutz endet unter Helligkeit",
+            "glare_delay_start": "Blendschutz nach",
+            "glare_delay_end": "Blendschutz endet nach",
+            "away_heat_offset": "Niemand zu Hause: Hitzegrenzen niedriger um",
             "shading_alt_entity": "Entität für die alternative Position"
           },
           "data_description": {
@@ -1501,6 +1567,16 @@
             "hot_day_temp": "Vorhergesagte Höchsttemperatur von heute (Vorhersage-Sensor oder Wetter-Entität), ab der ein Tag als heiß gilt.\n↳ {inh_hot_day_temp}",
             "hot_day_sunny": "Die vorhergesagte Wetterlage von heute muss eine der Wetterlagen für die Beschattung sein (nur mit Wetter-Entität).\n↳ {inh_hot_day_sunny}",
             "window_azimuth": "Richtung, in die das Fenster zeigt (0 Nord, 90 Ost, 180 Süd, 270 West), für den automatischen Lamellenwinkel. Leer: Mitte des Sonnenrichtungs-Bereichs.\n↳ {inh_window_azimuth}",
+            "horizon": "Punkte Richtung:Höhe in Grad, z. B. 200:18, 230:25. Unter dem Horizont trifft die Sonne das Fenster nicht. Der Knopf Sonne hat das Fenster verlassen fügt einen Punkt hinzu.\n↳ {inh_horizon}",
+            "window_sill": "Höhe der Glas-Unterkante, für die Beschattung nach Sonneneinfall.\n↳ {inh_window_sill}",
+            "window_height": "Höhe des Glases.\n↳ {inh_window_height}",
+            "sun_depth": "So weit darf direkte Sonne über den Boden fallen. Mit Brüstung und Fensterhöhe (pro Rollladen) fährt die Beschattung nur so weit herunter wie nötig: Hohe Sonne lässt den Großteil des Fensters offen. Nie unter die Beschattungsposition. Leer: aus.\n↳ {inh_sun_depth}",
+            "glare": "Bei greller Sonne auf dem Fenster auf die Blendschutz-Position fahren, unabhängig von der Temperatur, auch im Winter. Nur tagsüber, nicht wenn niemand zu Hause ist.\n↳ {inh_glare}",
+            "glare_brightness_start": "Ohne Helligkeitssensor entscheidet sonniges Wetter.\n↳ {inh_glare_brightness_start}",
+            "glare_brightness_end": "↳ {inh_glare_brightness_end}",
+            "glare_delay_start": "↳ {inh_glare_delay_start}",
+            "glare_delay_end": "Er endet sofort, wenn die Sonne das Fenster verlässt.\n↳ {inh_glare_delay_end}",
+            "away_heat_offset": "Solange niemand zu Hause ist (abwesend, verreist oder Urlaub), liegen die Temperaturgrenzen der Beschattung und des Hitzeschutzes um diesen Wert niedriger. 0: aus.\n↳ {inh_away_heat_offset}",
             "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -1524,6 +1600,7 @@
             "trigger_value2": "Zweiter Trigger-Wert",
             "trigger_position2": "Zweite Trigger-Position",
             "trigger_return": "Nach dem Trigger zurückfahren",
+            "holiday_shift": "Urlaub: Zeiten verschieben bis",
             "wiggle_value": "Wackeln um",
             "wiggle_wait": "Wartezeit beim Wackeln",
             "lockout_entity": "Hardware-Sperre"
@@ -1547,6 +1624,7 @@
             "trigger_value2": "Optional ein zweiter Zustand mit eigener Position.\n↳ {inh_trigger_value2}",
             "trigger_position2": "↳ {inh_trigger_position2}",
             "trigger_return": "Endet der Trigger-Zustand, fährt der Rollladen in den Zielzustand.\n↳ {inh_trigger_return}",
+            "holiday_shift": "Mit dem Schalter Urlaub verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten, für jeden Rollladen anders und nach einem Neustart gleich. 0: keine Verschiebung.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}",
             "lockout_entity": "Schalter, Schloss oder Input Boolean, der den Aktor sperrt, solange die Tür offen ist (Aussperrschutz hart, Schalter Hardware-Sperre am zentralen Gerät).\n↳ {inh_lockout_entity}"
@@ -1572,10 +1650,13 @@
             "wind_threshold": "Wind ab",
             "wind_hysteresis": "Hysterese des Winds",
             "wind_delay_start": "Wartezeit vor dem Windschutz",
+            "wind_mode": "Windschutz fährt auf",
             "wind_delay_end": "Wartezeit nach dem Wind",
             "frost_mode": "Frostschutz",
             "frost_temp": "Frost unter",
-            "frost_hysteresis": "Hysterese des Frosts"
+            "frost_hysteresis": "Hysterese des Frosts",
+            "close_above_temp": "Schließen über Außentemperatur",
+            "close_below_temp": "Schließen unter Außentemperatur"
           },
           "data_description": {
             "rain_protection": "Fährt auf die Position Regen.\n↳ {inh_rain_protection}",
@@ -1592,10 +1673,13 @@
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Der Wind endet erst unter der Schwelle minus diesem Wert.\n↳ {inh_wind_hysteresis}",
             "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_mode": "Nur ganz auf oder ganz zu: Ein halb offener Rollladen fängt den Wind. Näheres Ende: das Ende, das näher an dem liegt, was die anderen Funktionen gerade wollen. Ein von Hand dazwischen gefahrener Rollladen fährt wieder an ein Ende.\n↳ {inh_wind_mode}",
             "wind_delay_end": "Minuten mit ruhigem Wind, bevor der Rollladen zurückfährt.\n↳ {inh_wind_delay_end}",
             "frost_mode": "Braucht die Außentemperatur (Seite Sensoren).\n↳ {inh_frost_mode}",
             "frost_temp": "↳ {inh_frost_temp}",
-            "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.\n↳ {inh_frost_hysteresis}"
+            "frost_hysteresis": "Der Frost endet erst über der Schwelle plus diesem Wert.\n↳ {inh_frost_hysteresis}",
+            "close_above_temp": "Schließt, solange die Außentemperatur darüber liegt, bis sie wieder 1 °C niedriger ist. Leer: aus.\n↳ {inh_close_above_temp}",
+            "close_below_temp": "Schließt, solange die Außentemperatur darunter liegt, bis sie wieder 1 °C höher ist. Leer: aus.\n↳ {inh_close_below_temp}"
           }
         },
         "extra": {
@@ -1768,6 +1852,7 @@
         "pos_comfort": "Position Komfort",
         "pos_shading": "Position Beschattung",
         "pos_shading_alt": "Alternative Position Beschattung",
+        "pos_glare": "Blendschutz-Position",
         "pos_privacy": "Position Sichtschutz (abends)",
         "pos_privacy_up": "Position Sichtschutz (morgens)",
         "pos_frost": "Position Frost",
@@ -1818,6 +1903,16 @@
         "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
         "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
         "window_azimuth": "Fensterrichtung",
+        "horizon": "Horizont des Fensters",
+        "window_sill": "Brüstung über dem Boden",
+        "window_height": "Fensterhöhe",
+        "sun_depth": "Sonne darf in den Raum bis",
+        "glare": "Blendschutz",
+        "glare_brightness_start": "Blendschutz ab Helligkeit",
+        "glare_brightness_end": "Blendschutz endet unter Helligkeit",
+        "glare_delay_start": "Blendschutz nach",
+        "glare_delay_end": "Blendschutz endet nach",
+        "away_heat_offset": "Niemand zu Hause: Hitzegrenzen niedriger um",
         "shading_alt_entity": "Entität für die alternative Position",
         "tilt_entity": "Eigene Lamellen-Entität",
         "tilt_open": "Lamellen offen",
@@ -1851,10 +1946,14 @@
         "wind_threshold": "Wind ab",
         "wind_hysteresis": "Hysterese des Winds",
         "wind_delay_start": "Wartezeit vor dem Windschutz",
+        "wind_mode": "Windschutz fährt auf",
         "wind_delay_end": "Wartezeit nach dem Wind",
         "frost_mode": "Frostschutz",
         "frost_temp": "Frost unter",
         "frost_hysteresis": "Hysterese des Frosts",
+        "close_above_temp": "Schließen über Außentemperatur",
+        "close_below_temp": "Schließen unter Außentemperatur",
+        "winter_temp": "Winter unter (24-Stunden-Mittel)",
         "force_close": "Zwangsweise schließen",
         "force_open": "Zwangsweise öffnen",
         "force_ventilate": "Zwangsweise lüften",
@@ -1873,6 +1972,7 @@
         "trigger_value2": "Zweiter Trigger-Wert",
         "trigger_position2": "Zweite Trigger-Position",
         "trigger_return": "Nach dem Trigger zurückfahren",
+        "holiday_shift": "Urlaub: Zeiten verschieben bis",
         "wiggle_value": "Wackeln um",
         "wiggle_wait": "Wartezeit beim Wackeln",
         "lockout_entity": "Hardware-Sperre",
@@ -1895,6 +1995,7 @@
         "close_never_up": "Schließen fährt nie nach oben",
         "recovery": "Verpasste Fahrten nachholen",
         "logbook": "Logbuch-Einträge",
+        "drive_check": "Jede Fahrt prüfen",
         "panel": "Übersicht in der Seitenleiste",
         "drive_stagger": "Gestaffelt fahren",
         "quiet_start": "Ruhezeit von",
@@ -2087,6 +2188,23 @@
         "manual_only": "Nur manuelle Fahrten",
         "inherit": "Erben"
       }
+    },
+    "wind_mode": {
+      "options": {
+        "position": "Windschutz-Position",
+        "nearest": "Näheres Ende (auf oder zu)",
+        "open": "Immer auf",
+        "closed": "Immer zu",
+        "inherit": "Erben"
+      }
+    },
+    "lock": {
+      "options": {
+        "none": "Keine",
+        "hold": "Halten",
+        "open": "Auf erzwingen",
+        "closed": "Zu erzwingen"
+      }
     }
   },
   "entity": {
@@ -2138,6 +2256,9 @@
       },
       "cover_guest": {
         "name": "Gast anwesend"
+      },
+      "global_holiday": {
+        "name": "Urlaub"
       }
     },
     "binary_sensor": {
@@ -2188,6 +2309,15 @@
       },
       "guest": {
         "name": "Gast"
+      },
+      "winter": {
+        "name": "Winter"
+      },
+      "glare": {
+        "name": "Blendschutz"
+      },
+      "stuck": {
+        "name": "Hängt"
       }
     },
     "sensor": {
@@ -2220,7 +2350,11 @@
           "wind": "Windschutz",
           "trigger": "Externer Trigger",
           "wiggle": "Wackeln",
-          "hot_day": "Heißer Tag"
+          "hot_day": "Heißer Tag",
+          "glare": "Blendschutz",
+          "lock": "Sperre",
+          "temp_high": "Über Temperaturgrenze",
+          "temp_low": "Unter Temperaturgrenze"
         }
       },
       "target": {
@@ -2294,7 +2428,8 @@
           "advent": "Advent",
           "condition": "Zusatzbedingung",
           "quiet": "Ruhezeit",
-          "guest": "Gast"
+          "guest": "Gast",
+          "locked": "Sperre"
         }
       },
       "sun_azimuth": {
@@ -2331,6 +2466,9 @@
       },
       "wiggle": {
         "name": "Wackeln"
+      },
+      "sun_left": {
+        "name": "Sonne hat das Fenster verlassen"
       }
     },
     "select": {
@@ -2368,6 +2506,15 @@
           "home": "Nur wenn jemand zu Hause ist",
           "absent": "Nur wenn niemand zu Hause ist",
           "off": "Aus"
+        }
+      },
+      "lock": {
+        "name": "Sperre",
+        "state": {
+          "none": "Keine",
+          "hold": "Halten",
+          "open": "Auf erzwingen",
+          "closed": "Zu erzwingen"
         }
       }
     },
@@ -2527,6 +2674,28 @@
           "description": "Nur Rollläden dieses Profils (Name)."
         }
       }
+    },
+    "set_lock": {
+      "name": "Sperre setzen",
+      "description": "Sperrt Rollläden: halten (keine automatischen Fahrten außer Schutz), auf erzwingen oder zu erzwingen, auf Wunsch für einige Minuten. Eine manuelle Fahrt beendet die Sperre.",
+      "fields": {
+        "entity_id": {
+          "name": "Rollläden",
+          "description": "Zu sperrende Rollläden. Leer: alle."
+        },
+        "profile": {
+          "name": "Profil",
+          "description": "Nur Rollläden dieses Profils (Name)."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Keine beendet die Sperre."
+        },
+        "duration": {
+          "name": "Dauer",
+          "description": "Minuten, bis die Sperre von selbst endet. Leer oder 0: bis sie beendet wird."
+        }
+      }
     }
   },
   "exceptions": {
@@ -2562,6 +2731,12 @@
     },
     "logbook_simulated": {
       "message": "würde auf {position} % fahren ({reason}), Simulation"
+    },
+    "logbook_retry": {
+      "message": "hat {position} % nicht erreicht, Befehl neu gesendet"
+    },
+    "logbook_stuck": {
+      "message": "hängt: sollte auf {position} % stehen, steht auf {current} %"
     }
   },
   "issues": {
@@ -2644,6 +2819,26 @@
     "check_quiet_incomplete": {
       "title": "{name}: Ruhezeit unvollständig",
       "description": "Nur Beginn oder nur Ende der Ruhezeit ist gesetzt (Seite Fahrverhalten)."
+    },
+    "stuck": {
+      "title": "{name}: Fahrt nicht angekommen",
+      "description": "Der Rollladen sollte auf {target} % stehen, steht aber auf {position} %, auch nach einem zweiten Befehl. Prüfe Motor, Endlagen und Verbindung. Der Hinweis verschwindet bei der nächsten Fahrt, die ankommt."
+    },
+    "check_horizon_invalid": {
+      "title": "{name}: Horizont nicht lesbar",
+      "description": "Der Horizont „{value}“ hat nicht die Form Richtung:Höhe, Richtung:Höhe (Seite Beschattung). Er wird nicht verwendet."
+    },
+    "check_depth_incomplete": {
+      "title": "{name}: Beschattung nach Sonneneinfall unvollständig",
+      "description": "Brüstung, Fensterhöhe und wie weit die Sonne in den Raum darf, werden alle gebraucht (Seite Beschattung)."
+    },
+    "check_glare_brightness_order": {
+      "title": "{name}: Blendschutz-Schwellen",
+      "description": "Der Blendschutz endet unter {end} lx, das liegt über dem Beginn bei {start} lx (Seite Beschattung)."
+    },
+    "check_temp_limits_order": {
+      "title": "{name}: Temperaturgrenzen",
+      "description": "Schließen unter {below} °C liegt nicht unter Schließen über {above} °C (Seite Wetterschutz)."
     }
   }
 }

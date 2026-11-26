@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
+from .horizon import hidden
 from .shading import in_azimuth
 from .sun import SunCalculator
 
@@ -29,14 +30,21 @@ def is_hot(cfg: Mapping[str, Any], forecast: float | None, condition: str | None
 
 
 def sun_on_window(
-    cfg: Mapping[str, Any], sun: SunCalculator, start: datetime, end: datetime
+    cfg: Mapping[str, Any],
+    sun: SunCalculator,
+    start: datetime,
+    end: datetime,
+    horizon: list[tuple[float, float]] | None = None,
 ) -> bool:
-    """Does the sun shine on the window (azimuth and elevation range) between start and end?"""
+    """Does the sun shine on the window (azimuth and elevation range, horizon) between start and end?"""
     when = start
     while when <= end:
         elevation = sun.elevation(when)
-        if cfg["shading_elevation_min"] <= elevation <= cfg["shading_elevation_max"] and (
-            in_azimuth(sun.azimuth(when), cfg["shading_azimuth_start"], cfg["shading_azimuth_end"])
+        azimuth = sun.azimuth(when)
+        if (
+            cfg["shading_elevation_min"] <= elevation <= cfg["shading_elevation_max"]
+            and in_azimuth(azimuth, cfg["shading_azimuth_start"], cfg["shading_azimuth_end"])
+            and not hidden(horizon or [], azimuth, elevation)
         ):
             return True
         when += STEP

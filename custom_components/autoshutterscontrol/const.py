@@ -49,6 +49,7 @@ SWITCH_ADVENT: Final = "advent"
 SWITCH_HARDWARE_LOCK: Final = "hardware_lock"
 SWITCH_SIMULATION: Final = "simulation"
 SWITCH_GUEST: Final = "guest"
+SWITCH_HOLIDAY: Final = "holiday"
 
 GLOBAL_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
@@ -63,6 +64,7 @@ GLOBAL_SWITCHES: Final = {
     SWITCH_ADVENT: False,
     SWITCH_HARDWARE_LOCK: True,
     SWITCH_SIMULATION: False,
+    SWITCH_HOLIDAY: False,
 }
 
 # Per cover runtime switches
@@ -89,6 +91,7 @@ SERVICE_CLEAR_OVERRIDE: Final = "clear_override"
 SERVICE_SET_OPTION: Final = "set_option"
 SERVICE_WIGGLE: Final = "wiggle"
 SERVICE_RELEASE_DEFERRED: Final = "release_deferred"
+SERVICE_SET_LOCK: Final = "set_lock"
 
 ATTR_POSITION: Final = "position"
 ATTR_NAMED_POSITION: Final = "named_position"
@@ -96,6 +99,8 @@ ATTR_RESPECT_RULES: Final = "respect_rules"
 ATTR_OPTION: Final = "option"
 ATTR_VALUE: Final = "value"
 ATTR_TARGET_PROFILE: Final = "profile"
+ATTR_MODE: Final = "mode"
+ATTR_DURATION: Final = "duration"
 
 # Positions that can be driven by name (setting key suffix after "pos_")
 NAMED_POSITIONS: Final = (

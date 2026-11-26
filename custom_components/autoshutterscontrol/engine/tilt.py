@@ -19,6 +19,7 @@ _BY_REASON = {
     "shading": "shading",
     "heat": "shading",
     "hot_day": "shading",
+    "glare": "shading",
 }
 
 # Named positions of the drive action -> tilt setting

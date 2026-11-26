@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import AscConfigEntry
 from .const import CONF_SETTINGS, INHERIT
-from .engine.settings import LEVEL_COVER, Setting, settings_for
+from .engine.settings import LEVEL_COVER, LOCK_MODES, LOCK_NONE, Setting, settings_for
 from .entity import AscCoverEntity
 from .runtime import CoverController
 from .services import write_cover_setting
@@ -24,9 +24,30 @@ async def async_setup_entry(
     settings = [s for s in settings_for(LEVEL_COVER) if s.entity == "select"]
     for controller in entry.runtime_data.controllers.values():
         async_add_entities(
-            (SettingSelect(controller, s) for s in settings),
+            [*(SettingSelect(controller, s) for s in settings), LockSelect(controller)],
             config_subentry_id=controller.subentry_id,
         )
+
+
+class LockSelect(AscCoverEntity, SelectEntity):
+    """Lock of the cover: hold, open, closed (without an end; the action can set one)."""
+
+    _attr_options = list(LOCK_MODES)
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "lock")
+
+    @property
+    def current_option(self) -> str:
+        return self.controller.lock or LOCK_NONE
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        until = self.controller.lock_until
+        return {"until": until.isoformat() if until else None}
+
+    async def async_select_option(self, option: str) -> None:
+        self.controller.set_lock(option)
 
 
 class SettingSelect(AscCoverEntity, SelectEntity):

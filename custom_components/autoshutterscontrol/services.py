@@ -11,6 +11,8 @@ from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 
 from .const import (
+    ATTR_DURATION,
+    ATTR_MODE,
     ATTR_NAMED_POSITION,
     ATTR_OPTION,
     ATTR_POSITION,
@@ -26,12 +28,13 @@ from .const import (
     SERVICE_DRIVE,
     SERVICE_RECALCULATE,
     SERVICE_RELEASE_DEFERRED,
+    SERVICE_SET_LOCK,
     SERVICE_SET_OPTION,
     SERVICE_WIGGLE,
     SUBENTRY_PROFILE,
 )
 from .engine.arbiter import TRIGGER_APPLY_TARGET
-from .engine.settings import BY_KEY, LEVEL_COVER, LEVEL_PROFILE, to_storage
+from .engine.settings import BY_KEY, LEVEL_COVER, LEVEL_PROFILE, LOCK_MODES, to_storage
 
 if TYPE_CHECKING:
     from .runtime import AscManager, CoverController
@@ -50,6 +53,13 @@ DRIVE_SCHEMA = vol.Schema(
     }
 )
 TARGET_ONLY_SCHEMA = vol.Schema(TARGET_SCHEMA)
+SET_LOCK_SCHEMA = vol.Schema(
+    {
+        **TARGET_SCHEMA,
+        vol.Required(ATTR_MODE): vol.In(LOCK_MODES),
+        vol.Optional(ATTR_DURATION): vol.All(vol.Coerce(float), vol.Range(min=0, max=10080)),
+    }
+)
 SET_OPTION_SCHEMA = vol.Schema(
     {
         **TARGET_SCHEMA,
@@ -138,6 +148,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
         for controller in _targets(manager, call):
             controller.wiggle()
 
+    async def set_lock(call: ServiceCall) -> None:
+        manager = _manager(hass)
+        for controller in _targets(manager, call):
+            controller.set_lock(call.data[ATTR_MODE], call.data.get(ATTR_DURATION))
+
     async def release_deferred(call: ServiceCall) -> None:
         manager = _manager(hass)
         manager.release_deferred(_targets(manager, call))
@@ -196,6 +211,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
     )
     hass.services.async_register(DOMAIN, SERVICE_SET_OPTION, set_option, schema=SET_OPTION_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_WIGGLE, wiggle, schema=TARGET_ONLY_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_SET_LOCK, set_lock, schema=SET_LOCK_SCHEMA)
     hass.services.async_register(
         DOMAIN, SERVICE_RELEASE_DEFERRED, release_deferred, schema=TARGET_ONLY_SCHEMA
     )

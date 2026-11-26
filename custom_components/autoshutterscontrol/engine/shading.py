@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
+import math
 from typing import Any
 
 from .settings import (
@@ -50,6 +51,8 @@ class Inputs:
     forecast: float | None = None
     weather: str | None = None
     sensor: bool | None = None
+    # The sun is behind the horizon of the window (buildings, trees)
+    hidden: bool = False
 
 
 @dataclass(frozen=True)
@@ -88,7 +91,7 @@ def conditions(
         out[COND_AZIMUTH] = in_azimuth(
             inputs.azimuth, cfg["shading_azimuth_start"], cfg["shading_azimuth_end"]
         )
-    if inputs.elevation is None:
+    if inputs.elevation is None or inputs.hidden:
         out[COND_ELEVATION] = False
     else:
         out[COND_ELEVATION] = (
@@ -218,3 +221,29 @@ def average(samples: list[tuple[datetime, float]], now: datetime, minutes: int) 
     if not values:
         return samples[-1][1]
     return sum(values) / len(values)
+
+
+def depth_position(
+    cfg: Mapping[str, Any], elevation: float | None, azimuth: float | None, window: float
+) -> int | None:
+    """Position that keeps the direct sun within ``sun_depth`` of the floor.
+
+    Vertical window: profile angle tan p = tan(elevation) / cos(g), g the angle
+    between the sun and the window normal. Light through an opening o above the
+    sill s reaches (s + o) / tan p into the room, so o = depth * tan p - s.
+    Rounded down to 10 %. None without the three values or without sun on the
+    window.
+    """
+    sill, height, depth = cfg["window_sill"], cfg["window_height"], cfg["sun_depth"]
+    if sill is None or not height or depth is None or elevation is None or azimuth is None:
+        return None
+    if elevation <= 0:
+        return None
+    gamma = math.radians((azimuth - window + 180) % 360 - 180)
+    if math.cos(gamma) <= 0.01:
+        return None
+    tan_profile = math.tan(math.radians(elevation)) / math.cos(gamma)
+    opening = depth * 100 * tan_profile - sill
+    position = 100 * opening / height
+    position = max(0.0, min(100.0, position))
+    return int(position // 10 * 10)

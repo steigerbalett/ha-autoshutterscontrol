@@ -96,3 +96,29 @@ release_deferred:
     profile:
       selector:
         text:
+set_lock:
+  fields:
+    entity_id:
+      selector:
+        entity:
+          domain: cover
+          multiple: true
+    profile:
+      selector:
+        text:
+    mode:
+      required: true
+      selector:
+        select:
+          translation_key: lock
+          options:
+            - none
+            - hold
+            - open
+            - closed
+    duration:
+      selector:
+        number:
+          min: 0
+          max: 10080
+          unit_of_measurement: min

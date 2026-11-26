@@ -205,6 +205,34 @@ maximal auskühlen. Der Rollladen bleibt auf der Beschattungsposition, bis die S
 oder die normale Beschattung des Tages endet; dann fährt er wie nach der Beschattung zurück. Der Binärsensor
 *Heißer Tag* je Rollladen zeigt, ob das gerade gilt.
 
+**Horizont**: Häuser und Bäume verdecken eine tiefe Sonne je nach Richtung unterschiedlich hoch. Drücke
+den Knopf *Sonne hat das Fenster verlassen* am Rollladen in dem Moment, in dem die Sonne hinter etwas
+verschwindet. Richtung und Höhe der Sonne werden dann ein Punkt des Horizonts (Feld *Horizont des Fensters*,
+z. B. `200:18, 230:25`, dort auch zu bearbeiten), und die Beschattung endet sofort. Ein neuer Punkt innerhalb
+von 3° ersetzt den alten. Zwischen den Punkten wird interpoliert, über die äußeren Punkte hinaus gilt ihr
+Wert noch 15°. Unter dem Horizont trifft die Sonne das Fenster nicht, das gilt für Beschattung, Blendschutz
+und den heißen Tag.
+
+**Beschattung nach Sonneneinfall**: Mit *Brüstung über dem Boden* und *Fensterhöhe* (am Rollladen) und *Sonne
+darf in den Raum bis* fährt die Beschattung nur so weit herunter, dass die direkte Sonne höchstens so weit über
+den Boden fällt. Grundlage ist der Profilwinkel der Sonne zur *Fensterrichtung*. Hohe Sommersonne lässt den
+Großteil des Fensters offen, tiefe Sonne schließt bis zur Beschattungsposition, nie tiefer. Die Position wird
+auf 10 % abgerundet und ändert sich höchstens alle 15 Minuten. Mit Brüstung 90 cm, Fenster 130 cm und 2 m
+gilt bei Sonne direkt vor dem Fenster: 40° Sonnenhöhe 50 %, ab 55° bleibt der Rollladen offen.
+
+**Blendschutz** (*Blendschutz*, Standard aus): Trifft grelle Sonne das Fenster (Sonnenrichtung, Sonnenhöhe und
+Horizont der Beschattung), fährt der Rollladen nach *Blendschutz nach* (5 min) auf die *Blendschutz-Position*
+(40 %), unabhängig von der Temperatur, auch im Winter. Grell heißt ab *Blendschutz ab Helligkeit* (50000 lx,
+Helligkeitssensor der Beschattung); ohne Helligkeitssensor entscheidet sonniges Wetter. Er endet unter
+*Blendschutz endet unter Helligkeit* (35000 lx) nach *Blendschutz endet nach* (20 min), sofort, wenn die Sonne
+das Fenster verlässt. Nur tagsüber und nicht, solange niemand zu Hause ist. Mit Beschattung zugleich gilt die
+tiefere Position. Binärsensor *Blendschutz* je Rollladen.
+
+**Niemand zu Hause**: Mit *Niemand zu Hause: Hitzegrenzen niedriger um* (Standard 0 = aus) beschattet
+AutoShuttersControl früher, solange der Haus-Status abwesend oder verreist ist oder der Schalter *Urlaub* an ist.
+Außentemperatur, Innentemperatur und *Hitzeschutz ab* liegen dann um den Wert niedriger. Beispiel: Hitzeschutz
+ab 25 °C und 3 K, dann bei Abwesenheit ab 22 °C.
+
 Der Sensor *Beschattung* je Rollladen zeigt den Zustand und in den Attributen alle Eingangswerte
 (Sonnenrichtung, Sonnenhöhe, Helligkeit, Temperaturen, Vorhersage, Wetterlage).
 
@@ -250,9 +278,20 @@ haben eine Hysterese und Wartezeiten in beide Richtungen; ein nicht verfügbarer
   Regen* (Standard 15 min) zurück.
 - **Windschutz** (Standard aus, für Jalousien und Markisen): ab *Wind ab* (Standard 50 km/h) auf *Position Wind*;
   endet unter Schwelle minus Hysterese (Standard 20) und nach der Wartezeit (Standard 10 min).
+  *Windschutz fährt auf*: *Windschutz-Position* (Standard), *Näheres Ende*, *Immer auf* oder *Immer zu*. Mit
+  den drei letzten steht der Rollladen bei Sturm nur ganz auf oder ganz zu, ein halb offener Behang fängt den
+  Wind. *Näheres Ende* nimmt das Ende, das näher an dem liegt, was die anderen Funktionen gerade wollen (ab
+  50 % auf, sonst zu). Ein von Hand dazwischen gefahrener Rollladen fährt gleich wieder an ein Ende.
 - **Frostschutz** (Standard aus) unter *Frost unter* (Standard 2 °C): *Sanft* schließt nur bis *Position Frost*,
   *Vormittags* bzw. *Nachmittags* sperrt Fahrten bis bzw. ab 12 Uhr, *Gar nicht fahren* sperrt alles außer
   Regen, Wind und Zwang.
+
+- **Temperaturgrenzen** (Standard aus): *Schließen über Außentemperatur* bzw. *Schließen unter
+  Außentemperatur*. Der Rollladen schließt, solange die Grenze überschritten ist, und öffnet wieder, wenn die
+  Temperatur 1 °C zurück ist. Eine Übersteuerung (Handfahrt) und ein offenes Fenster (Lüften) gehen vor.
+- **Winter**: Der Binärsensor *Winter* am zentralen Gerät ist an, solange das Mittel der Außentemperatur der
+  letzten 24 Stunden unter *Winter unter* liegt (Standard 12 °C, 1 °C Hysterese, Attribut `mean_24h`). Als
+  *Entität für das alternative Profil* eingetragen, schaltet er z. B. ein Profil *Winter* automatisch.
 
 Regen- und Windschutz gehen vor Übersteuerung, Selbstschutz und allen Fahrplänen. *Aussperrschutz hart*
 lässt auch Regen- und Windschutz warten, bis die Tür zu ist.
@@ -282,6 +321,17 @@ Seite *Sonderfunktionen*; Felder mit Entitäten gibt es nur am Rollladen.
 - **Wackeln**: Taste *Wackeln* je Rollladen, *Alle wackeln* am zentralen Gerät, oder Aktion
   `autoshutterscontrol.wiggle`: fährt um *Wackeln um* (Standard 5 %) und nach *Wartezeit beim Wackeln* zurück.
   Zählt nicht als Handfahrt.
+- **Urlaub**: Schalter *Urlaub* am zentralen Gerät (Standard aus, z. B. per Automation aus dem Kalender).
+  Dann verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten bis *Urlaub: Zeiten verschieben
+  bis* (Standard 30), Morgen und Abend unabhängig, für jeden Rollladen anders und nach einem Neustart gleich.
+  Die Verschiebung gilt nach den frühesten und spätesten Zeiten, darf diese also verlassen. Urlaub zählt
+  außerdem als „niemand zu Hause“ für die Hitzegrenzen und den Blendschutz.
+- **Sperre**: Auswahl *Sperre* je Rollladen oder Aktion `autoshutterscontrol.set_lock` mit `mode` (`hold`,
+  `open`, `closed`, `none`) und optional `duration` in Minuten, z. B. *Zu erzwingen* für 120 Minuten beim
+  Filmabend. *Halten*: keine automatischen Fahrten außer Zwang und Schutz. *Auf/Zu erzwingen*: ganz auf bzw.
+  ganz zu. Wasser-, Regen-, Wind- und Frostschutz gehen vor. Die Sperre endet nach der Dauer, mit *Keine*, mit
+  einer Handfahrt oder mit dem Knopf *Übersteuerung beenden*; danach fährt der Rollladen in den Zielzustand.
+  Sie übersteht einen Neustart.
 - **Hardware-Sperre**: Mit *Aussperrschutz hart* und einer Entität unter *Hardware-Sperre* (Schalter,
   Schloss, Input Boolean) wird der Aktor gesperrt, solange die Tür offen ist, und danach entsperrt. Schalter
   *Hardware-Sperre* am zentralen Gerät (Standard an) schaltet das ab.
@@ -315,6 +365,11 @@ erledigte Fahrten, Schutzfunktionen) liegt im Speicher von Home Assistant und ü
   Einstellungen jedes Rollladens und meldet Fehler unter *Einstellungen → Reparaturen*, z. B. früheste Zeit nach
   der spätesten, 0:00 als späteste Schließzeit, vertauschte Schwellen, Regenschutz ohne Regensensor oder
   eingetragene Entitäten, die es nicht gibt. Ist der Fehler behoben, verschwindet der Hinweis.
+- **Fahrt prüfen** (*Jede Fahrt prüfen*, Standard an): Nach der *Fahrzeit* plus 10 Sekunden muss der
+  Rollladen auf seiner Position stehen (± Toleranz, mindestens 2 %). Fährt er noch, wird später nachgesehen.
+  Steht er woanders, wird der Befehl einmal neu gesendet; kommt auch der nicht an, geht der Diagnose-Sensor
+  *Hängt* an und unter *Reparaturen* erscheint ein Hinweis. Beides verschwindet bei der nächsten Fahrt, die
+  ankommt. Eine Handfahrt dazwischen bricht die Prüfung ab. Nur für Rollläden mit Positionsangabe.
 - **Logbuch** (*Logbuch-Einträge*, Standard an): je Fahrt ein Eintrag am Rollladen mit Grund, ebenso für
   jede bewusst unterlassene Fahrt (z. B. „fuhr nicht (Abendfahrt): Pause“) und für Handfahrten.
 - Der Diagnose-Sensor **Nicht gefahren wegen** zeigt, warum die letzte Entscheidung nicht gefahren ist.
@@ -395,8 +450,8 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 ## Entitäten
 
 **Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause,
-Komfort, Beschattung, Selbstschutz, Party, Advent, Hardware-Sperre, Simulation; Sensor Haus-Status; Binärsensoren Regen,
-Wind, Frost; Diagnose: Sensoren Sonnenrichtung, Sonnenhöhe (aus dem Standort von Home Assistant berechnet),
+Komfort, Beschattung, Selbstschutz, Party, Advent, Hardware-Sperre, Simulation, Urlaub; Sensor Haus-Status; Binärsensoren Regen,
+Wind, Frost, Winter; Diagnose: Sensoren Sonnenrichtung, Sonnenhöhe (aus dem Standort von Home Assistant berechnet),
 Höchstwert Vorhersage heute (globaler Vorhersage-Sensor oder Tagesvorhersage der globalen Wetter-Entität),
 Binärsensoren Sonnig (Wetterlage jetzt in der Liste der Beschattung) und Heißer Tag (Vorhersage ab *Heißer Tag
 ab*); Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand, Alle wackeln, Aufgeschobene
@@ -407,9 +462,11 @@ Homematic-Aktor), so wie bei den Helfern von Home Assistant. Hat der Rollladen k
 Template-Cover), bekommt er ein eigenes Gerät „ASC ‹Name›“ unter dem zentralen Gerät.
 
 **Je Rollladen**: Schalter Automatik, Pause, Simulation und Gast anwesend; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
-Regenschutz, Wasserschutz, Windschutz, Frostschutz, Zwangsfunktion, Heißer Tag, Ruhezeit und Gast; Sensoren
+Regenschutz, Wasserschutz, Windschutz, Frostschutz, Zwangsfunktion, Heißer Tag, Ruhezeit, Gast, Blendschutz und
+(Diagnose) Hängt; Sensoren
 Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Nicht gefahren wegen, Fenster, Bewohner, Beschattung, Simulierte Fahrt; Knöpfe Zielzustand anfahren,
-Übersteuerung beenden und Wackeln; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
+Übersteuerung beenden, Wackeln und Sonne hat das Fenster verlassen; Auswahl Sperre und Morgens/Abends fahren
+nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.
 
 Pause: es wird nicht gefahren, der Zielzustand läuft mit; endet die Pause, fährt der Rollladen ihn an.
@@ -426,6 +483,7 @@ Automatik aus: es wird nicht gefahren, und beim Einschalten passiert nichts.
 | `autoshutterscontrol.set_option` | Eine Einstellung von Rollläden oder einem Profil setzen; ohne Wert erbt sie wieder. |
 | `autoshutterscontrol.wiggle` | Rollläden ein Stück und zurück fahren (Funktionsprüfung). |
 | `autoshutterscontrol.release_deferred` | Advent: das heute aufgeschobene Schließen jetzt fahren. |
+| `autoshutterscontrol.set_lock` | Rollläden sperren (`hold`, `open`, `closed`), optional für `duration` Minuten; `none` beendet. |
 
 Alle Aktionen nehmen `entity_id` (die gesteuerten Rollläden) und/oder `profile` (Name); leer heißt alle.
 

@@ -202,6 +202,33 @@ much as possible. The cover stays at the shading position until the sun has pass
 shading of the day ends; then it returns as after shading. The binary sensor *Hot day* per cover shows
 whether it applies now.
 
+**Horizon**: buildings and trees hide a low sun at different heights in different directions. Press the
+button *Sun has left the window* of the cover at the moment the sun disappears behind something. The direction
+and elevation of the sun become a point of the horizon (field *Horizon of the window*, e.g. `200:18, 230:25`,
+editable there), and the shading ends at once. A new point within 3° replaces the old one. Between the points
+the horizon is interpolated, beyond the outermost points their value holds for 15°. Below the horizon the
+sun does not shine on the window, for shading, glare protection and the hot day.
+
+**Shading by the depth of the sun**: with *Window sill above the floor* and *Window height* (per cover) and
+*Sun may reach into the room*, the shading goes down only so far that direct sun falls at most that far over
+the floor. It uses the profile angle of the sun to the *Window direction*. A high summer sun leaves most of the
+window open, a low sun closes it to the shading position, never lower. The position is rounded down to 10 %
+and changes at most every 15 minutes. With a sill of 90 cm, a window of 130 cm and 2 m, and the sun straight in
+front of the window: 40° sun elevation gives 50 %, from 55° the cover stays open.
+
+**Glare protection** (*Glare protection*, default off): when bright sun shines on the window (sun direction,
+elevation and horizon of the shading), the cover goes to the *Glare position* (40 %) after *Glare protection
+after* (5 min), whatever the temperature, also in winter. Bright means from *Glare from brightness* (50000 lx,
+brightness sensor of the shading); without a brightness sensor a sunny weather decides. It ends below *Glare
+ends below brightness* (35000 lx) after *Glare protection ends after* (20 min), at once when the sun leaves the
+window. Only by day and not while nobody is at home. Together with shading the lower position wins. Binary
+sensor *Glare protection* per cover.
+
+**Nobody at home**: with *Nobody at home: heat limits lower by* (default 0 = off) AutoShuttersControl shades
+earlier while the house status is absent or gone or the switch *Holiday* is on. Outdoor temperature, indoor
+temperature and *Heat protection from* are then lower by that value. Example: heat protection from 25 °C and
+3 K gives 22 °C while away.
+
 The sensor *Shading* per cover shows the state and all inputs in its attributes (sun direction, elevation,
 brightness, temperatures, forecast, weather condition).
 
@@ -246,9 +273,20 @@ and waits in both directions; an unavailable sensor keeps the last state.
   *Wait after the rain* (default 15 min).
 - **Wind protection** (off by default, for venetian blinds and awnings): from *Wind from* (default 50 km/h)
   to *Wind position*; ends below threshold minus hysteresis (default 20) and after the wait (default 10 min).
+  *Wind protection drives to*: *Wind position* (default), *Nearest end*, *Always open* or *Always closed*.
+  With the last three the cover is only fully open or fully closed in a storm, a half open cover catches the
+  wind. *Nearest end* takes the end nearest to what the other functions want now (open from 50 %, else
+  closed). A cover moved by hand in between goes back to an end at once.
 - **Frost protection** (off by default) below *Frost below* (default 2 °C): *Soft* closes only down to
   *Frost position*, *morning* / *afternoon* blocks drives until / from noon, *No drives at all* blocks everything
   except rain, wind and force.
+
+- **Temperature limits** (off by default): *Close above outdoor temperature* and *Close below outdoor
+  temperature*. The cover closes while the limit is passed and opens again when the temperature is 1 °C back.
+  A manual override and an open window (ventilation) win.
+- **Winter**: the binary sensor *Winter* of the central device is on while the mean outdoor temperature of
+  the last 24 hours is below *Winter below* (default 12 °C, 1 °C hysteresis, attribute `mean_24h`). Set as
+  the *entity of the alternative profile* it switches e.g. a profile *Winter* by itself.
 
 Rain and wind protection win over manual override, self defence and all schedules. *Lock-out protection
 hard* also makes rain and wind protection wait until the door is closed.
@@ -278,6 +316,17 @@ Page *Special functions*; fields with entities exist only on the cover.
 - **Wiggle**: button *Wiggle* per cover, *Wiggle all* on the central device, or the action
   `autoshutterscontrol.wiggle`: moves by *Wiggle by* (default 5 %) and back after *Wiggle wait*. Not counted as
   a manual drive.
+- **Holiday**: switch *Holiday* of the central device (default off, e.g. from a calendar by an automation).
+  The morning and the evening drive then shift every day by a random number of minutes up to *Holiday: shift
+  the times up to* (default 30), morning and evening independently, different for every cover and the same
+  after a restart. The shift comes after the earliest and latest times, so it may leave them. Holiday also
+  counts as "nobody at home" for the heat limits and the glare protection.
+- **Lock**: select *Lock* per cover or the action `autoshutterscontrol.set_lock` with `mode` (`hold`,
+  `open`, `closed`, `none`) and optionally `duration` in minutes, e.g. *Force closed* for 120 minutes on a
+  movie night. *Hold*: no automatic drives except force and protection. *Force open/closed*: fully open or
+  fully closed. Water, rain, wind and frost protection win. The lock ends after the duration, with *None*, with
+  a manual drive or with the button *End manual override*; then the cover goes to its target. It survives a
+  restart.
 - **Hardware lock**: with *Lock-out protection hard* and an entity in *Hardware lock* (switch, lock, input
   boolean) the actuator is locked while the door is open and unlocked afterwards. The switch *Hardware lock*
   of the central device (on by default) turns this off.
@@ -311,6 +360,11 @@ is kept in the storage of Home Assistant and survives every restart.
   settings of every cover and reports mistakes under *Settings → Repairs*, e.g. earliest time after the
   latest, 0:00 as latest closing time, swapped thresholds, rain protection without rain sensor, or entities
   that do not exist. When fixed, the issue disappears.
+- **Drive check** (*Check every drive*, on by default): after the *Drive time* plus 10 seconds the cover
+  must be at its position (± tolerance, at least 2 %). If it is still moving, it is checked again later. If it
+  stands elsewhere, the command is sent once more; if that does not arrive either, the diagnostic sensor
+  *Stuck* turns on and a repair issue appears. Both clear at the next drive that arrives. A manual drive in
+  between cancels the check. Only for covers that report a position.
 - **Logbook** (*Logbook entries*, on by default): an entry at the cover for every drive with its reason, for
   every drive deliberately not done (e.g. "did not drive (Evening closing): Pause") and for manual drives.
 - The diagnostic sensor **Not driven because** shows why the last decision did not drive.
@@ -388,8 +442,8 @@ context; position reports during the *drive time* after its own command also cou
 ## Entities
 
 **Central device**: switches Automatic, Weekend and holiday times, Morning drive, Evening drive,
-Pause, Comfort, Shading, Self defense, Party, Advent, Hardware lock, Simulation; sensor House status; binary sensors Rain,
-Wind, Frost; diagnostics: sensors Sun azimuth, Sun elevation (calculated from the location of Home
+Pause, Comfort, Shading, Self defense, Party, Advent, Hardware lock, Simulation, Holiday; sensor House status; binary sensors Rain,
+Wind, Frost, Winter; diagnostics: sensors Sun azimuth, Sun elevation (calculated from the location of Home
 Assistant), Forecast maximum today (global forecast sensor or daily forecast of the global weather entity),
 binary sensors Sunny (weather now in the list of the shading) and Hot day (forecast from *Hot day from*);
 buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives.
@@ -399,9 +453,10 @@ with the helpers of Home Assistant. A cover without a device (e.g. a template co
 "ASC ‹name›" below the central device.
 
 **Per cover**: switches Automatic, Pause, Simulation and Guest present; binary sensors Day, Manual override, Self defense, Rain
-protection, Water protection, Wind protection, Frost protection, Force function, Hot day, Quiet hours and Guest; sensors Next
-opening, Next closing, Next privacy, Last drive reason, Target, Not driven because, Window, Residents, Shading, Simulated drive; buttons Drive to target, End manual override and Wiggle;
-selects Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
+protection, Water protection, Wind protection, Frost protection, Force function, Hot day, Quiet hours, Guest, Glare
+protection and (diagnostic) Stuck; sensors Next
+opening, Next closing, Next privacy, Last drive reason, Target, Not driven because, Window, Residents, Shading, Simulated drive; buttons Drive to target, End manual override, Wiggle and Sun has left the window;
+selects Lock and Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
 
 Pause: nothing is driven, the target is still tracked; when the pause ends the cover drives to its
 target. Automatic off: nothing is driven, and nothing happens when it is turned on again.
@@ -417,6 +472,7 @@ target. Automatic off: nothing is driven, and nothing happens when it is turned 
 | `autoshutterscontrol.set_option` | Set one setting of covers or of a profile; without value it inherits again. |
 | `autoshutterscontrol.wiggle` | Move covers a little and back (function check). |
 | `autoshutterscontrol.release_deferred` | Advent: do the closing deferred today now. |
+| `autoshutterscontrol.set_lock` | Lock covers (`hold`, `open`, `closed`), optionally for `duration` minutes; `none` ends it. |
 
 All actions take `entity_id` (the controlled covers) and/or `profile` (name); empty means all.
 

@@ -244,6 +244,20 @@ RESET_NEXT_SCHEDULE = "next_schedule"
 RESET_MANUAL = "manual"
 RESET_MODES = (RESET_MINUTES, RESET_TIME, RESET_NEXT_SCHEDULE, RESET_MANUAL)
 
+# Wind protection: a fixed position, or only fully open / fully closed
+WIND_POSITION = "position"
+WIND_NEAREST = "nearest"
+WIND_OPEN = "open"
+WIND_CLOSED = "closed"
+WIND_MODES = (WIND_POSITION, WIND_NEAREST, WIND_OPEN, WIND_CLOSED)
+
+# Lock of a cover (action or select)
+LOCK_NONE = "none"
+LOCK_HOLD = "hold"
+LOCK_OPEN = "open"
+LOCK_CLOSED = "closed"
+LOCK_MODES = (LOCK_NONE, LOCK_HOLD, LOCK_OPEN, LOCK_CLOSED)
+
 
 @dataclass(frozen=True)
 class Setting:
@@ -433,6 +447,7 @@ SETTINGS: tuple[Setting, ...] = (
     _pos("pos_comfort", 70, 2),
     _pos("pos_shading", 30, 3, entity=True),
     _pos("pos_shading_alt", None, 3),
+    _pos("pos_glare", 40, 5),
     _pos("pos_privacy", 50, 2),
     _pos("pos_privacy_up", None, 2),
     _pos("pos_frost", None, 4),
@@ -667,6 +682,66 @@ SETTINGS: tuple[Setting, ...] = (
     ),
     Setting("hot_day_sunny", BOOL, True, SEC_SHADING, stage=3),
     Setting("window_azimuth", INT, None, SEC_SHADING, stage=3, minimum=0, maximum=360, unit="°"),
+    Setting("horizon", TEXT, None, SEC_SHADING, stage=5, levels=COVER_ONLY),
+    Setting(
+        "window_sill",
+        INT,
+        None,
+        SEC_SHADING,
+        stage=5,
+        levels=COVER_ONLY,
+        minimum=0,
+        maximum=500,
+        unit="cm",
+    ),
+    Setting(
+        "window_height",
+        INT,
+        None,
+        SEC_SHADING,
+        stage=5,
+        levels=COVER_ONLY,
+        minimum=10,
+        maximum=600,
+        unit="cm",
+    ),
+    Setting(
+        "sun_depth", FLOAT, None, SEC_SHADING, stage=5, minimum=0, maximum=20, step=0.1, unit="m"
+    ),
+    Setting("glare", BOOL, False, SEC_SHADING, stage=5),
+    Setting(
+        "glare_brightness_start",
+        INT,
+        50000,
+        SEC_SHADING,
+        stage=5,
+        minimum=0,
+        maximum=200000,
+        unit="lx",
+    ),
+    Setting(
+        "glare_brightness_end",
+        INT,
+        35000,
+        SEC_SHADING,
+        stage=5,
+        minimum=0,
+        maximum=200000,
+        unit="lx",
+    ),
+    Setting("glare_delay_start", INT, 5, SEC_SHADING, stage=5, minimum=0, maximum=240, unit="min"),
+    Setting("glare_delay_end", INT, 20, SEC_SHADING, stage=5, minimum=0, maximum=240, unit="min"),
+    Setting(
+        "away_heat_offset",
+        FLOAT,
+        0.0,
+        SEC_SHADING,
+        stage=5,
+        minimum=0,
+        maximum=10,
+        step=0.5,
+        unit="K",
+    ),
     Setting(
         "shading_alt_entity",
         ENTITY,
@@ -772,6 +847,7 @@ SETTINGS: tuple[Setting, ...] = (
         unit="km/h",
     ),
     Setting("wind_delay_start", INT, 0, SEC_PROTECTION, stage=4, minimum=0, maximum=60, unit="min"),
+    Setting("wind_mode", SELECT, WIND_POSITION, SEC_PROTECTION, stage=5, options=WIND_MODES),
     Setting("wind_delay_end", INT, 10, SEC_PROTECTION, stage=4, minimum=0, maximum=240, unit="min"),
     Setting("frost_mode", SELECT, FROST_OFF, SEC_PROTECTION, stage=4, options=FROST_MODES),
     Setting(
@@ -795,6 +871,40 @@ SETTINGS: tuple[Setting, ...] = (
         maximum=10,
         step=0.5,
         unit="K",
+    ),
+    Setting(
+        "close_above_temp",
+        FLOAT,
+        None,
+        SEC_PROTECTION,
+        stage=5,
+        minimum=-30,
+        maximum=60,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "close_below_temp",
+        FLOAT,
+        None,
+        SEC_PROTECTION,
+        stage=5,
+        minimum=-40,
+        maximum=40,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting(
+        "winter_temp",
+        FLOAT,
+        12.0,
+        SEC_PROTECTION,
+        stage=5,
+        levels=GLOBAL_ONLY,
+        minimum=-20,
+        maximum=30,
+        step=0.5,
+        unit="°C",
     ),
     # --- force, party, advent, trigger, wiggle, hardware lock ---------------
     *(
@@ -853,6 +963,7 @@ SETTINGS: tuple[Setting, ...] = (
         unit="%",
     ),
     Setting("trigger_return", BOOL, True, SEC_SPECIAL, stage=4, levels=COVER_ONLY),
+    Setting("holiday_shift", INT, 30, SEC_SPECIAL, stage=5, minimum=0, maximum=120, unit="min"),
     Setting("wiggle_value", INT, 5, SEC_SPECIAL, stage=4, minimum=1, maximum=50, unit="%"),
     Setting("wiggle_wait", INT, 5, SEC_SPECIAL, stage=4, minimum=1, maximum=120, unit="s"),
     Setting(
@@ -889,6 +1000,7 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("close_never_up", BOOL, True, SEC_DRIVE),
     Setting("recovery", SELECT, RECOVERY_FAILURE, SEC_DRIVE, stage=5, options=RECOVERY_MODES),
     Setting("logbook", BOOL, True, SEC_DRIVE, stage=5),
+    Setting("drive_check", BOOL, True, SEC_DRIVE, stage=5),
     Setting("panel", BOOL, False, SEC_DRIVE, stage=5, levels=GLOBAL_ONLY),
     Setting(
         "drive_stagger",

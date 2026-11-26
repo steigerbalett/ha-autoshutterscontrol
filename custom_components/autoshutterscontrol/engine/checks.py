@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from datetime import time
 from typing import Any
 
+from .horizon import valid as horizon_valid
 from .period import parse_day
 from .settings import (
     ADVENT_DATE,
@@ -114,6 +115,32 @@ def check(cfg: Mapping[str, Any]) -> list[tuple[str, dict[str, str]]]:
         cfg["quiet_end"] or cfg["quiet_end_entity"]
     ):
         add("quiet_incomplete")
+    if not horizon_valid(cfg["horizon"]):
+        add("horizon_invalid", value=cfg["horizon"])
+    depth = [cfg["window_sill"], cfg["window_height"], cfg["sun_depth"]]
+    if any(v is not None for v in depth[:2]) and any(v is None for v in depth):
+        add("depth_incomplete")
+    if cfg["glare"] and cfg["glare_brightness_end"] > cfg["glare_brightness_start"]:
+        add(
+            "glare_brightness_order",
+            start=cfg["glare_brightness_start"],
+            end=cfg["glare_brightness_end"],
+        )
+    if (
+        cfg["close_above_temp"] is not None
+        and cfg["close_below_temp"] is not None
+        and cfg["close_below_temp"] >= cfg["close_above_temp"]
+    ):
+        add(
+            "temp_limits_order",
+            below=cfg["close_below_temp"],
+            above=cfg["close_above_temp"],
+        )
+    needs(
+        "missing_temperature",
+        cfg["close_above_temp"] is not None or cfg["close_below_temp"] is not None,
+        "outdoor_temperature_sensor",
+    )
     needs(
         "missing_trigger_position",
         bool(cfg["trigger_entity"]),

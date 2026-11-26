@@ -4,8 +4,9 @@ Priorities follow section 5 of the concept (lower wins): blocks of priority 0
 (automatic, pause, extra condition, availability), force (1), rain with an
 open window (2), wind and rain (3), frost (4), self defense (5), party and
 advent (6), lock-out (7), manual override (8), external trigger (9), window
-(10), residents (11), shading (12), privacy (13) and schedule (14). In the
-quiet hours only priorities up to 5 drive (and ventilation, if allowed).
+(10), residents and temperature limits (11), shading and glare (12), privacy
+(13) and schedule (14). A lock (action or select) ranks with self defense.
+In the quiet hours only priorities up to 5 drive (and ventilation, if allowed).
 """
 
 from __future__ import annotations
@@ -14,7 +15,18 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any
 
-from .settings import KIND_CLOSE, KIND_OPEN, KIND_SHADING, KIND_TRIGGER, KIND_VENTILATE
+from .settings import (
+    KIND_CLOSE,
+    KIND_OPEN,
+    KIND_SHADING,
+    KIND_TRIGGER,
+    KIND_VENTILATE,
+    LOCK_CLOSED,
+    LOCK_OPEN,
+    WIND_CLOSED,
+    WIND_NEAREST,
+    WIND_OPEN,
+)
 
 # Priorities (lower wins)
 PRIO_FORCE = 1
@@ -22,12 +34,14 @@ PRIO_RAIN_WINDOW = 2
 PRIO_WIND_RAIN = 3
 PRIO_FROST = 4
 PRIO_SELF_DEFENSE = 5
+PRIO_LOCK = 5
 PRIO_PARTY = 6
 PRIO_LOCKOUT = 7
 PRIO_OVERRIDE = 8
 PRIO_TRIGGER = 9
 PRIO_WINDOW = 10
 PRIO_RESIDENTS = 11
+PRIO_TEMP_LIMIT = 11
 PRIO_SHADING = 12
 PRIO_PRIVACY = 13
 PRIO_SCHEDULE = 14
@@ -50,6 +64,7 @@ TRIGGER_EXTERNAL = "external"
 TRIGGER_RELEASE = "release"
 TRIGGER_RECOVERY = "recovery"
 TRIGGER_PROFILE = "profile"
+TRIGGER_LOCK = "lock"
 SCHEDULE_TRIGGERS = frozenset({TRIGGER_SCHEDULE_UP, TRIGGER_SCHEDULE_DOWN, TRIGGER_RECOVERY})
 
 # Reasons of a wish (stored as keys, translated only for display)
@@ -74,9 +89,21 @@ REASON_RAIN_WINDOW = "rain_window"
 REASON_WIND = "wind"
 REASON_TRIGGER = "trigger"
 REASON_WIGGLE = "wiggle"
+REASON_GLARE = "glare"
+REASON_LOCK = "lock"
+REASON_TEMP_HIGH = "temp_high"
+REASON_TEMP_LOW = "temp_low"
 # Drives that are undone when their cause ends
 TEMPORARY_REASONS = frozenset(
-    {REASON_FORCE, REASON_RAIN, REASON_RAIN_WINDOW, REASON_WIND, REASON_TRIGGER, REASON_WIGGLE}
+    {
+        REASON_FORCE,
+        REASON_RAIN,
+        REASON_RAIN_WINDOW,
+        REASON_WIND,
+        REASON_TRIGGER,
+        REASON_WIGGLE,
+        REASON_LOCK,
+    }
 )
 
 # Why nothing was driven
@@ -97,6 +124,7 @@ BLOCK_ADVENT = "advent"
 BLOCK_CONDITION = "condition"
 BLOCK_QUIET = "quiet"
 BLOCK_GUEST = "guest"
+BLOCK_LOCK = "locked"
 # Blocks that mean "deliberately not driven" (logbook)
 LOGGED_BLOCKS = frozenset(
     {
@@ -114,6 +142,7 @@ LOGGED_BLOCKS = frozenset(
         BLOCK_CONDITION,
         BLOCK_QUIET,
         BLOCK_GUEST,
+        BLOCK_LOCK,
     }
 )
 BLOCKS = (
@@ -134,6 +163,7 @@ BLOCKS = (
     BLOCK_CONDITION,
     BLOCK_QUIET,
     BLOCK_GUEST,
+    BLOCK_LOCK,
 )
 
 
@@ -177,6 +207,10 @@ class Situation:
     quiet: bool = False
     # Guest present with "only manual drives": only protections drive
     guest_manual: bool = False
+    # Lock "hold": only protections drive
+    lock_hold: bool = False
+    # Position the last shading drive went to (shading following the sun)
+    shading_from: float | None = None
 
 
 @dataclass(frozen=True)
@@ -295,17 +329,32 @@ def shading_wish(
     heat: bool = False,
     alternative: bool = False,
     hot_day: bool = False,
+    glare: bool = False,
+    depth: int | None = None,
 ) -> Wish | None:
-    """Shading (sun conditions met, heat protection, or a hot day ahead)."""
-    if not (shaded or heat or hot_day):
+    """Shading (sun conditions met, heat protection, a hot day ahead) or glare protection.
+
+    ``depth`` is the position that keeps the sun within the allowed depth of the
+    room; it never goes below the fixed position. With shading and glare at
+    once the lower position wins.
+    """
+    options: list[tuple[int, str]] = []
+    if shaded or heat or hot_day:
+        if shaded:
+            reason = REASON_SHADING
+        elif heat:
+            reason = REASON_HEAT
+        else:
+            reason = REASON_HOT_DAY
+        options.append((shading_position(cfg, alternative), reason))
+    if glare:
+        options.append((cfg["pos_glare"], REASON_GLARE))
+    if not options:
         return None
-    if shaded:
-        reason = REASON_SHADING
-    elif heat:
-        reason = REASON_HEAT
-    else:
-        reason = REASON_HOT_DAY
-    return Wish(PRIO_SHADING, "shading", KIND_SHADING, shading_position(cfg, alternative), reason)
+    position, reason = min(options, key=lambda o: o[0])
+    if depth is not None:
+        position = max(position, depth)
+    return Wish(PRIO_SHADING, "shading", KIND_SHADING, position, reason)
 
 
 _FORCE = {
@@ -338,14 +387,54 @@ def rain_window_wish(cfg: Mapping[str, Any], active: bool, lockout: bool) -> Wis
     return Wish(PRIO_RAIN_WINDOW, "rain_window", KIND_CLOSE, position, REASON_RAIN_WINDOW)
 
 
-def weather_wishes(cfg: Mapping[str, Any], wind: bool, rain: bool) -> list[Wish]:
-    """Wind and rain protection position."""
+def wind_position(cfg: Mapping[str, Any], wanted: int | None) -> int:
+    """Wind position: fixed, or only fully open / fully closed (nearest to ``wanted``)."""
+    mode = cfg["wind_mode"]
+    if mode == WIND_OPEN:
+        return 100
+    if mode == WIND_CLOSED:
+        return 0
+    if mode == WIND_NEAREST:
+        return 100 if wanted is not None and wanted >= 50 else 0
+    return cfg["pos_wind"]
+
+
+def weather_wishes(
+    cfg: Mapping[str, Any], wind: bool, rain: bool, wanted: int | None = None
+) -> list[Wish]:
+    """Wind and rain protection position (``wanted``: what the other functions want)."""
     out = []
     if wind:
-        out.append(Wish(PRIO_WIND_RAIN, "wind", KIND_CLOSE, cfg["pos_wind"], REASON_WIND))
+        position = wind_position(cfg, wanted)
+        kind = (
+            KIND_OPEN
+            if position >= 50 and cfg["wind_mode"] in (WIND_OPEN, WIND_NEAREST)
+            else KIND_CLOSE
+        )
+        out.append(Wish(PRIO_WIND_RAIN, "wind", kind, position, REASON_WIND))
     if rain:
         out.append(Wish(PRIO_WIND_RAIN, "rain", KIND_CLOSE, cfg["pos_rain"], REASON_RAIN))
     return out
+
+
+def lock_wish(cfg: Mapping[str, Any], lock: str | None) -> Wish | None:
+    """Lock open or closed (hold is a block, not a wish)."""
+    if lock == LOCK_OPEN:
+        return Wish(PRIO_LOCK, "lock", KIND_OPEN, 100, REASON_LOCK)
+    if lock == LOCK_CLOSED:
+        return Wish(PRIO_LOCK, "lock", KIND_CLOSE, 0, REASON_LOCK)
+    return None
+
+
+def temp_limit_wish(cfg: Mapping[str, Any], limit: str | None) -> Wish | None:
+    """Outdoor temperature above or below its limit: close."""
+    if limit == "high":
+        reason = REASON_TEMP_HIGH
+    elif limit == "low":
+        reason = REASON_TEMP_LOW
+    else:
+        return None
+    return Wish(PRIO_TEMP_LIMIT, "temperature", KIND_CLOSE, cfg["pos_closed"], reason)
 
 
 def trigger_wish(position: int | None) -> Wish | None:
@@ -377,6 +466,10 @@ def build_wishes(
     rain: bool = False,
     lockout: bool = False,
     trigger_pos: int | None = None,
+    glare: bool = False,
+    depth: int | None = None,
+    lock: str | None = None,
+    temp_limit: str | None = None,
 ) -> list[Wish]:
     """All wishes, from force down to the schedule.
 
@@ -393,21 +486,27 @@ def build_wishes(
         cfg, privacy_phase, morning_enabled=morning_enabled, evening_enabled=evening_enabled
     )
     res = residents_wish(cfg, sleeping)
+    temp = temp_limit_wish(cfg, temp_limit)
     shade = None
     if is_day and (not sleeping or cfg["sleep_allow_shading"]):
-        shade = shading_wish(cfg, shaded, heat, shading_alt, hot_day)
-    base = res or shade or priv or sched
+        shade = shading_wish(cfg, shaded, heat, shading_alt, hot_day, glare, depth)
+    base = res or temp or shade or priv or sched
     win = None
     if not sleeping or cfg["sleep_allow_ventilate"]:
         win = window_wish(window, base, current, trigger)
+    locked = lock_wish(cfg, lock)
+    trig = trigger_wish(trigger_pos)
+    # What the functions below the protections want (for the wind position "nearest")
+    wanted = next((w.position for w in (locked, defense, trig, win, base) if w is not None), None)
     top = [
         force_wish(cfg, force),
         rain_window_wish(cfg, rain_window, lockout),
-        *weather_wishes(cfg, wind, rain),
+        *weather_wishes(cfg, wind, rain, wanted),
+        locked,
         defense,
-        trigger_wish(trigger_pos),
+        trig,
     ]
-    return [w for w in (*top, win, res, shade, priv, sched) if w is not None]
+    return [w for w in (*top, win, res, temp, shade, priv, sched) if w is not None]
 
 
 def _blocked(situation: Situation, wish: Wish | None, block: str) -> Decision:
@@ -478,6 +577,8 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         return _blocked(situation, wish, BLOCK_QUIET)
     if situation.guest_manual and not wish.bypass_rules and not protective:
         return _blocked(situation, wish, BLOCK_GUEST)
+    if situation.lock_hold and not wish.bypass_rules and wish.priority > PRIO_LOCK:
+        return _blocked(situation, wish, BLOCK_LOCK)
 
     if not wish.bypass_rules:
         if situation.frost_block and wish.priority > PRIO_FROST:
@@ -489,7 +590,8 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         if (
             situation.override_active
             and wish.priority > PRIO_OVERRIDE
-            and wish.kind in cfg["override_blocks"]
+            # A manual drive also wins over the temperature limits
+            and (wish.kind in cfg["override_blocks"] or wish.source == "temperature")
         ):
             return _blocked(situation, wish, BLOCK_OVERRIDE)
         if (
@@ -505,7 +607,14 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         if not cfg["shading_end_open"]:
             return _blocked(situation, wish, BLOCK_NO_WISH)
         shading_positions = [
-            p for p in (cfg["pos_shading"], cfg["pos_shading_alt"]) if p is not None
+            p
+            for p in (
+                cfg["pos_shading"],
+                cfg["pos_shading_alt"],
+                cfg["pos_glare"],
+                situation.shading_from,
+            )
+            if p is not None
         ]
         if current is not None and not any(abs(current - p) <= tol for p in shading_positions):
             # Moved away from the shading position (by hand, window ...): leave it
@@ -547,6 +656,11 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
                 and current < wish.position
                 # The morning opening (or catching it up) goes to the shading position
                 and situation.trigger not in (TRIGGER_SCHEDULE_UP, TRIGGER_RECOVERY)
+                # Shading follows the sun upwards from where it put the cover
+                and not (
+                    situation.shading_from is not None
+                    and abs(current - situation.shading_from) <= tol
+                )
             ):
                 return _blocked(situation, wish, BLOCK_DIRECTION)
 

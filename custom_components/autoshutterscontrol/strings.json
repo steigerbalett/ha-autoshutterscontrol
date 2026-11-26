@@ -141,6 +141,7 @@
           "pos_comfort": "Comfort position",
           "pos_shading": "Shading position",
           "pos_shading_alt": "Alternative shading position",
+          "pos_glare": "Glare position",
           "pos_privacy": "Privacy position (evening)",
           "pos_privacy_up": "Privacy position (morning)",
           "pos_frost": "Frost position",
@@ -153,6 +154,7 @@
           "pos_sleep": "While residents sleep. Empty = closed position.",
           "pos_comfort": "Used for a fully open window while the switch Comfort is on.",
           "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.",
+          "pos_glare": "Position during glare protection.",
           "pos_privacy_up": "Empty: same as the evening privacy position.",
           "pos_frost": "Soft frost protection: closing stops here. Empty = off.",
           "pos_wind": "Venetian blinds and awnings: usually 100 (up).",
@@ -172,6 +174,7 @@
           "close_never_up": "Closing never drives up",
           "recovery": "Catch up missed drives",
           "logbook": "Logbook entries",
+          "drive_check": "Check every drive",
           "panel": "Overview in the sidebar",
           "drive_stagger": "Staggered drives",
           "quiet_start": "Quiet hours from",
@@ -188,6 +191,7 @@
           "close_never_up": "No evening drive if the cover is already further closed.",
           "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.",
           "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.",
+          "drive_check": "After the drive time the cover must be at its position (± tolerance). If not, the command is sent once more; if that does not arrive either, the sensor Stuck turns on and a repair issue appears.",
           "panel": "Page AutoShuttersControl in the sidebar with all covers (times, modes, target, last drive, shading) and all linked sensors with their values, as the ASC Configuration and Information Summary in FHEM.",
           "drive_stagger": "Seconds between the start of covers that are due at the same time (radio, power). Not for force, rain, wind and water protection. 0 = all at once.",
           "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.",
@@ -350,6 +354,13 @@
           "hot_day_temp": "Hot day from (forecast maximum)",
           "hot_day_sunny": "Hot day only with sunny forecast",
           "window_azimuth": "Window direction",
+          "sun_depth": "Sun may reach into the room",
+          "glare": "Glare protection",
+          "glare_brightness_start": "Glare from brightness",
+          "glare_brightness_end": "Glare ends below brightness",
+          "glare_delay_start": "Glare protection after",
+          "glare_delay_end": "Glare protection ends after",
+          "away_heat_offset": "Nobody at home: heat limits lower by",
           "shading_alt_entity": "Entity for the alternative position"
         },
         "data_description": {
@@ -371,6 +382,11 @@
           "hot_day_temp": "Forecast maximum temperature of today (forecast sensor or weather entity) from which a day counts as hot.",
           "hot_day_sunny": "The forecast condition of today must be one of the weather conditions for shading (only with a weather entity).",
           "window_azimuth": "Direction the window faces (0 north, 90 east, 180 south, 270 west), for the automatic slat angle. Empty: middle of the sun direction range.",
+          "sun_depth": "How far direct sun may fall over the floor. With window sill and window height (per cover) the shading goes only as far down as needed: a high sun leaves most of the window open. Never below the shading position. Empty: off.",
+          "glare": "Lower the cover to the glare position when bright sun shines on the window, whatever the temperature, also in winter. Only by day, not while nobody is at home.",
+          "glare_brightness_start": "Without a brightness sensor a sunny weather decides.",
+          "glare_delay_end": "It ends at once when the sun leaves the window.",
+          "away_heat_offset": "While nobody is at home (absent, gone or holiday) the temperature limits of the shading and the heat protection are this much lower. 0: off.",
           "shading_alt_entity": "While on, the alternative shading position is used."
         }
       },
@@ -425,10 +441,14 @@
           "wind_threshold": "Wind from",
           "wind_hysteresis": "Hysteresis of the wind",
           "wind_delay_start": "Wait before wind protection",
+          "wind_mode": "Wind protection drives to",
           "wind_delay_end": "Wait after the wind",
           "frost_mode": "Frost protection",
           "frost_temp": "Frost below",
-          "frost_hysteresis": "Hysteresis of the frost"
+          "frost_hysteresis": "Hysteresis of the frost",
+          "close_above_temp": "Close above outdoor temperature",
+          "close_below_temp": "Close below outdoor temperature",
+          "winter_temp": "Winter below (24-hour mean)"
         },
         "data_description": {
           "rain_protection": "Drives to the rain position.",
@@ -442,9 +462,13 @@
           "rain_window_return": "Previous position: when it is dry again or the window is closed, the cover goes back to where it was before the water protection, unless something else applies by now (other drive time, shading, manual drive ...). Target state: always the current target.",
           "wind_protection": "Drives to the wind position.",
           "wind_hysteresis": "Wind ends only below the threshold minus this value.",
+          "wind_mode": "Only fully open or fully closed: a half open cover catches the wind. Nearest: the end nearest to what the other functions want now. A cover moved by hand in between goes back to an end.",
           "wind_delay_end": "Minutes with calm wind before the cover goes back.",
           "frost_mode": "Needs the outdoor temperature (page Sensors).",
-          "frost_hysteresis": "Frost ends only above the threshold plus this value."
+          "frost_hysteresis": "Frost ends only above the threshold plus this value.",
+          "close_above_temp": "Closes while the outdoor temperature is above this, until it is 1 °C lower again. Empty: off.",
+          "close_below_temp": "Closes while the outdoor temperature is below this, until it is 1 °C higher again. Empty: off.",
+          "winter_temp": "The binary sensor Winter is on while the mean outdoor temperature of the last 24 hours is below this (1 °C hysteresis). Use it as the entity of the alternative profile."
         }
       },
       "special": {
@@ -458,6 +482,7 @@
           "advent_start_date": "Own start (DD.MM.)",
           "advent_end": "Advent mode until",
           "advent_end_date": "Own end (DD.MM.)",
+          "holiday_shift": "Holiday: shift the times up to",
           "wiggle_value": "Wiggle by",
           "wiggle_wait": "Wiggle wait"
         },
@@ -468,6 +493,7 @@
           "advent_start": "First Sunday of Advent (calculated every year) or a fixed day.",
           "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.",
           "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.",
+          "holiday_shift": "With the switch Holiday on, the morning and the evening drive shift every day by a random number of minutes, different for every cover and the same after a restart. 0: no shift.",
           "wiggle_value": "Percent for the function check (button Wiggle).",
           "wiggle_wait": "Seconds before the cover goes back."
         }
@@ -656,6 +682,7 @@
             "pos_comfort": "Comfort position",
             "pos_shading": "Shading position",
             "pos_shading_alt": "Alternative shading position",
+            "pos_glare": "Glare position",
             "pos_privacy": "Privacy position (evening)",
             "pos_privacy_up": "Privacy position (morning)",
             "pos_frost": "Frost position",
@@ -672,6 +699,7 @@
             "pos_comfort": "Used for a fully open window while the switch Comfort is on.\n↳ {inh_pos_comfort}",
             "pos_shading": "↳ {inh_pos_shading}",
             "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.\n↳ {inh_pos_shading_alt}",
+            "pos_glare": "Position during glare protection.\n↳ {inh_pos_glare}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
             "pos_frost": "Soft frost protection: closing stops here. Empty = off.\n↳ {inh_pos_frost}",
@@ -692,6 +720,7 @@
             "close_never_up": "Closing never drives up",
             "recovery": "Catch up missed drives",
             "logbook": "Logbook entries",
+            "drive_check": "Check every drive",
             "quiet_start": "Quiet hours from",
             "quiet_end": "Quiet hours until",
             "quiet_start_entity": "Quiet hours from (entity)",
@@ -706,6 +735,7 @@
             "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}",
             "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.\n↳ {inh_recovery}",
             "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}",
+            "drive_check": "After the drive time the cover must be at its position (± tolerance). If not, the command is sent once more; if that does not arrive either, the sensor Stuck turns on and a repair issue appears.\n↳ {inh_drive_check}",
             "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.\n↳ {inh_quiet_start}",
             "quiet_end": "End of the quiet hours (may be after midnight).\n↳ {inh_quiet_end}",
             "quiet_start_entity": "Start from an input_datetime or time entity; wins over the fixed time.\n↳ {inh_quiet_start_entity}",
@@ -868,6 +898,13 @@
             "hot_day_temp": "Hot day from (forecast maximum)",
             "hot_day_sunny": "Hot day only with sunny forecast",
             "window_azimuth": "Window direction",
+            "sun_depth": "Sun may reach into the room",
+            "glare": "Glare protection",
+            "glare_brightness_start": "Glare from brightness",
+            "glare_brightness_end": "Glare ends below brightness",
+            "glare_delay_start": "Glare protection after",
+            "glare_delay_end": "Glare protection ends after",
+            "away_heat_offset": "Nobody at home: heat limits lower by",
             "shading_alt_entity": "Entity for the alternative position"
           },
           "data_description": {
@@ -900,6 +937,13 @@
             "hot_day_temp": "Forecast maximum temperature of today (forecast sensor or weather entity) from which a day counts as hot.\n↳ {inh_hot_day_temp}",
             "hot_day_sunny": "The forecast condition of today must be one of the weather conditions for shading (only with a weather entity).\n↳ {inh_hot_day_sunny}",
             "window_azimuth": "Direction the window faces (0 north, 90 east, 180 south, 270 west), for the automatic slat angle. Empty: middle of the sun direction range.\n↳ {inh_window_azimuth}",
+            "sun_depth": "How far direct sun may fall over the floor. With window sill and window height (per cover) the shading goes only as far down as needed: a high sun leaves most of the window open. Never below the shading position. Empty: off.\n↳ {inh_sun_depth}",
+            "glare": "Lower the cover to the glare position when bright sun shines on the window, whatever the temperature, also in winter. Only by day, not while nobody is at home.\n↳ {inh_glare}",
+            "glare_brightness_start": "Without a brightness sensor a sunny weather decides.\n↳ {inh_glare_brightness_start}",
+            "glare_brightness_end": "↳ {inh_glare_brightness_end}",
+            "glare_delay_start": "↳ {inh_glare_delay_start}",
+            "glare_delay_end": "It ends at once when the sun leaves the window.\n↳ {inh_glare_delay_end}",
+            "away_heat_offset": "While nobody is at home (absent, gone or holiday) the temperature limits of the shading and the heat protection are this much lower. 0: off.\n↳ {inh_away_heat_offset}",
             "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -963,10 +1007,13 @@
             "wind_threshold": "Wind from",
             "wind_hysteresis": "Hysteresis of the wind",
             "wind_delay_start": "Wait before wind protection",
+            "wind_mode": "Wind protection drives to",
             "wind_delay_end": "Wait after the wind",
             "frost_mode": "Frost protection",
             "frost_temp": "Frost below",
-            "frost_hysteresis": "Hysteresis of the frost"
+            "frost_hysteresis": "Hysteresis of the frost",
+            "close_above_temp": "Close above outdoor temperature",
+            "close_below_temp": "Close below outdoor temperature"
           },
           "data_description": {
             "rain_protection": "Drives to the rain position.\n↳ {inh_rain_protection}",
@@ -983,10 +1030,13 @@
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Wind ends only below the threshold minus this value.\n↳ {inh_wind_hysteresis}",
             "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_mode": "Only fully open or fully closed: a half open cover catches the wind. Nearest: the end nearest to what the other functions want now. A cover moved by hand in between goes back to an end.\n↳ {inh_wind_mode}",
             "wind_delay_end": "Minutes with calm wind before the cover goes back.\n↳ {inh_wind_delay_end}",
             "frost_mode": "Needs the outdoor temperature (page Sensors).\n↳ {inh_frost_mode}",
             "frost_temp": "↳ {inh_frost_temp}",
-            "frost_hysteresis": "Frost ends only above the threshold plus this value.\n↳ {inh_frost_hysteresis}"
+            "frost_hysteresis": "Frost ends only above the threshold plus this value.\n↳ {inh_frost_hysteresis}",
+            "close_above_temp": "Closes while the outdoor temperature is above this, until it is 1 °C lower again. Empty: off.\n↳ {inh_close_above_temp}",
+            "close_below_temp": "Closes while the outdoor temperature is below this, until it is 1 °C higher again. Empty: off.\n↳ {inh_close_below_temp}"
           }
         },
         "special": {
@@ -1000,6 +1050,7 @@
             "advent_start_date": "Own start (DD.MM.)",
             "advent_end": "Advent mode until",
             "advent_end_date": "Own end (DD.MM.)",
+            "holiday_shift": "Holiday: shift the times up to",
             "wiggle_value": "Wiggle by",
             "wiggle_wait": "Wiggle wait"
           },
@@ -1011,6 +1062,7 @@
             "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
             "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.\n↳ {inh_advent_end_date}",
+            "holiday_shift": "With the switch Holiday on, the morning and the evening drive shift every day by a random number of minutes, different for every cover and the same after a restart. 0: no shift.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}"
           }
@@ -1162,6 +1214,7 @@
             "pos_comfort": "Comfort position",
             "pos_shading": "Shading position",
             "pos_shading_alt": "Alternative shading position",
+            "pos_glare": "Glare position",
             "pos_privacy": "Privacy position (evening)",
             "pos_privacy_up": "Privacy position (morning)",
             "pos_frost": "Frost position",
@@ -1180,6 +1233,7 @@
             "pos_comfort": "Used for a fully open window while the switch Comfort is on.\n↳ {inh_pos_comfort}",
             "pos_shading": "↳ {inh_pos_shading}",
             "pos_shading_alt": "Used while the entity for the alternative position (page Shading) is on.\n↳ {inh_pos_shading_alt}",
+            "pos_glare": "Position during glare protection.\n↳ {inh_pos_glare}",
             "pos_privacy": "↳ {inh_pos_privacy}",
             "pos_privacy_up": "Empty: same as the evening privacy position.\n↳ {inh_pos_privacy_up}",
             "pos_frost": "Soft frost protection: closing stops here. Empty = off.\n↳ {inh_pos_frost}",
@@ -1239,6 +1293,7 @@
             "close_never_up": "Closing never drives up",
             "recovery": "Catch up missed drives",
             "logbook": "Logbook entries",
+            "drive_check": "Check every drive",
             "quiet_start": "Quiet hours from",
             "quiet_end": "Quiet hours until",
             "quiet_start_entity": "Quiet hours from (entity)",
@@ -1253,6 +1308,7 @@
             "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}",
             "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.\n↳ {inh_recovery}",
             "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}",
+            "drive_check": "After the drive time the cover must be at its position (± tolerance). If not, the command is sent once more; if that does not arrive either, the sensor Stuck turns on and a repair issue appears.\n↳ {inh_drive_check}",
             "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.\n↳ {inh_quiet_start}",
             "quiet_end": "End of the quiet hours (may be after midnight).\n↳ {inh_quiet_end}",
             "quiet_start_entity": "Start from an input_datetime or time entity; wins over the fixed time.\n↳ {inh_quiet_start_entity}",
@@ -1469,6 +1525,16 @@
             "hot_day_temp": "Hot day from (forecast maximum)",
             "hot_day_sunny": "Hot day only with sunny forecast",
             "window_azimuth": "Window direction",
+            "horizon": "Horizon of the window",
+            "window_sill": "Window sill above the floor",
+            "window_height": "Window height",
+            "sun_depth": "Sun may reach into the room",
+            "glare": "Glare protection",
+            "glare_brightness_start": "Glare from brightness",
+            "glare_brightness_end": "Glare ends below brightness",
+            "glare_delay_start": "Glare protection after",
+            "glare_delay_end": "Glare protection ends after",
+            "away_heat_offset": "Nobody at home: heat limits lower by",
             "shading_alt_entity": "Entity for the alternative position"
           },
           "data_description": {
@@ -1501,6 +1567,16 @@
             "hot_day_temp": "Forecast maximum temperature of today (forecast sensor or weather entity) from which a day counts as hot.\n↳ {inh_hot_day_temp}",
             "hot_day_sunny": "The forecast condition of today must be one of the weather conditions for shading (only with a weather entity).\n↳ {inh_hot_day_sunny}",
             "window_azimuth": "Direction the window faces (0 north, 90 east, 180 south, 270 west), for the automatic slat angle. Empty: middle of the sun direction range.\n↳ {inh_window_azimuth}",
+            "horizon": "Points direction:elevation in degrees, e.g. 200:18, 230:25. Below the horizon the sun counts as not on the window. The button Sun has left the window adds a point.\n↳ {inh_horizon}",
+            "window_sill": "Height of the lower edge of the glass, for shading by the depth of the sun.\n↳ {inh_window_sill}",
+            "window_height": "Height of the glass.\n↳ {inh_window_height}",
+            "sun_depth": "How far direct sun may fall over the floor. With window sill and window height (per cover) the shading goes only as far down as needed: a high sun leaves most of the window open. Never below the shading position. Empty: off.\n↳ {inh_sun_depth}",
+            "glare": "Lower the cover to the glare position when bright sun shines on the window, whatever the temperature, also in winter. Only by day, not while nobody is at home.\n↳ {inh_glare}",
+            "glare_brightness_start": "Without a brightness sensor a sunny weather decides.\n↳ {inh_glare_brightness_start}",
+            "glare_brightness_end": "↳ {inh_glare_brightness_end}",
+            "glare_delay_start": "↳ {inh_glare_delay_start}",
+            "glare_delay_end": "It ends at once when the sun leaves the window.\n↳ {inh_glare_delay_end}",
+            "away_heat_offset": "While nobody is at home (absent, gone or holiday) the temperature limits of the shading and the heat protection are this much lower. 0: off.\n↳ {inh_away_heat_offset}",
             "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -1524,6 +1600,7 @@
             "trigger_value2": "Second trigger value",
             "trigger_position2": "Second trigger position",
             "trigger_return": "Go back after the trigger",
+            "holiday_shift": "Holiday: shift the times up to",
             "wiggle_value": "Wiggle by",
             "wiggle_wait": "Wiggle wait",
             "lockout_entity": "Hardware lock"
@@ -1547,6 +1624,7 @@
             "trigger_value2": "Optional second state with its own position.\n↳ {inh_trigger_value2}",
             "trigger_position2": "↳ {inh_trigger_position2}",
             "trigger_return": "When the trigger state ends, the cover goes to its target.\n↳ {inh_trigger_return}",
+            "holiday_shift": "With the switch Holiday on, the morning and the evening drive shift every day by a random number of minutes, different for every cover and the same after a restart. 0: no shift.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}",
             "lockout_entity": "Switch, lock or input boolean that locks the actuator while the door is open (lock-out protection hard, switch Hardware lock of the central device).\n↳ {inh_lockout_entity}"
@@ -1572,10 +1650,13 @@
             "wind_threshold": "Wind from",
             "wind_hysteresis": "Hysteresis of the wind",
             "wind_delay_start": "Wait before wind protection",
+            "wind_mode": "Wind protection drives to",
             "wind_delay_end": "Wait after the wind",
             "frost_mode": "Frost protection",
             "frost_temp": "Frost below",
-            "frost_hysteresis": "Hysteresis of the frost"
+            "frost_hysteresis": "Hysteresis of the frost",
+            "close_above_temp": "Close above outdoor temperature",
+            "close_below_temp": "Close below outdoor temperature"
           },
           "data_description": {
             "rain_protection": "Drives to the rain position.\n↳ {inh_rain_protection}",
@@ -1592,10 +1673,13 @@
             "wind_threshold": "↳ {inh_wind_threshold}",
             "wind_hysteresis": "Wind ends only below the threshold minus this value.\n↳ {inh_wind_hysteresis}",
             "wind_delay_start": "↳ {inh_wind_delay_start}",
+            "wind_mode": "Only fully open or fully closed: a half open cover catches the wind. Nearest: the end nearest to what the other functions want now. A cover moved by hand in between goes back to an end.\n↳ {inh_wind_mode}",
             "wind_delay_end": "Minutes with calm wind before the cover goes back.\n↳ {inh_wind_delay_end}",
             "frost_mode": "Needs the outdoor temperature (page Sensors).\n↳ {inh_frost_mode}",
             "frost_temp": "↳ {inh_frost_temp}",
-            "frost_hysteresis": "Frost ends only above the threshold plus this value.\n↳ {inh_frost_hysteresis}"
+            "frost_hysteresis": "Frost ends only above the threshold plus this value.\n↳ {inh_frost_hysteresis}",
+            "close_above_temp": "Closes while the outdoor temperature is above this, until it is 1 °C lower again. Empty: off.\n↳ {inh_close_above_temp}",
+            "close_below_temp": "Closes while the outdoor temperature is below this, until it is 1 °C higher again. Empty: off.\n↳ {inh_close_below_temp}"
           }
         },
         "extra": {
@@ -1768,6 +1852,7 @@
         "pos_comfort": "Comfort position",
         "pos_shading": "Shading position",
         "pos_shading_alt": "Alternative shading position",
+        "pos_glare": "Glare position",
         "pos_privacy": "Privacy position (evening)",
         "pos_privacy_up": "Privacy position (morning)",
         "pos_frost": "Frost position",
@@ -1818,6 +1903,16 @@
         "hot_day_temp": "Hot day from (forecast maximum)",
         "hot_day_sunny": "Hot day only with sunny forecast",
         "window_azimuth": "Window direction",
+        "horizon": "Horizon of the window",
+        "window_sill": "Window sill above the floor",
+        "window_height": "Window height",
+        "sun_depth": "Sun may reach into the room",
+        "glare": "Glare protection",
+        "glare_brightness_start": "Glare from brightness",
+        "glare_brightness_end": "Glare ends below brightness",
+        "glare_delay_start": "Glare protection after",
+        "glare_delay_end": "Glare protection ends after",
+        "away_heat_offset": "Nobody at home: heat limits lower by",
         "shading_alt_entity": "Entity for the alternative position",
         "tilt_entity": "Own slat entity",
         "tilt_open": "Slats when open",
@@ -1851,10 +1946,14 @@
         "wind_threshold": "Wind from",
         "wind_hysteresis": "Hysteresis of the wind",
         "wind_delay_start": "Wait before wind protection",
+        "wind_mode": "Wind protection drives to",
         "wind_delay_end": "Wait after the wind",
         "frost_mode": "Frost protection",
         "frost_temp": "Frost below",
         "frost_hysteresis": "Hysteresis of the frost",
+        "close_above_temp": "Close above outdoor temperature",
+        "close_below_temp": "Close below outdoor temperature",
+        "winter_temp": "Winter below (24-hour mean)",
         "force_close": "Force close",
         "force_open": "Force open",
         "force_ventilate": "Force ventilate",
@@ -1873,6 +1972,7 @@
         "trigger_value2": "Second trigger value",
         "trigger_position2": "Second trigger position",
         "trigger_return": "Go back after the trigger",
+        "holiday_shift": "Holiday: shift the times up to",
         "wiggle_value": "Wiggle by",
         "wiggle_wait": "Wiggle wait",
         "lockout_entity": "Hardware lock",
@@ -1895,6 +1995,7 @@
         "close_never_up": "Closing never drives up",
         "recovery": "Catch up missed drives",
         "logbook": "Logbook entries",
+        "drive_check": "Check every drive",
         "panel": "Overview in the sidebar",
         "drive_stagger": "Staggered drives",
         "quiet_start": "Quiet hours from",
@@ -2087,6 +2188,23 @@
         "manual_only": "Only manual drives",
         "inherit": "Inherit"
       }
+    },
+    "wind_mode": {
+      "options": {
+        "position": "Wind position",
+        "nearest": "Nearest end (open or closed)",
+        "open": "Always open",
+        "closed": "Always closed",
+        "inherit": "Inherit"
+      }
+    },
+    "lock": {
+      "options": {
+        "none": "None",
+        "hold": "Hold",
+        "open": "Force open",
+        "closed": "Force closed"
+      }
     }
   },
   "entity": {
@@ -2138,6 +2256,9 @@
       },
       "cover_guest": {
         "name": "Guest present"
+      },
+      "global_holiday": {
+        "name": "Holiday"
       }
     },
     "binary_sensor": {
@@ -2188,6 +2309,15 @@
       },
       "guest": {
         "name": "Guest"
+      },
+      "winter": {
+        "name": "Winter"
+      },
+      "glare": {
+        "name": "Glare protection"
+      },
+      "stuck": {
+        "name": "Stuck"
       }
     },
     "sensor": {
@@ -2220,7 +2350,11 @@
           "wind": "Wind protection",
           "trigger": "External trigger",
           "wiggle": "Wiggle",
-          "hot_day": "Hot day"
+          "hot_day": "Hot day",
+          "glare": "Glare protection",
+          "lock": "Lock",
+          "temp_high": "Above temperature limit",
+          "temp_low": "Below temperature limit"
         }
       },
       "target": {
@@ -2294,7 +2428,8 @@
           "advent": "Advent",
           "condition": "Extra condition",
           "quiet": "Quiet hours",
-          "guest": "Guest"
+          "guest": "Guest",
+          "locked": "Lock"
         }
       },
       "sun_azimuth": {
@@ -2331,6 +2466,9 @@
       },
       "wiggle": {
         "name": "Wiggle"
+      },
+      "sun_left": {
+        "name": "Sun has left the window"
       }
     },
     "select": {
@@ -2368,6 +2506,15 @@
           "home": "Only when someone is at home",
           "absent": "Only when nobody is at home",
           "off": "Off"
+        }
+      },
+      "lock": {
+        "name": "Lock",
+        "state": {
+          "none": "None",
+          "hold": "Hold",
+          "open": "Force open",
+          "closed": "Force closed"
         }
       }
     },
@@ -2527,6 +2674,28 @@
           "description": "Only covers of this profile (name)."
         }
       }
+    },
+    "set_lock": {
+      "name": "Set lock",
+      "description": "Locks covers: hold (no automatic drives except protection), force open or force closed, optionally for some minutes. A manual drive ends the lock.",
+      "fields": {
+        "entity_id": {
+          "name": "Covers",
+          "description": "Covers to lock. Empty: all."
+        },
+        "profile": {
+          "name": "Profile",
+          "description": "Only covers of this profile (name)."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "None ends the lock."
+        },
+        "duration": {
+          "name": "Duration",
+          "description": "Minutes until the lock ends by itself. Empty or 0: until it is ended."
+        }
+      }
     }
   },
   "exceptions": {
@@ -2562,6 +2731,12 @@
     },
     "logbook_simulated": {
       "message": "would drive to {position} % ({reason}), simulation"
+    },
+    "logbook_retry": {
+      "message": "did not reach {position} %, sending again"
+    },
+    "logbook_stuck": {
+      "message": "is stuck: should be at {position} %, is at {current} %"
     }
   },
   "issues": {
@@ -2644,6 +2819,26 @@
     "check_quiet_incomplete": {
       "title": "{name}: quiet hours incomplete",
       "description": "Only the start or only the end of the quiet hours is set (page Drive behaviour)."
+    },
+    "stuck": {
+      "title": "{name}: drive did not arrive",
+      "description": "The cover should be at {target} % but is at {position} %, also after a second command. Check the motor, the end positions and the connection. The issue clears at the next drive that arrives."
+    },
+    "check_horizon_invalid": {
+      "title": "{name}: horizon not readable",
+      "description": "The horizon \"{value}\" is not in the form direction:elevation, direction:elevation (page Shading). It is not used."
+    },
+    "check_depth_incomplete": {
+      "title": "{name}: shading by the depth of the sun incomplete",
+      "description": "Window sill, window height and how far the sun may reach into the room are all needed (page Shading)."
+    },
+    "check_glare_brightness_order": {
+      "title": "{name}: glare thresholds",
+      "description": "Glare ends below {end} lx, which is above the start at {start} lx (page Shading)."
+    },
+    "check_temp_limits_order": {
+      "title": "{name}: temperature limits",
+      "description": "Close below {below} °C is not below close above {above} °C (page Weather protection)."
     }
   }
 }

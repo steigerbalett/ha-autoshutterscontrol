@@ -8,8 +8,10 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import AscConfigEntry
 from .engine.arbiter import TRIGGER_APPLY_TARGET
+from .engine.horizon import fmt as horizon_fmt
 from .entity import AscCoverEntity, AscGlobalEntity
 from .runtime import AscManager, CoverController
+from .services import write_cover_setting
 
 
 async def async_setup_entry(
@@ -33,6 +35,7 @@ async def async_setup_entry(
                 CoverButton(controller, "apply_target"),
                 CoverButton(controller, "clear_override"),
                 CoverButton(controller, "wiggle"),
+                CoverButton(controller, "sun_left"),
             ],
             config_subentry_id=controller.subentry_id,
         )
@@ -72,5 +75,16 @@ class CoverButton(AscCoverEntity, ButtonEntity):
             self.controller.evaluate(TRIGGER_APPLY_TARGET)
         elif self._key == "wiggle":
             self.controller.wiggle()
+        elif self._key == "sun_left":
+            # The sun disappears behind something: a point of the horizon
+            controller = self.controller
+            write_cover_setting(
+                self.hass,
+                controller.manager,
+                controller.subentry_id,
+                "horizon",
+                horizon_fmt(controller.horizon_with_sun()),
+            )
+            controller.tick_later()
         else:
             self.controller.clear_override()

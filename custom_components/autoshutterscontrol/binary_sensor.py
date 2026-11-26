@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -31,6 +31,7 @@ async def async_setup_entry(
             *(GlobalProtectionBinarySensor(manager, kind) for kind in (RAIN, WIND, FROST)),
             SunnyBinarySensor(manager),
             GlobalHotBinarySensor(manager),
+            WinterBinarySensor(manager),
         ]
     )
     for controller in manager.controllers.values():
@@ -47,6 +48,8 @@ async def async_setup_entry(
                 HotDayBinarySensor(controller),
                 QuietBinarySensor(controller),
                 GuestBinarySensor(controller),
+                GlareBinarySensor(controller),
+                StuckBinarySensor(controller),
             ],
             config_subentry_id=controller.subentry_id,
         )
@@ -235,3 +238,60 @@ class GuestBinarySensor(AscCoverEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.controller.guest_present()
+
+
+class WinterBinarySensor(_Refreshed, AscGlobalEntity, BinarySensorEntity):
+    """Mean outdoor temperature of the last 24 hours below the winter limit."""
+
+    def __init__(self, manager: AscManager) -> None:
+        super().__init__(manager, "winter")
+
+    @property
+    def is_on(self) -> bool:
+        return self.manager.winter
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {
+            "mean_24h": self.manager.winter_mean(),
+            "limit": self.manager.global_cfg["winter_temp"],
+        }
+
+
+class GlareBinarySensor(AscCoverEntity, BinarySensorEntity):
+    """Glare protection holds the cover at the glare position."""
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "glare")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.glare_active
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        glare = self.controller.state.get("glare") or {}
+        return {"state": self.controller.glare_state, "since": glare.get("since")}
+
+
+class StuckBinarySensor(AscCoverEntity, BinarySensorEntity):
+    """The last drive did not arrive, also not after a second try."""
+
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "stuck")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.stuck is not None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        stuck = self.controller.stuck or {}
+        return {
+            "target": stuck.get("target"),
+            "position": stuck.get("position"),
+            "since": stuck.get("time"),
+        }

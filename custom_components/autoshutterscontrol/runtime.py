@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import deque
+from collections import ChainMap, deque
 from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import date, datetime, time as dt_time, timedelta
@@ -92,6 +92,7 @@ from .const import (
     SWITCH_EVENING,
     SWITCH_GUEST,
     SWITCH_HARDWARE_LOCK,
+    SWITCH_HOLIDAY,
     SWITCH_MORNING,
     SWITCH_PARTY,
     SWITCH_PAUSE,
@@ -113,6 +114,7 @@ from .engine.arbiter import (
     BLOCK_QUIET,
     BLOCK_UNAVAILABLE,
     LOGGED_BLOCKS,
+    REASON_GLARE,
     REASON_HEAT,
     REASON_HOT_DAY,
     REASON_MANUAL,
@@ -126,6 +128,7 @@ from .engine.arbiter import (
     TRIGGER_APPLY_TARGET,
     TRIGGER_EXTERNAL,
     TRIGGER_FORCE,
+    TRIGGER_LOCK,
     TRIGGER_OVERRIDE_END,
     TRIGGER_PRIVACY,
     TRIGGER_PROFILE,
@@ -162,6 +165,7 @@ from .engine.daynight import (
     privacy_phase,
     privacy_times,
 )
+from .engine.horizon import add as horizon_add, hidden as horizon_hidden, safe_parse
 from .engine.hotday import is_hot, sun_on_window
 from .engine.override import manual_counts_as_scheduled, override_until
 from .engine.period import in_period, in_quiet, parse_day
@@ -200,6 +204,9 @@ from .engine.settings import (
     KIND_OPEN,
     KIND_SHADING,
     KIND_VENTILATE,
+    LOCK_HOLD,
+    LOCK_MODES,
+    LOCK_NONE,
     LOCKOUT_HARD,
     MODE_ENTITY,
     MODE_RESIDENTS,
@@ -208,12 +215,14 @@ from .engine.settings import (
     RECOVERY_OFF,
     RES_ABSENT,
     RES_AWOKEN,
+    RES_GONE,
     RES_HOME,
     RESET_NEXT_SCHEDULE,
     RETURN_PREVIOUS,
     SETTINGS,
     TILT_AFTER,
     TILT_FIRST,
+    WIND_POSITION,
     WINDOW_CLOSED,
     WINDOW_OPEN,
     WINDOW_TILTED,
@@ -227,14 +236,16 @@ from .engine.shading import (
     average,
     combine as shading_combine,
     conditions as shading_conditions,
+    depth_position,
     heat_active,
+    in_azimuth,
     in_time_window,
     step as shading_step,
     sun_left,
 )
 from .engine.special import advent_active, trigger_position, wiggle_target
 from .engine.sun import Location, SunCalculator
-from .engine.tilt import shading_tilt, tilt_for
+from .engine.tilt import shading_tilt, tilt_for, window_azimuth
 from .engine.window import lockout_active, window_position, window_state
 
 _LOGGER = logging.getLogger(__name__)
@@ -248,7 +259,17 @@ _QUIET_TRIGGERS = frozenset({TRIGGER_APPLY_TARGET})
 # Drives that are never staggered (protection must be fast)
 _URGENT_SOURCES = frozenset({"force", "rain_window", "wind", "rain"})
 # Shading drives (slat position by the sun)
-_SHADING_REASONS = frozenset({REASON_SHADING, REASON_HEAT, REASON_HOT_DAY})
+_SHADING_REASONS = frozenset({REASON_SHADING, REASON_HEAT, REASON_HOT_DAY, REASON_GLARE})
+# Outdoor temperature samples for the 24 hour mean (winter)
+WINTER_SAMPLE = timedelta(minutes=10)
+WINTER_HYSTERESIS = 1.0
+# Temperature limits end this many degrees past the limit
+TEMP_LIMIT_HYSTERESIS = 1.0
+# Shading by the depth of the sun changes at most this often
+DEPTH_HOLD = timedelta(minutes=15)
+# Drive check: extra wait after the drive time, and how often to wait for a moving cover
+DRIVE_CHECK_EXTRA = 10
+DRIVE_CHECK_WAITS = 3
 
 
 def _never(*_args: Any, **_kwargs: Any) -> bool:
@@ -602,6 +623,8 @@ class AscManager:
             self.data = stored
         self.data.setdefault("global", {})
         self.data.setdefault("covers", {})
+        # Random number for the holiday shifts: the same times after a restart
+        self.data["global"].setdefault("seed", random.getrandbits(32))
         # Last time Home Assistant ran (for catching up missed drives)
         self.previous_alive = _parse(self.data["global"].get("alive"))
         self.data["global"]["alive"] = _iso(dt_util.utcnow())
@@ -634,6 +657,7 @@ class AscManager:
             controller.async_start()
         self._subscribe_residents()
         self.global_protection(dt_util.utcnow())
+        self.sample_temperature(dt_util.utcnow())
 
         self._unsubs.append(
             async_track_time_change(self.hass, self._midnight, hour=0, minute=0, second=5)
@@ -648,6 +672,7 @@ class AscManager:
         self.data["global"]["alive"] = _iso(dt_util.utcnow())
         self.save()
         self.global_protection(now)
+        self.sample_temperature(now)
         for controller in self.controllers.values():
             controller.tick()
 
@@ -667,6 +692,52 @@ class AscManager:
             self.global_protect[kind] = new
         if changed:
             async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+
+    # --- winter (24 hour mean of the outdoor temperature) -----------------------
+
+    @callback
+    def sample_temperature(self, _now: datetime | None = None) -> None:
+        """Keep one outdoor temperature every 10 minutes for the last 24 hours."""
+        now = dt_util.utcnow()
+        temp = _number(self.hass, self.global_cfg["outdoor_temperature_sensor"])
+        samples = self.data["global"].setdefault("temps", [])
+        cutoff = now - timedelta(hours=24)
+        samples[:] = [s for s in samples if (_parse(s[0]) or now) >= cutoff]
+        last = _parse(samples[-1][0]) if samples else None
+        if temp is not None and (last is None or now - last >= WINTER_SAMPLE):
+            samples.append([_iso(now), temp])
+        limit = self.global_cfg["winter_temp"]
+        mean = self.winter_mean()
+        old = bool(self.data["global"].get("winter"))
+        new = old
+        if limit is None:
+            new = False
+        elif mean is not None:
+            new = mean < (limit + WINTER_HYSTERESIS if old else limit)
+        if new != old:
+            self.data["global"]["winter"] = new
+            self.save()
+            async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+
+    def winter_mean(self) -> float | None:
+        """Mean outdoor temperature of the last 24 hours."""
+        samples = self.data["global"].get("temps") or []
+        if not samples:
+            return None
+        return round(sum(float(v) for _, v in samples) / len(samples), 1)
+
+    @property
+    def winter(self) -> bool:
+        """The 24 hour mean is below the winter limit."""
+        return bool(self.data["global"].get("winter"))
+
+    def holiday_shift(self, key: str, minutes: int, direction: str, day: date) -> int:
+        """Holiday: random shift of a drive, the same for a day after every restart."""
+        if not self.switches[SWITCH_HOLIDAY] or minutes <= 0:
+            return 0
+        seed = self.data["global"].get("seed", 0)
+        rng = random.Random(f"{seed}-{key}-{day.isoformat()}-{direction}")  # noqa: S311
+        return rng.randint(-minutes, minutes)
 
     @callback
     def release_deferred(self, controllers=None) -> None:
@@ -938,7 +1009,7 @@ class AscManager:
         self.switches[key] = value
         self.save()
         async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
-        if key in (SWITCH_WEEKEND_TIMES, SWITCH_MORNING, SWITCH_EVENING):
+        if key in (SWITCH_WEEKEND_TIMES, SWITCH_MORNING, SWITCH_EVENING, SWITCH_HOLIDAY):
             self.recalculate()
         if key == SWITCH_COMFORT and old != value:
             for controller in self.controllers.values():
@@ -1028,6 +1099,11 @@ class CoverController:
         self._quiet: bool | None = None
         self._sun_cache: tuple[Any, bool] | None = None
         self._guest = False
+        # Shading by the depth of the sun: (since, position)
+        self._depth: tuple[datetime, int | None] | None = None
+        self._unsub_check: CALLBACK_TYPE | None = None
+        self._unsub_lock: CALLBACK_TYPE | None = None
+        self._unsub_later: CALLBACK_TYPE | None = None
 
     # --- life cycle ---------------------------------------------------------
 
@@ -1043,6 +1119,7 @@ class CoverController:
         self._trigger_pos = self.trigger_pos()
         self._guest = self.guest_present()
         self._protection_tick(dt_util.utcnow(), evaluate=False)
+        self._restore_lock()
         self._unsub_started = async_at_started(self.hass, self._on_started)
 
     @callback
@@ -1061,6 +1138,9 @@ class CoverController:
             "_unsub_position",
             "_unsub_wiggle",
             "_unsub_recovery",
+            "_unsub_check",
+            "_unsub_lock",
+            "_unsub_later",
         ):
             unsub = getattr(self, name)
             if unsub:
@@ -1403,6 +1483,13 @@ class CoverController:
             self.manager.switches[SWITCH_WEEKEND_TIMES],
             self._windows,
             self._entity_time,
+            self._shift,
+        )
+
+    def _shift(self, direction: str, day: date) -> int:
+        """Holiday shift of the morning or evening drive in minutes."""
+        return self.manager.holiday_shift(
+            self.subentry_id, self.cfg["holiday_shift"], direction, day
         )
 
     def _entity_time(self, direction: str, day: date) -> datetime | None:
@@ -1575,6 +1662,10 @@ class CoverController:
     @callback
     def set_override(self, now: datetime) -> None:
         """A manual drive was detected."""
+        self._cancel_drive_check()
+        if self.state.pop("lock", None) is not None:
+            # A manual drive ends a lock
+            self._cancel_lock_timer()
         until = override_until(self.cfg, now, self.tz)
         self.state["override"] = {"since": _iso(now), "until": _iso(until)}
         self._schedule_override_end(until)
@@ -1608,7 +1699,12 @@ class CoverController:
             self._unsub_override()
             self._unsub_override = None
         if self.state.get("override") is None:
+            if self.state.get("lock") is not None:
+                # Resume automatic control also ends a lock
+                self.set_lock(LOCK_NONE)
             return
+        if self.state.pop("lock", None) is not None:
+            self._cancel_lock_timer()
         self.state["override"] = None
         self._save()
         self.notify()
@@ -1644,6 +1740,7 @@ class CoverController:
             self.manager.switches[SWITCH_WEEKEND_TIMES],
             self._windows,
             self._entity_time,
+            self._shift,
         )
 
     @callback
@@ -1734,6 +1831,7 @@ class CoverController:
         """Check the dynamic modes and the privacy by brightness."""
         now = dt_util.now(self.tz)
         self._protection_tick(now)
+        self._check_temp_limit(now)
         self._check_residents(now)
         self._shading_tick(now)
         self._check_quiet(now)
@@ -1833,6 +1931,101 @@ class CoverController:
         now = dt_util.now(self.tz)
         self.manager.global_protection(now)
         self._protection_tick(now)
+        self._check_temp_limit(now)
+
+    # --- temperature limits -------------------------------------------------------
+
+    @property
+    def temp_limit(self) -> str | None:
+        """ "high" or "low" while the outdoor temperature is past a limit."""
+        return self.state.get("temp_limit")
+
+    @callback
+    def _check_temp_limit(self, now: datetime, *, evaluate: bool = True) -> None:
+        cfg = self.cfg
+        above_limit, below_limit = cfg["close_above_temp"], cfg["close_below_temp"]
+        old = self.temp_limit
+        new = old
+        if above_limit is None and below_limit is None:
+            new = None
+        else:
+            temp = _number(self.hass, cfg["outdoor_temperature_sensor"])
+            if temp is not None:
+                hyst = TEMP_LIMIT_HYSTERESIS
+                if above_limit is not None and temp > above_limit - (hyst if old == "high" else 0):
+                    new = "high"
+                elif below_limit is not None and temp < below_limit + (hyst if old == "low" else 0):
+                    new = "low"
+                else:
+                    new = None
+        if new == old:
+            return
+        if new is None:
+            self.state.pop("temp_limit", None)
+        else:
+            self.state["temp_limit"] = new
+        self._save()
+        self.notify()
+        if evaluate:
+            self.evaluate(TRIGGER_PROTECTION)
+
+    # --- lock (action or select) --------------------------------------------------
+
+    @property
+    def lock(self) -> str | None:
+        """Lock mode (hold, open, closed) or None."""
+        data = self.state.get("lock")
+        return data.get("mode") if data else None
+
+    @property
+    def lock_until(self) -> datetime | None:
+        """End of a lock set with a duration."""
+        data = self.state.get("lock")
+        return _parse(data.get("until")) if data else None
+
+    def _cancel_lock_timer(self) -> None:
+        if self._unsub_lock:
+            self._unsub_lock()
+            self._unsub_lock = None
+
+    def _restore_lock(self) -> None:
+        until = self.lock_until
+        if self.lock is None:
+            return
+        if until is not None and until <= dt_util.utcnow():
+            self.state.pop("lock", None)
+            self._save()
+            return
+        if until is not None:
+            self._unsub_lock = async_track_point_in_time(self.hass, self._on_lock_end, until)
+
+    @callback
+    def _on_lock_end(self, _now: datetime) -> None:
+        self._unsub_lock = None
+        self.set_lock(LOCK_NONE)
+
+    @callback
+    def set_lock(self, mode: str | None, minutes: float | None = None) -> None:
+        """Set or end a lock; with ``minutes`` it ends by itself."""
+        self._cancel_lock_timer()
+        if mode in (None, LOCK_NONE):
+            if self.state.pop("lock", None) is None:
+                return
+            self._save()
+            self.notify()
+            # Back to what automatic control wants
+            self.evaluate(TRIGGER_RESUME)
+            return
+        if mode not in LOCK_MODES:
+            raise ValueError(mode)
+        until = dt_util.utcnow() + timedelta(minutes=minutes) if minutes else None
+        self.state["lock"] = {"mode": mode, "until": _iso(until)}
+        if until is not None:
+            self._unsub_lock = async_track_point_in_time(self.hass, self._on_lock_end, until)
+        self._save()
+        self.notify()
+        if mode != LOCK_HOLD:
+            self.evaluate(TRIGGER_LOCK)
 
     # --- force, pause entity, external trigger ---------------------------------
 
@@ -2125,12 +2318,13 @@ class CoverController:
             cfg["shading_azimuth_end"],
             cfg["shading_elevation_min"],
             cfg["shading_elevation_max"],
+            cfg["horizon"],
         )
         if self._sun_cache is not None and self._sun_cache[0] == key:
             return self._sun_cache[1]
         day = local.date()
         end = effective_down(self.schedule_for(day), self.marks_for(day))
-        value = sun_on_window(cfg, self.manager.sun, local, end)
+        value = sun_on_window(cfg, self.manager.sun, local, end, self.horizon_points)
         self._sun_cache = (key, value)
         return value
 
@@ -2196,15 +2390,18 @@ class CoverController:
             state = self.hass.states.get(weather_entity)
             if state is not None and state.state not in _UNUSABLE:
                 weather = state.state
+        azimuth = self.manager.sun.azimuth(now)
+        elevation = self.manager.sun.elevation(now)
         inputs = Inputs(
-            azimuth=self.manager.sun.azimuth(now),
-            elevation=self.manager.sun.elevation(now),
+            azimuth=azimuth,
+            elevation=elevation,
             brightness=brightness,
             temp_out=self._number(cfg["outdoor_temperature_sensor"]),
             temp_in=self._number(cfg["indoor_temperature_sensor"]),
             forecast=forecast,
             weather=weather,
             sensor=self._is_on(cfg["shading_sensor"]),
+            hidden=horizon_hidden(self.horizon_points, azimuth, elevation),
         )
         configured = Configured(
             brightness=bool(bright_entity),
@@ -2216,6 +2413,111 @@ class CoverController:
         )
         return inputs, configured
 
+    @property
+    def horizon_points(self) -> list[tuple[float, float]]:
+        """Points of the horizon of the window."""
+        return safe_parse(self.cfg["horizon"])
+
+    def away(self, now: datetime | None = None) -> bool:
+        """Nobody at home (absent or gone) or holiday."""
+        if self.manager.switches[SWITCH_HOLIDAY]:
+            return True
+        return self.house_status(now) in (RES_ABSENT, RES_GONE)
+
+    def shading_cfg(self, now: datetime) -> Mapping[str, Any]:
+        """Settings for the shading: heat limits lower while nobody is at home."""
+        offset = self.cfg["away_heat_offset"]
+        if not offset or not self.away(now):
+            return self.cfg
+        lowered = {
+            key: self.cfg[key] - offset
+            for key in ("shading_temp_out_min", "shading_temp_in_min", "heat_protection_temp")
+            if self.cfg[key] is not None
+        }
+        return ChainMap(lowered, dict(self.cfg))
+
+    @property
+    def glare_state(self) -> str:
+        """State of the glare protection (same states as the shading)."""
+        return (self.state.get("glare") or {}).get("state", SHADING_OUT)
+
+    @property
+    def glare_active(self) -> bool:
+        """Glare protection holds the cover at the glare position."""
+        return self.glare_state in SHADED
+
+    def _sun_on_window(self, inputs: Inputs) -> bool:
+        cfg = self.cfg
+        if inputs.azimuth is None or inputs.elevation is None or inputs.hidden:
+            return False
+        return cfg["shading_elevation_min"] <= inputs.elevation <= cfg[
+            "shading_elevation_max"
+        ] and in_azimuth(inputs.azimuth, cfg["shading_azimuth_start"], cfg["shading_azimuth_end"])
+
+    def _bright(self, inputs: Inputs, configured: Configured, active: bool) -> bool:
+        cfg = self.cfg
+        if configured.brightness:
+            if inputs.brightness is None:
+                return active
+            limit = cfg["glare_brightness_end"] if active else cfg["glare_brightness_start"]
+            return inputs.brightness >= limit
+        # Without a brightness sensor the weather decides
+        return bool(self.manager.sunny(cfg))
+
+    def _glare_tick(
+        self, now: datetime, inputs: Inputs, configured: Configured, allowed: bool
+    ) -> bool:
+        """Next state of the glare protection; True while it is active."""
+        cfg = self.cfg
+        old = self.glare_state
+        if not cfg["glare"] and old == SHADING_OUT:
+            return False
+        sun = self._sun_on_window(inputs)
+        stored = self.state.get("glare") or {}
+        since = _parse(stored.get("since"))
+        glare_cfg = {
+            "shading_delay_start": cfg["glare_delay_start"],
+            "shading_delay_end": cfg["glare_delay_end"],
+            "shading_end_sun_leaves": True,
+        }
+        new, new_since = shading_step(
+            glare_cfg,
+            old,
+            since,
+            now,
+            start_ok=sun and self._bright(inputs, configured, False),
+            still_ok=sun and self._bright(inputs, configured, True),
+            left=not sun,
+            allowed=allowed and cfg["glare"] and not self.away(now),
+        )
+        if new != old or new_since != since:
+            self.state["glare"] = {"state": new, "since": _iso(new_since)}
+            self._save()
+            self.notify()
+        return new in SHADED
+
+    def _depth_tick(self, now: datetime, inputs: Inputs) -> int | None:
+        """Position by the depth of the sun, changed at most every 15 minutes."""
+        position = depth_position(
+            self.cfg, inputs.elevation, inputs.azimuth, window_azimuth(self.cfg)
+        )
+        held = self._depth
+        if (
+            held is not None
+            and held[1] is not None
+            and position is not None
+            and now - held[0] < DEPTH_HOLD
+        ):
+            return held[1]
+        if held is None or held[1] != position:
+            self._depth = (now, position)
+        return position
+
+    @property
+    def depth(self) -> int | None:
+        """Current position by the depth of the sun (None = not used)."""
+        return self._depth[1] if self._depth else None
+
     @callback
     def _shading_tick(self, now: datetime) -> None:
         cfg = self.cfg
@@ -2224,10 +2526,13 @@ class CoverController:
             cfg["shading_mode"] == PRESENCE_OFF
             and cfg["heat_protection_temp"] is None
             and not cfg["hot_day"]
+            and not cfg["glare"]
             and old == SHADING_OUT
+            and self.glare_state == SHADING_OUT
             and not self._hot
         ):
             return
+        scfg = self.shading_cfg(now)
         inputs, configured = self.shading_inputs(now, sample=True)
         switch_on = self.manager.switches[SWITCH_SHADING]
         day = self.is_day(now)
@@ -2239,8 +2544,8 @@ class CoverController:
             and in_time_window(cfg, local.time().replace(tzinfo=None))
             and day
         )
-        start_ok = shading_combine(cfg, shading_conditions(cfg, inputs, configured, False))
-        still = shading_conditions(cfg, inputs, configured, True)
+        start_ok = shading_combine(cfg, shading_conditions(scfg, inputs, configured, False))
+        still = shading_conditions(scfg, inputs, configured, True)
         stored = self.state.get("shading") or {}
         since = _parse(stored.get("since"))
         new, new_since = shading_step(
@@ -2268,20 +2573,26 @@ class CoverController:
             self.notify()
         heat_allowed = switch_on and day
         latched = self.heat_latched(now)
-        heat = heat_allowed and heat_active(cfg, inputs.temp_out, latched)
+        heat = heat_allowed and heat_active(scfg, inputs.temp_out, latched)
         if heat and not latched:
             self.state["heat"] = local.date().isoformat()
             self._save()
-        before = old in SHADED or (latched and heat_allowed) or hot_before
-        after = new in SHADED or heat or hot
+        glare_before = self.glare_active
+        glare = self._glare_tick(now, inputs, configured, switch_on and day)
+        depth_before = self.depth
+        depth = self._depth_tick(now, inputs)
+        before = old in SHADED or (latched and heat_allowed) or hot_before or glare_before
+        after = new in SHADED or heat or hot or glare
         if after and not before:
             self.evaluate(TRIGGER_SHADING)
         elif before and not after:
             self.evaluate(TRIGGER_SHADING_END)
-        elif after and shading_tilt(cfg, inputs.elevation, inputs.azimuth) != self.state.get(
-            "shading_tilt"
+        elif after and (
+            glare != glare_before
+            or depth != depth_before
+            or shading_tilt(cfg, inputs.elevation, inputs.azimuth) != self.state.get("shading_tilt")
         ):
-            # Next slat step by sun elevation (or the slat angle by the sun)
+            # Glare starts or ends, the sun goes deeper, next slat step by the sun
             self.evaluate(TRIGGER_SHADING)
 
     @callback
@@ -2448,7 +2759,15 @@ class CoverController:
             after_temporary=(self.state.get("last") or {}).get("reason") in TEMPORARY_REASONS,
             quiet=self.quiet_now(now),
             guest_manual=self.cfg["guest_mode"] == GUEST_MANUAL and self.guest_present(),
+            lock_hold=self.lock == LOCK_HOLD,
+            shading_from=self._shading_from(),
         )
+
+    def _shading_from(self) -> float | None:
+        last = self.state.get("last") or {}
+        if last.get("reason") in _SHADING_REASONS:
+            return last.get("position")
+        return None
 
     def target(self, trigger: str = TRIGGER_APPLY_TARGET) -> Decision:
         """Decide without driving (target state)."""
@@ -2465,6 +2784,12 @@ class CoverController:
         ):
             # A guest sleeps: shading does not open the cover either
             shaded = heat = hot = False
+        glare = self.glare_active and self.manager.switches[SWITCH_SHADING]
+        if (
+            guest_mode not in (None, GUEST_MANUAL)
+            and (situation.current_position or 0) < self.cfg["pos_glare"]
+        ):
+            glare = False
         wishes = build_wishes(
             self.cfg,
             trigger=trigger,
@@ -2489,6 +2814,10 @@ class CoverController:
             force=self.force_kind(),
             lockout=situation.lockout,
             trigger_pos=self.trigger_pos(),
+            glare=glare,
+            depth=self.depth,
+            lock=self.lock,
+            temp_limit=self.temp_limit,
             **{k: v for k, v in self.protections().items() if k != FROST},
         )
         # What would apply without water protection (for the return after the rain)
@@ -2508,6 +2837,10 @@ class CoverController:
             "heat": heat,
             "hot_day": self._hot,
             "guest": guest,
+            "glare": self.glare_active,
+            "depth": self.depth,
+            "lock": self.lock,
+            "temp_limit": self.temp_limit,
             "quiet": situation.quiet,
             "simulation": self.simulation,
             "protections": self.protections(),
@@ -2688,12 +3021,14 @@ class CoverController:
         if reason in _SHADING_REASONS:
             self.state["shading_tilt"] = tilt
         mode = self.cfg["tilt_mode"]
+        wait = 0
         if tilt is not None and mode == TILT_FIRST:
             # Slats first, then the position (e.g. Z-Wave)
             self._send_tilt(tilt, context)
+            wait = max(self.cfg["tilt_delay"], 1)
             self._unsub_position = async_call_later(
                 self.hass,
-                max(self.cfg["tilt_delay"], 1),
+                wait,
                 partial(self._send_position, service, data, context),
             )
         else:
@@ -2708,6 +3043,10 @@ class CoverController:
                 self._unsub_tilt = async_call_later(
                     self.hass, self.cfg["tilt_timeout"], partial(self._send_tilt, tilt, context)
                 )
+        if service == SERVICE_SET_COVER_POSITION:
+            self._start_drive_check(position, data, wait)
+        else:
+            self._cancel_drive_check()
         now = dt_util.utcnow()
         self.state["last"] = {
             "reason": reason,
@@ -2742,6 +3081,113 @@ class CoverController:
             context,
         )
         self.notify()
+
+    # --- did the drive arrive? -------------------------------------------------
+
+    @property
+    def stuck(self) -> dict[str, Any] | None:
+        """The last drive did not arrive, also not after a second try."""
+        return self.state.get("stuck")
+
+    def _cancel_drive_check(self) -> None:
+        if self._unsub_check:
+            self._unsub_check()
+            self._unsub_check = None
+
+    def _start_drive_check(self, position: int, data: dict[str, Any], wait: float = 0) -> None:
+        """Check after the drive time that the cover got there."""
+        self._cancel_drive_check()
+        if not self.cfg["drive_check"]:
+            return
+        self._unsub_check = async_call_later(
+            self.hass,
+            self.cfg["drive_time"] + DRIVE_CHECK_EXTRA + wait,
+            partial(self._drive_check, position, data, 1, 0),
+        )
+
+    @callback
+    def _drive_check(
+        self, position: int, data: dict[str, Any], attempt: int, waited: int, _now: datetime
+    ) -> None:
+        self._unsub_check = None
+        if not self.available:
+            return
+        if self.moving and waited < DRIVE_CHECK_WAITS:
+            # Still on its way: look again later
+            self._unsub_check = async_call_later(
+                self.hass,
+                self.cfg["drive_time"],
+                partial(self._drive_check, position, data, attempt, waited + 1),
+            )
+            return
+        current = self.current_position()
+        if current is None:
+            return
+        if abs(current - position) <= max(self.cfg["tolerance"], 2):
+            self._clear_stuck()
+            return
+        if attempt == 1:
+            # Send the same command once more
+            context = Context()
+            self._own_contexts.append(context.id)
+            self._active_drive = (position, monotonic_time.monotonic())
+            self._logbook("logbook_retry", context, position=position)
+            self._send_position(SERVICE_SET_COVER_POSITION, data, context)
+            self._unsub_check = async_call_later(
+                self.hass,
+                self.cfg["drive_time"] + DRIVE_CHECK_EXTRA,
+                partial(self._drive_check, position, data, 2, 0),
+            )
+            return
+        self.state["stuck"] = {
+            "target": position,
+            "position": current,
+            "time": _iso(dt_util.utcnow()),
+        }
+        self._save()
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            f"stuck_{self.subentry_id}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="stuck",
+            translation_placeholders={
+                "name": self.name,
+                "target": str(position),
+                "position": str(int(round(current))),
+            },
+        )
+        self._logbook("logbook_stuck", position=position, current=int(round(current)))
+        self.notify()
+
+    def _clear_stuck(self) -> None:
+        if self.state.pop("stuck", None) is None:
+            return
+        self._save()
+        ir.async_delete_issue(self.hass, DOMAIN, f"stuck_{self.subentry_id}")
+        self.notify()
+
+    # --- horizon ------------------------------------------------------------------
+
+    def horizon_with_sun(self) -> list[tuple[float, float]]:
+        """The horizon with a point where the sun is now ("sun has left the window")."""
+        now = dt_util.utcnow()
+        return horizon_add(
+            self.horizon_points, self.manager.sun.azimuth(now), self.manager.sun.elevation(now)
+        )
+
+    @callback
+    def tick_later(self, seconds: float = 2) -> None:
+        """Check everything again shortly (after a setting was written)."""
+        if self._unsub_later:
+            self._unsub_later()
+        self._unsub_later = async_call_later(self.hass, seconds, self._tick_later)
+
+    @callback
+    def _tick_later(self, _now: datetime) -> None:
+        self._unsub_later = None
+        self.tick()
 
     @callback
     def _simulate(self, position: int, reason: str, trigger: str | None) -> None:
@@ -2816,6 +3262,8 @@ class CoverController:
             return
         if self._tilt_wait is not None:
             self._check_tilt_wait()
+        if new.state not in (CoverState.OPENING, CoverState.CLOSING):
+            self._wind_snap()
         if not self.cfg["position_entity"]:
             if (
                 new.state == old.state
@@ -2826,6 +3274,25 @@ class CoverController:
             ):
                 return
         self._check_manual(new.context)
+
+    @callback
+    def _wind_snap(self) -> None:
+        """In a storm with "only open or closed": a cover left in between goes to an end."""
+        if self.cfg["wind_mode"] == WIND_POSITION or not self.protections()[WIND]:
+            return
+        if self._own_drive_running():
+            return
+        current = self.current_position()
+        tol = self.cfg["tolerance"]
+        if current is None or current <= tol or current >= 100 - tol:
+            return
+        self.manager.entry.async_create_background_task(
+            self.hass, self._async_wind_snap(), f"{DOMAIN} wind {self.cover_entity}"
+        )
+
+    async def _async_wind_snap(self) -> None:
+        # After the manual detection of the same state change
+        self.evaluate(TRIGGER_PROTECTION, stagger=False)
 
     @callback
     def _on_position_entity_change(self, event: Event) -> None:
@@ -3015,6 +3482,11 @@ class CoverController:
             "protections": [k for k, v in self.protections().items() if v],
             "hot_day": self._hot,
             "guest": self.guest_present(),
+            "glare": self.glare_active,
+            "lock": manager.state_text("select", "lock", self.lock) if self.lock else None,
+            "lock_until": _iso(self.lock_until),
+            "stuck": self.stuck is not None,
+            "temp_limit": self.temp_limit,
             "quiet": self.quiet_now(),
             "is_day": self.is_day(),
         }
@@ -3037,6 +3509,12 @@ class CoverController:
             "shading_state": self.shading_state,
             "heat_protection": self.heat_latched(),
             "hot_day": self.hot_day(),
+            "glare": self.glare_state,
+            "depth_position": self.depth,
+            "horizon": self.horizon_points,
+            "lock": self.lock,
+            "temp_limit": self.temp_limit,
+            "away": self.away(),
             "quiet": self.quiet_now(),
             "simulation": self.simulation,
             "tilt": self.current_tilt(),

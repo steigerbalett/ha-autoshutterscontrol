@@ -23,6 +23,8 @@ WorkdayFunc = Callable[[date], bool]
 WindowsFunc = Callable[[date], Mapping[str, tuple[time, time]]]
 # Returns the time an entity gives for a direction ("up"/"down") on a day
 EntityTimeFunc = Callable[[str, date], datetime | None]
+# Returns the shift in minutes of a direction on a day (holiday)
+ShiftFunc = Callable[[str, date], int]
 
 
 @dataclass(frozen=True)
@@ -131,6 +133,7 @@ def day_schedule(
     weekend_times: bool = True,
     windows: WindowsFunc | None = None,
     entity_time: EntityTimeFunc | None = None,
+    shift: ShiftFunc | None = None,
 ) -> DaySchedule:
     """Return the schedule of one day.
 
@@ -147,6 +150,14 @@ def day_schedule(
     down_early, down_late = _window(cfg, "down", day, down_wd, tz, win)
     up = _drive_time(cfg, "up", day, up_early, up_late, sun, tz, entity_time)
     down = _drive_time(cfg, "down", day, down_early, down_late, sun, tz, entity_time)
+    if shift is not None:
+        # Holiday: after the limits, so the shift may leave the early/late window
+        up += timedelta(minutes=shift("up", day))
+        down += timedelta(minutes=shift("down", day))
+        up_late = max(up_late, up)
+        down_late = max(down_late, down)
+        up_early = min(up_early, up)
+        down_early = min(down_early, down)
     if down <= up:
         # Misconfiguration (evening before morning): keep the order
         down = up + timedelta(minutes=1)
@@ -174,6 +185,7 @@ def next_events(
     weekend_times: bool = True,
     windows: WindowsFunc | None = None,
     entity_time: EntityTimeFunc | None = None,
+    shift: ShiftFunc | None = None,
 ) -> tuple[datetime, datetime]:
     """Return the next morning and the next evening drive after ``now``."""
     today = now.astimezone(tz).date()
@@ -189,6 +201,7 @@ def next_events(
             weekend_times,
             windows,
             entity_time,
+            shift,
         )
         if next_up is None and sched.up > now:
             next_up = sched.up
