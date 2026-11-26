@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.0
+
+- Devices: the entities of a cover are now shown on the device of the real cover (as the helpers of Home
+  Assistant do). The own device "ASC ‹name›" is only kept for covers without a device and is removed
+  otherwise; entity ids stay the same.
+
+- Overview as the ASC Configuration and Information Summary in FHEM, right in the integration (*Configure*
+  → *Overview*) and optionally as the page **AutoShuttersControl** in the sidebar: all covers with next opening/closing, modes, party mode, lock-out, last drive, position, target,
+  not driven because and shading info, plus global switches, sun, forecast and house status.
+- Linked sensors and values (as the monitored devices in FHEM): every entity of the settings with its value
+  and unit, the setting, who uses it and when it changed; missing entities are marked.
+- New global setting *Overview in the sidebar* (default off). Websocket command
+  `autoshutterscontrol/summary` with the same data.
+- Guests per cover: *Guests in this room* (person, device tracker, switch, input boolean) or the switch
+  *Guest present*. While a guest is present the cover does not open in the morning; it is caught up when
+  the guest is gone. Binary sensor *Guest*. Setting *If a guest is present*: no morning drive (default), no
+  morning and evening drive, or only manual drives (force and protection still drive).
+
 ## 0.7.3
 
 - Simulation: switch at the central device (all covers) and per cover. Everything is decided and logged,

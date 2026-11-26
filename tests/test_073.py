@@ -256,3 +256,109 @@ async def test_diagnostic_sensors(hass: HomeAssistant, freezer) -> None:
     hass.states.async_set("sensor.forecast", "28")
     await tick(hass, freezer, local(2026, 6, 24, 13, 12))
     assert state(hass, global_eid(hass, "binary_sensor", "hot")) == "off"
+
+
+async def test_guest_blocks_morning(hass: HomeAssistant, freezer) -> None:
+    await setup_hass(hass)
+    freezer.move_to(local(2026, 11, 25, 22, 0))
+    set_cover(hass, position=0)
+    set_cover(hass, COVER2, position=0)
+    hass.states.async_set("device_tracker.guest_phone", "home")
+    calls = mock_cover_services(hass)
+    await setup_entry(
+        hass,
+        {**TIME_MODE, "time_up_early_workday": "07:00:00"},
+        [
+            cover_subentry(settings={"guest_entities": ["device_tracker.guest_phone"]}),
+            cover_subentry(COVER2, sub_id="sub_cover2"),
+        ],
+    )
+    assert state(hass, eid(hass, "binary_sensor", "guest")) == "on"
+    await tick(hass, freezer, local(2026, 11, 26, 6, 59))
+    await tick(hass, freezer, local(2026, 11, 26, 7, 0, 1))
+    # Only the cover without a guest opens
+    assert [c.data[ATTR_ENTITY_ID] for c in calls] == [COVER2]
+    # The guest leaves: the morning opening is caught up
+    hass.states.async_set("device_tracker.guest_phone", "not_home")
+    await hass.async_block_till_done()
+    assert calls[-1].data == {ATTR_ENTITY_ID: COVER, "position": 100}
+
+
+async def test_guest_switch(hass: HomeAssistant, freezer) -> None:
+    await setup_hass(hass)
+    freezer.move_to(local(2026, 11, 25, 22, 0))
+    set_cover(hass, position=0)
+    calls = mock_cover_services(hass)
+    await setup_entry(hass, {**TIME_MODE, "time_up_early_workday": "07:00:00"})
+    await turn_on(hass, eid(hass, "switch", "cover_guest"))
+    await tick(hass, freezer, local(2026, 11, 26, 6, 59))
+    await tick(hass, freezer, local(2026, 11, 26, 7, 0, 1))
+    assert calls == []
+    await hass.services.async_call(
+        "switch", "turn_off", {ATTR_ENTITY_ID: eid(hass, "switch", "cover_guest")}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert calls[-1].data["position"] == 100
+
+
+async def test_guest_no_morning_and_evening(hass: HomeAssistant, freezer) -> None:
+    await setup_hass(hass)
+    freezer.move_to(local(2026, 11, 25, 12, 0))
+    set_cover(hass, position=100)
+    calls = mock_cover_services(hass)
+    await setup_entry(hass, {**TIME_MODE, "guest_mode": "no_morning_evening"})
+    await turn_on(hass, eid(hass, "switch", "cover_guest"))
+    await tick(hass, freezer, local(2026, 11, 25, 16, 0, 1))
+    assert calls == []
+
+
+async def test_guest_only_manual(hass: HomeAssistant, freezer) -> None:
+    await setup_hass(hass)
+    freezer.move_to(local(2026, 11, 25, 12, 0))
+    set_cover(hass, position=100)
+    hass.states.async_set("binary_sensor.rain", "off")
+    hass.states.async_set("sensor.wind", "5")
+    calls = mock_cover_services(hass)
+    await setup_entry(
+        hass,
+        {
+            **TIME_MODE,
+            "guest_mode": "manual_only",
+            "wind_sensor": "sensor.wind",
+            "wind_protection": True,
+            "pos_wind": 100,
+        },
+    )
+    await turn_on(hass, eid(hass, "switch", "cover_guest"))
+    await tick(hass, freezer, local(2026, 11, 25, 16, 0, 1))
+    assert calls == []
+    assert state(hass, eid(hass, "sensor", "blocked_by")) == "guest"
+
+
+async def test_entities_on_the_cover_device(hass: HomeAssistant, freezer) -> None:
+    from homeassistant.helpers import device_registry as dr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    await setup_hass(hass)
+    freezer.move_to(local(2026, 11, 25, 12, 0))
+    other = MockConfigEntry(domain="shelly")
+    other.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=other.entry_id, identifiers={("shelly", "abc")}, name="Rollladen WZ"
+    )
+    er.async_get(hass).async_get_or_create(
+        "cover", "shelly", "abc-cover", suggested_object_id="living_room", device_id=device.id
+    )
+    set_cover(hass, position=100)
+    mock_cover_services(hass)
+    await setup_entry(
+        hass, TIME_MODE, [cover_subentry(), cover_subentry(COVER2, sub_id="sub_cover2")]
+    )
+    registry = er.async_get(hass)
+    entry = registry.async_get(eid(hass, "sensor", "next_up"))
+    assert entry.device_id == device.id
+    # No own device for this cover, the other one (without device) keeps its ASC device
+    devices = dr.async_get(hass)
+    entry_id = hass.config_entries.async_entries(DOMAIN)[0].entry_id
+    assert devices.async_get_device_by_identifier((DOMAIN, "sub_cover"), entry_id) is None
+    assert devices.async_get_device_by_identifier((DOMAIN, "sub_cover2"), entry_id) is not None

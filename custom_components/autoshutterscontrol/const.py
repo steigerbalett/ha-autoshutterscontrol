@@ -48,6 +48,7 @@ SWITCH_PARTY: Final = "party"
 SWITCH_ADVENT: Final = "advent"
 SWITCH_HARDWARE_LOCK: Final = "hardware_lock"
 SWITCH_SIMULATION: Final = "simulation"
+SWITCH_GUEST: Final = "guest"
 
 GLOBAL_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
@@ -69,6 +70,7 @@ COVER_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
     SWITCH_PAUSE: False,
     SWITCH_SIMULATION: False,
+    SWITCH_GUEST: False,
 }
 
 # Inherit marker for select fields in profile and cover forms

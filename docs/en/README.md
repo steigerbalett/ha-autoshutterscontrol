@@ -136,6 +136,21 @@ Each cover uses the room status if it has sources, otherwise the house status:
   close in the evening as soon as they sleep, between the earliest and the latest time (the latest time is
   the deadline).
 
+### Guests
+
+At the cover (page *Residents*): *Guests in this room* takes persons, device trackers or a switch/input
+boolean (`home` or on = guest present). The switch **Guest present** at the cover sets a guest by hand.
+*If a guest is present* (default *No morning drive*):
+
+- *No morning drive*: the cover does not open in the morning (not for shading or privacy either); closing,
+  ventilation and protection stay.
+- *No morning and evening drive*: the schedule does not drive at all.
+- *Only manual drives*: no automatic drives except force and protection (rain, wind, water, frost, self
+  defense); *Not driven because* shows *Guest*.
+
+When the guest is gone or the switch is off, the cover goes to its target at once (the morning opening is
+caught up). Binary sensor *Guest* per cover.
+
 ## Self defense
 
 With the switch *Self defense* of the central device on (default off), covers with an open or tilted window
@@ -302,6 +317,29 @@ is kept in the storage of Home Assistant and survives every restart.
 - **Diagnostics** (entry → three dots → *Download diagnostics*): per cover the effective settings and the
   last 50 decisions with all inputs (situation, wishes, residents, window, shading, protections).
 
+## Overview
+
+The overview matches the *ASC Configuration and Information Summary* of FHEM. It is available in two places:
+
+- right in the integration: *Configure* → **Overview** (state when opened, open again to refresh);
+- optionally as the page **AutoShuttersControl** in the sidebar (*Overview in the sidebar*, page *Drive
+  behaviour*, default off), with all columns, refreshed every 10 seconds.
+
+It shows:
+
+- on top sun azimuth and elevation, forecast today, house status, active protection and all global
+  switches;
+- per cover: next opening and next closing, morning/evening drive by, residents up/down, shading, party
+  mode, lock-out, last drive (reason, position, time), position and slats, target with reason, not driven
+  because, shading state since, window, residents, and notes such as pause, simulation, manual until, quiet
+  hours, hot day, rain/wind/water/frost;
+- **Linked sensors and values** (as the monitored devices, NOTIFYDEV, in FHEM): every entity of the
+  settings with its current value and unit (e.g. brightness sensor 23000 lx, rain, wind, temperatures,
+  window contacts, residents), the setting, who uses it (global and/or covers) and when it last changed. A
+  missing entity shows *missing*.
+
+On the sidebar page a click on a cover or an entity opens its dialog.
+
 ## Import from FHEM
 
 Options → *Import from FHEM*:
@@ -356,8 +394,12 @@ Assistant), Forecast maximum today (global forecast sensor or daily forecast of 
 binary sensors Sunny (weather now in the list of the shading) and Hot day (forecast from *Hot day from*);
 buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives.
 
-**Per cover**: switches Automatic, Pause and Simulation; binary sensors Day, Manual override, Self defense, Rain
-protection, Water protection, Wind protection, Frost protection, Force function, Hot day and Quiet hours; sensors Next
+The entities of a cover are on the device of the real cover (e.g. the Shelly or Homematic actuator), as
+with the helpers of Home Assistant. A cover without a device (e.g. a template cover) gets an own device
+"ASC ‹name›" below the central device.
+
+**Per cover**: switches Automatic, Pause, Simulation and Guest present; binary sensors Day, Manual override, Self defense, Rain
+protection, Water protection, Wind protection, Frost protection, Force function, Hot day, Quiet hours and Guest; sensors Next
 opening, Next closing, Next privacy, Last drive reason, Target, Not driven because, Window, Residents, Shading, Simulated drive; buttons Drive to target, End manual override and Wiggle;
 selects Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
 

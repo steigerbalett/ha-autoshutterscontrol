@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import AscConfigEntry
-from .const import COVER_SWITCHES, GLOBAL_SWITCHES, SWITCH_PAUSE
+from .const import COVER_SWITCHES, GLOBAL_SWITCHES, SWITCH_GUEST, SWITCH_PAUSE
 from .engine.arbiter import TRIGGER_RESUME
 from .entity import AscCoverEntity, AscGlobalEntity
 from .runtime import AscManager, CoverController
@@ -71,6 +71,8 @@ class CoverSwitch(AscCoverEntity, SwitchEntity):
         self.controller.notify()
         if self._key == SWITCH_PAUSE and old and not value:
             self.controller.evaluate(TRIGGER_RESUME)
+        if self._key == SWITCH_GUEST:
+            self.controller.guest_changed()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         self._set(True)

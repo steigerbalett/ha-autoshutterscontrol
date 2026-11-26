@@ -40,6 +40,7 @@
         "title": "Globale Einstellungen",
         "description": "Diese Werte gelten für alle Rollläden, solange ein Profil oder der Rollladen keinen eigenen Wert setzt.",
         "menu_options": {
+          "summary": "Übersicht",
           "schedule": "Zeitplan",
           "light": "Helligkeit und Sonnenhöhe",
           "sensors": "Sensoren",
@@ -171,6 +172,7 @@
           "close_never_up": "Schließen fährt nie nach oben",
           "recovery": "Verpasste Fahrten nachholen",
           "logbook": "Logbuch-Einträge",
+          "panel": "Übersicht in der Seitenleiste",
           "drive_stagger": "Gestaffelt fahren",
           "quiet_start": "Ruhezeit von",
           "quiet_end": "Ruhezeit bis",
@@ -186,6 +188,7 @@
           "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.",
           "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.",
           "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.",
+          "panel": "Seite AutoShuttersControl in der Seitenleiste mit allen Rollläden (Zeiten, Modi, Ziel, letzte Fahrt, Beschattung) und allen verknüpften Sensoren mit ihren Werten, wie die ASC Configuration and Information Summary in FHEM.",
           "drive_stagger": "Sekunden zwischen dem Start von Rollläden, die zur gleichen Zeit fahren sollen (Funk, Strom). Nicht bei Zwang, Regen-, Wind- und Wasserschutz. 0 = alle gleichzeitig.",
           "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.",
           "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).",
@@ -297,7 +300,8 @@
           "sleep_allow_shading": "Beschattung trotz Schlaf",
           "self_defense_mode": "Selbstschutz",
           "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
-          "self_defense_all": "Selbstschutz schließt jeden Rollladen"
+          "self_defense_all": "Selbstschutz schließt jeden Rollladen",
+          "guest_mode": "Bei Gast"
         },
         "data_description": {
           "residents_house": "Person: home = zu Hause, sonst abwesend. Zone: Anzahl Personen. Binärsensor / Input Boolean: an = schläft, aus = wach. Alarmanlage: abwesend = verreist, Nacht = schläft, zu Hause = zu Hause. Sensoren und Auswahlen mit den Zustandsnamen asleep, gotosleep, awoken, home, absent, gone.",
@@ -309,7 +313,8 @@
           "wake_open": "Ist es Tag, fährt der Rollladen in den Zielzustand (offen, Beschattung).",
           "sleep_allow_open": "Morgens öffnen, auch wenn die Bewohner noch schlafen.",
           "self_defense_mode": "Schließt Rollläden mit offenem oder gekipptem Fenster, wenn niemand zu Hause ist. Braucht zusätzlich den Schalter Selbstschutz am zentralen Gerät.",
-          "self_defense_all": "Auch Rollläden ohne offenes Fenster."
+          "self_defense_all": "Auch Rollläden ohne offenes Fenster.",
+          "guest_mode": "Keine Morgenfahrt: der Rollladen bleibt morgens zu. Keine Morgen- und Abendfahrt: der Zeitplan fährt gar nicht. Nur manuelle Fahrten: keine automatischen Fahrten außer Zwang und Schutz."
         }
       },
       "shading": {
@@ -506,6 +511,10 @@
       "fhem_done": {
         "title": "Übernehmen",
         "description": "Absenden legt die Rollläden an und speichert die globalen Einstellungen.\n\n**Globale Einstellungen:** {global}\n\n**Neue Rollläden:** {covers}\n\n**Schon eingerichtet (bleibt unverändert):** {existing}\n\n**FHEM-Rollläden ohne Zuordnung:** {skipped}\n\n**Geräte ohne Entität:** {unmapped}\n\n**Nicht übertragbar:** {not_transferred}"
+      },
+      "summary": {
+        "title": "Übersicht",
+        "description": "Sonne {azimuth}° / {elevation}°, Vorhersage heute {forecast} °C, Haus-Status {house}. Stand {time}; zum Aktualisieren neu öffnen.\n\n**Rollläden**\n\n| Rollladen | Nächste Öffnung | Nächstes Schließen | Morgens / abends | Position | Ziel | Letzte Fahrt | Beschattung | Fenster | Hinweise |\n|---|---|---|---|---|---|---|---|---|---|\n{covers}\n\n**Verknüpfte Sensoren und Werte**\n\n| Entität | Wert | Einstellung | Verwendet von |\n|---|---|---|---|\n{entities}"
       }
     },
     "error": {
@@ -806,7 +815,8 @@
             "sleep_allow_shading": "Beschattung trotz Schlaf",
             "self_defense_mode": "Selbstschutz",
             "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
-            "self_defense_all": "Selbstschutz schließt jeden Rollladen"
+            "self_defense_all": "Selbstschutz schließt jeden Rollladen",
+            "guest_mode": "Bei Gast"
           },
           "data_description": {
             "residents_house": "Person: home = zu Hause, sonst abwesend. Zone: Anzahl Personen. Binärsensor / Input Boolean: an = schläft, aus = wach. Alarmanlage: abwesend = verreist, Nacht = schläft, zu Hause = zu Hause. Sensoren und Auswahlen mit den Zustandsnamen asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
@@ -821,7 +831,8 @@
             "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
             "self_defense_mode": "Schließt Rollläden mit offenem oder gekipptem Fenster, wenn niemand zu Hause ist. Braucht zusätzlich den Schalter Selbstschutz am zentralen Gerät.\n↳ {inh_self_defense_mode}",
             "self_defense_delay": "↳ {inh_self_defense_delay}",
-            "self_defense_all": "Auch Rollläden ohne offenes Fenster.\n↳ {inh_self_defense_all}"
+            "self_defense_all": "Auch Rollläden ohne offenes Fenster.\n↳ {inh_self_defense_all}",
+            "guest_mode": "Keine Morgenfahrt: der Rollladen bleibt morgens zu. Keine Morgen- und Abendfahrt: der Zeitplan fährt gar nicht. Nur manuelle Fahrten: keine automatischen Fahrten außer Zwang und Schutz.\n↳ {inh_guest_mode}"
           }
         },
         "shading": {
@@ -1356,7 +1367,9 @@
             "sleep_allow_shading": "Beschattung trotz Schlaf",
             "self_defense_mode": "Selbstschutz",
             "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
-            "self_defense_all": "Selbstschutz schließt jeden Rollladen"
+            "self_defense_all": "Selbstschutz schließt jeden Rollladen",
+            "guest_entities": "Gäste in diesem Raum",
+            "guest_mode": "Bei Gast"
           },
           "data_description": {
             "residents_house": "Person: home = zu Hause, sonst abwesend. Zone: Anzahl Personen. Binärsensor / Input Boolean: an = schläft, aus = wach. Alarmanlage: abwesend = verreist, Nacht = schläft, zu Hause = zu Hause. Sensoren und Auswahlen mit den Zustandsnamen asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
@@ -1372,7 +1385,9 @@
             "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
             "self_defense_mode": "Schließt Rollläden mit offenem oder gekipptem Fenster, wenn niemand zu Hause ist. Braucht zusätzlich den Schalter Selbstschutz am zentralen Gerät.\n↳ {inh_self_defense_mode}",
             "self_defense_delay": "↳ {inh_self_defense_delay}",
-            "self_defense_all": "Auch Rollläden ohne offenes Fenster.\n↳ {inh_self_defense_all}"
+            "self_defense_all": "Auch Rollläden ohne offenes Fenster.\n↳ {inh_self_defense_all}",
+            "guest_entities": "Person, Device-Tracker oder ein Schalter/Input Boolean eines Gastes (home bzw. an = anwesend). Solange ein Gast da ist, öffnet der Rollladen morgens nicht (auch nicht zur Beschattung); er öffnet, sobald der Gast weg ist. Der Schalter Gast anwesend macht dasselbe von Hand.\n↳ {inh_guest_entities}",
+            "guest_mode": "Keine Morgenfahrt: der Rollladen bleibt morgens zu. Keine Morgen- und Abendfahrt: der Zeitplan fährt gar nicht. Nur manuelle Fahrten: keine automatischen Fahrten außer Zwang und Schutz.\n↳ {inh_guest_mode}"
           },
           "title": "Bewohner und Selbstschutz",
           "description": "Leere Felder erben. ↳ zeigt den geerbten Wert."
@@ -1744,6 +1759,8 @@
         "self_defense_mode": "Selbstschutz",
         "self_defense_delay": "Verzögerung des Selbstschutzes bei Abwesenheit",
         "self_defense_all": "Selbstschutz schließt jeden Rollladen",
+        "guest_entities": "Gäste in diesem Raum",
+        "guest_mode": "Bei Gast",
         "pos_open": "Position offen",
         "pos_closed": "Position geschlossen",
         "pos_sleep": "Position Schlafen",
@@ -1878,6 +1895,7 @@
         "close_never_up": "Schließen fährt nie nach oben",
         "recovery": "Verpasste Fahrten nachholen",
         "logbook": "Logbuch-Einträge",
+        "panel": "Übersicht in der Seitenleiste",
         "drive_stagger": "Gestaffelt fahren",
         "quiet_start": "Ruhezeit von",
         "quiet_end": "Ruhezeit bis",
@@ -2061,6 +2079,14 @@
         "always": "Immer nach einem Neustart",
         "inherit": "Erben"
       }
+    },
+    "guest_mode": {
+      "options": {
+        "no_morning": "Keine Morgenfahrt",
+        "no_morning_evening": "Keine Morgen- und Abendfahrt",
+        "manual_only": "Nur manuelle Fahrten",
+        "inherit": "Erben"
+      }
     }
   },
   "entity": {
@@ -2109,6 +2135,9 @@
       },
       "cover_simulation": {
         "name": "Simulation"
+      },
+      "cover_guest": {
+        "name": "Gast anwesend"
       }
     },
     "binary_sensor": {
@@ -2156,6 +2185,9 @@
       },
       "quiet": {
         "name": "Ruhezeit"
+      },
+      "guest": {
+        "name": "Gast"
       }
     },
     "sensor": {
@@ -2261,7 +2293,8 @@
           "party": "Party",
           "advent": "Advent",
           "condition": "Zusatzbedingung",
-          "quiet": "Ruhezeit"
+          "quiet": "Ruhezeit",
+          "guest": "Gast"
         }
       },
       "sun_azimuth": {

@@ -72,6 +72,7 @@ STEP_SAVE = "save"
 STEP_RESET = "reset"
 STEP_BASE = "base"
 STEP_FHEM = "fhem_import"
+STEP_SUMMARY = "summary"
 CONF_FHEM_CFG = "fhem_cfg"
 
 
@@ -333,7 +334,28 @@ class AscOptionsFlow(OptionsFlow):
         """Menu."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=[*sections_for(LEVEL_GLOBAL), STEP_FHEM, STEP_RESET, STEP_SAVE],
+            menu_options=[
+                STEP_SUMMARY,
+                *sections_for(LEVEL_GLOBAL),
+                STEP_FHEM,
+                STEP_RESET,
+                STEP_SAVE,
+            ],
+        )
+
+    async def async_step_summary(self, user_input=None) -> ConfigFlowResult:
+        """Overview of all covers and linked sensors (read only)."""
+        if user_input is not None:
+            return await self.async_step_init()
+        manager = getattr(self.config_entry, "runtime_data", None)
+        if manager is None:
+            placeholders = dict.fromkeys(
+                ("covers", "entities", "azimuth", "elevation", "forecast", "house", "time"), "–"
+            )
+        else:
+            placeholders = manager.summary_markdown()
+        return self.async_show_form(
+            step_id=STEP_SUMMARY, data_schema=vol.Schema({}), description_placeholders=placeholders
         )
 
     async def _section(self, section: str, user_input: dict[str, Any] | None) -> ConfigFlowResult:

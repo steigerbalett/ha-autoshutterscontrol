@@ -184,6 +184,12 @@ SELF_DEFENSE_ABSENT = "absent"
 SELF_DEFENSE_GONE = "gone"
 SELF_DEFENSE_MODES = (SELF_DEFENSE_OFF, SELF_DEFENSE_ABSENT, SELF_DEFENSE_GONE)
 
+# A guest in the room
+GUEST_NO_MORNING = "no_morning"
+GUEST_NO_SCHEDULE = "no_morning_evening"
+GUEST_MANUAL = "manual_only"
+GUEST_MODES = (GUEST_NO_MORNING, GUEST_NO_SCHEDULE, GUEST_MANUAL)
+
 # Catching up after a restart or a failure
 RECOVERY_OFF = "off"
 RECOVERY_FAILURE = "failure"
@@ -409,6 +415,16 @@ SETTINGS: tuple[Setting, ...] = (
         "self_defense_delay", INT, 5, SEC_RESIDENTS, stage=3, minimum=0, maximum=240, unit="min"
     ),
     Setting("self_defense_all", BOOL, False, SEC_RESIDENTS, stage=3),
+    Setting(
+        "guest_entities",
+        ENTITIES,
+        (),
+        SEC_RESIDENTS,
+        stage=3,
+        levels=COVER_ONLY,
+        domains=("person", "device_tracker", "binary_sensor", "input_boolean", "switch", "zone"),
+    ),
+    Setting("guest_mode", SELECT, GUEST_NO_MORNING, SEC_RESIDENTS, stage=3, options=GUEST_MODES),
     # --- positions ------------------------------------------------------
     _pos("pos_open", 100, 1, entity=True),
     _pos("pos_closed", 0, 1, entity=True),
@@ -873,6 +889,7 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("close_never_up", BOOL, True, SEC_DRIVE),
     Setting("recovery", SELECT, RECOVERY_FAILURE, SEC_DRIVE, stage=5, options=RECOVERY_MODES),
     Setting("logbook", BOOL, True, SEC_DRIVE, stage=5),
+    Setting("panel", BOOL, False, SEC_DRIVE, stage=5, levels=GLOBAL_ONLY),
     Setting(
         "drive_stagger",
         INT,

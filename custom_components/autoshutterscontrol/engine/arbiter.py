@@ -96,6 +96,7 @@ BLOCK_PARTY = "party"
 BLOCK_ADVENT = "advent"
 BLOCK_CONDITION = "condition"
 BLOCK_QUIET = "quiet"
+BLOCK_GUEST = "guest"
 # Blocks that mean "deliberately not driven" (logbook)
 LOGGED_BLOCKS = frozenset(
     {
@@ -112,6 +113,7 @@ LOGGED_BLOCKS = frozenset(
         BLOCK_ADVENT,
         BLOCK_CONDITION,
         BLOCK_QUIET,
+        BLOCK_GUEST,
     }
 )
 BLOCKS = (
@@ -131,6 +133,7 @@ BLOCKS = (
     BLOCK_ADVENT,
     BLOCK_CONDITION,
     BLOCK_QUIET,
+    BLOCK_GUEST,
 )
 
 
@@ -172,6 +175,8 @@ class Situation:
     after_temporary: bool = False
     # Quiet hours: only protections (and ventilation, if allowed) drive
     quiet: bool = False
+    # Guest present with "only manual drives": only protections drive
+    guest_manual: bool = False
 
 
 @dataclass(frozen=True)
@@ -471,6 +476,8 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         and not (wish.source == "window" and cfg["quiet_window"])
     ):
         return _blocked(situation, wish, BLOCK_QUIET)
+    if situation.guest_manual and not wish.bypass_rules and not protective:
+        return _blocked(situation, wish, BLOCK_GUEST)
 
     if not wish.bypass_rules:
         if situation.frost_block and wish.priority > PRIO_FROST:

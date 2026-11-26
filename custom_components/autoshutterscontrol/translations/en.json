@@ -40,6 +40,7 @@
         "title": "Global settings",
         "description": "These values apply to all covers unless a profile or the cover sets its own value.",
         "menu_options": {
+          "summary": "Overview",
           "schedule": "Schedule",
           "light": "Brightness and sun elevation",
           "sensors": "Sensors",
@@ -171,6 +172,7 @@
           "close_never_up": "Closing never drives up",
           "recovery": "Catch up missed drives",
           "logbook": "Logbook entries",
+          "panel": "Overview in the sidebar",
           "drive_stagger": "Staggered drives",
           "quiet_start": "Quiet hours from",
           "quiet_end": "Quiet hours until",
@@ -186,6 +188,7 @@
           "close_never_up": "No evening drive if the cover is already further closed.",
           "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.",
           "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.",
+          "panel": "Page AutoShuttersControl in the sidebar with all covers (times, modes, target, last drive, shading) and all linked sensors with their values, as the ASC Configuration and Information Summary in FHEM.",
           "drive_stagger": "Seconds between the start of covers that are due at the same time (radio, power). Not for force, rain, wind and water protection. 0 = all at once.",
           "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.",
           "quiet_end": "End of the quiet hours (may be after midnight).",
@@ -297,7 +300,8 @@
           "sleep_allow_shading": "Shading while asleep",
           "self_defense_mode": "Self defense",
           "self_defense_delay": "Self defense delay when absent",
-          "self_defense_all": "Self defense closes every cover"
+          "self_defense_all": "Self defense closes every cover",
+          "guest_mode": "If a guest is present"
         },
         "data_description": {
           "residents_house": "Person: home = at home, otherwise absent. Zone: number of persons. Binary sensor / input boolean: on = asleep, off = awake. Alarm panel: away = gone, night = asleep, home = at home. Sensors and selects with the state names asleep, gotosleep, awoken, home, absent, gone.",
@@ -309,7 +313,8 @@
           "wake_open": "When it is day, the cover goes to its target (open, shading).",
           "sleep_allow_open": "Open in the morning even if the residents still sleep.",
           "self_defense_mode": "Closes covers with an open or tilted window when nobody is at home. Also needs the switch Self defense of the central device.",
-          "self_defense_all": "Also covers without an open window."
+          "self_defense_all": "Also covers without an open window.",
+          "guest_mode": "No morning drive: the cover stays closed in the morning. No morning and evening drive: the schedule does not drive at all. Only manual drives: no automatic drives except force and protection."
         }
       },
       "shading": {
@@ -506,6 +511,10 @@
       "fhem_done": {
         "title": "Import",
         "description": "Submit to create the covers and save the global settings.\n\n**Global settings:** {global}\n\n**New covers:** {covers}\n\n**Already configured (not changed):** {existing}\n\n**Shutters without cover:** {skipped}\n\n**Devices without entity:** {unmapped}\n\n**Not transferable:** {not_transferred}"
+      },
+      "summary": {
+        "title": "Overview",
+        "description": "Sun {azimuth}° / {elevation}°, forecast today {forecast} °C, house status {house}. As of {time}; open again to refresh.\n\n**Covers**\n\n| Cover | Next opening | Next closing | Morning / evening | Position | Target | Last drive | Shading | Window | Notes |\n|---|---|---|---|---|---|---|---|---|---|\n{covers}\n\n**Linked sensors and values**\n\n| Entity | Value | Setting | Used by |\n|---|---|---|---|\n{entities}"
       }
     },
     "error": {
@@ -806,7 +815,8 @@
             "sleep_allow_shading": "Shading while asleep",
             "self_defense_mode": "Self defense",
             "self_defense_delay": "Self defense delay when absent",
-            "self_defense_all": "Self defense closes every cover"
+            "self_defense_all": "Self defense closes every cover",
+            "guest_mode": "If a guest is present"
           },
           "data_description": {
             "residents_house": "Person: home = at home, otherwise absent. Zone: number of persons. Binary sensor / input boolean: on = asleep, off = awake. Alarm panel: away = gone, night = asleep, home = at home. Sensors and selects with the state names asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
@@ -821,7 +831,8 @@
             "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
             "self_defense_mode": "Closes covers with an open or tilted window when nobody is at home. Also needs the switch Self defense of the central device.\n↳ {inh_self_defense_mode}",
             "self_defense_delay": "↳ {inh_self_defense_delay}",
-            "self_defense_all": "Also covers without an open window.\n↳ {inh_self_defense_all}"
+            "self_defense_all": "Also covers without an open window.\n↳ {inh_self_defense_all}",
+            "guest_mode": "No morning drive: the cover stays closed in the morning. No morning and evening drive: the schedule does not drive at all. Only manual drives: no automatic drives except force and protection.\n↳ {inh_guest_mode}"
           }
         },
         "shading": {
@@ -1356,7 +1367,9 @@
             "sleep_allow_shading": "Shading while asleep",
             "self_defense_mode": "Self defense",
             "self_defense_delay": "Self defense delay when absent",
-            "self_defense_all": "Self defense closes every cover"
+            "self_defense_all": "Self defense closes every cover",
+            "guest_entities": "Guests in this room",
+            "guest_mode": "If a guest is present"
           },
           "data_description": {
             "residents_house": "Person: home = at home, otherwise absent. Zone: number of persons. Binary sensor / input boolean: on = asleep, off = awake. Alarm panel: away = gone, night = asleep, home = at home. Sensors and selects with the state names asleep, gotosleep, awoken, home, absent, gone.\n↳ {inh_residents_house}",
@@ -1372,7 +1385,9 @@
             "sleep_allow_shading": "↳ {inh_sleep_allow_shading}",
             "self_defense_mode": "Closes covers with an open or tilted window when nobody is at home. Also needs the switch Self defense of the central device.\n↳ {inh_self_defense_mode}",
             "self_defense_delay": "↳ {inh_self_defense_delay}",
-            "self_defense_all": "Also covers without an open window.\n↳ {inh_self_defense_all}"
+            "self_defense_all": "Also covers without an open window.\n↳ {inh_self_defense_all}",
+            "guest_entities": "Person, device tracker or a switch/input boolean of a guest (home or on = present). While a guest is present the cover does not open in the morning (also not to shading); it opens as soon as the guest is gone. The switch Guest present does the same by hand.\n↳ {inh_guest_entities}",
+            "guest_mode": "No morning drive: the cover stays closed in the morning. No morning and evening drive: the schedule does not drive at all. Only manual drives: no automatic drives except force and protection.\n↳ {inh_guest_mode}"
           },
           "title": "Residents and self defense",
           "description": "Empty fields inherit. ↳ shows the inherited value."
@@ -1744,6 +1759,8 @@
         "self_defense_mode": "Self defense",
         "self_defense_delay": "Self defense delay when absent",
         "self_defense_all": "Self defense closes every cover",
+        "guest_entities": "Guests in this room",
+        "guest_mode": "If a guest is present",
         "pos_open": "Open position",
         "pos_closed": "Closed position",
         "pos_sleep": "Sleep position",
@@ -1878,6 +1895,7 @@
         "close_never_up": "Closing never drives up",
         "recovery": "Catch up missed drives",
         "logbook": "Logbook entries",
+        "panel": "Overview in the sidebar",
         "drive_stagger": "Staggered drives",
         "quiet_start": "Quiet hours from",
         "quiet_end": "Quiet hours until",
@@ -2061,6 +2079,14 @@
         "always": "Always after a restart",
         "inherit": "Inherit"
       }
+    },
+    "guest_mode": {
+      "options": {
+        "no_morning": "No morning drive",
+        "no_morning_evening": "No morning and evening drive",
+        "manual_only": "Only manual drives",
+        "inherit": "Inherit"
+      }
     }
   },
   "entity": {
@@ -2109,6 +2135,9 @@
       },
       "cover_simulation": {
         "name": "Simulation"
+      },
+      "cover_guest": {
+        "name": "Guest present"
       }
     },
     "binary_sensor": {
@@ -2156,6 +2185,9 @@
       },
       "quiet": {
         "name": "Quiet hours"
+      },
+      "guest": {
+        "name": "Guest"
       }
     },
     "sensor": {
@@ -2261,7 +2293,8 @@
           "party": "Party",
           "advent": "Advent",
           "condition": "Extra condition",
-          "quiet": "Quiet hours"
+          "quiet": "Quiet hours",
+          "guest": "Guest"
         }
       },
       "sun_azimuth": {

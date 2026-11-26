@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device import async_entity_id_to_device
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
@@ -45,8 +47,14 @@ class AscGlobalEntity(Entity):
         self.async_write_ha_state()
 
 
+def cover_device(hass: HomeAssistant, cover_entity: str) -> dr.DeviceEntry | None:
+    """Device of the real cover; the entities of the cover are shown there."""
+    device = async_entity_id_to_device(hass, cover_entity)
+    return device if isinstance(device, dr.DeviceEntry) else None
+
+
 class AscCoverEntity(Entity):
-    """Entity of one cover device."""
+    """Entity of one cover: on the device of the real cover, else on an own device."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
@@ -55,6 +63,11 @@ class AscCoverEntity(Entity):
         self.controller = controller
         self._attr_translation_key = key
         self._attr_unique_id = f"{controller.subentry_id}_{key}"
+        device = cover_device(controller.hass, controller.cover_entity)
+        if device is not None:
+            # Like the helpers of Home Assistant: link to the device of the cover
+            self.device_entry = device
+            return
         info = DeviceInfo(
             identifiers={(DOMAIN, controller.subentry_id)},
             name=f"ASC {controller.name}",

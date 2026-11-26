@@ -90,6 +90,7 @@ from .const import (
     SWITCH_AUTOMATIC,
     SWITCH_COMFORT,
     SWITCH_EVENING,
+    SWITCH_GUEST,
     SWITCH_HARDWARE_LOCK,
     SWITCH_MORNING,
     SWITCH_PARTY,
@@ -104,6 +105,7 @@ from .engine.arbiter import (
     BLOCK_AT_TARGET,
     BLOCK_DIRECTION,
     BLOCK_DONE_BY_MANUAL,
+    BLOCK_GUEST,
     BLOCK_LOCKOUT,
     BLOCK_NO_WISH,
     BLOCK_NOT_SHADED,
@@ -152,6 +154,7 @@ from .engine.daynight import (
     DayMarks,
     condition_held,
     effective_down,
+    effective_up,
     in_dynamic_window,
     is_day as daynight_is_day,
     light_condition,
@@ -187,9 +190,12 @@ from .engine.residents import (
 from .engine.resolve import ResolvedConfig, resolve
 from .engine.schedule import DaySchedule, day_schedule, default_workday, next_events
 from .engine.settings import (
+    BY_KEY,
     ENTITIES,
     ENTITY,
     FROST_OFF,
+    GUEST_MANUAL,
+    GUEST_NO_SCHEDULE,
     KIND_CLOSE,
     KIND_OPEN,
     KIND_SHADING,
@@ -697,7 +703,7 @@ class AscManager:
         """Texts of the logbook entries in the language of Home Assistant."""
         language = self.hass.config.language
         texts: dict[str, str] = {}
-        for category in ("entity", "exceptions"):
+        for category in ("entity", "exceptions", "selector", "options", "config_subentries"):
             texts.update(
                 await translation.async_get_translations(self.hass, language, category, [DOMAIN])
             )
@@ -737,6 +743,191 @@ class AscManager:
         """Save the state later."""
         self.data["global"]["switches"] = dict(self.switches)
         self.store.async_delay_save(lambda: self.data, STORE_SAVE_DELAY)
+
+    # --- summary (overview page) -----------------------------------------------
+
+    def label(self, key: str) -> str:
+        """Translated label of a setting."""
+        setting = BY_KEY.get(key)
+        if setting is not None:
+            text = self.texts.get(f"options.step.{setting.section}.data.{key}") or self.texts.get(
+                f"config_subentries.cover.step.{setting.section}.data.{key}"
+            )
+            if text:
+                return text
+        return key
+
+    def option_text(self, key: str, value: Any) -> Any:
+        """Translated option of a select setting."""
+        if value is None:
+            return None
+        return self.texts.get(f"selector.{key}.options.{value}", value)
+
+    def state_text(self, platform: str, key: str, value: Any) -> Any:
+        """Translated state of one of our entities (e.g. a drive reason)."""
+        if value is None:
+            return None
+        return self.texts.get(f"entity.{platform}.{key}.state.{value}", value)
+
+    def entity_info(self, entity_id: str) -> dict[str, Any]:
+        """Name, state and unit of an entity for the overview."""
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return {"entity_id": entity_id, "name": None, "state": None, "unit": None}
+        return {
+            "entity_id": entity_id,
+            "name": state.name,
+            "state": state.state,
+            "unit": state.attributes.get("unit_of_measurement"),
+            "changed": _iso(state.last_changed),
+        }
+
+    def linked_entities(self) -> list[dict[str, Any]]:
+        """Every entity a setting refers to, with its value and who uses it (ASC NOTIFYDEV)."""
+        found: dict[tuple[str, str], list[str]] = {}
+
+        def add(cfg: Mapping[str, Any], who: str) -> None:
+            for setting in SETTINGS:
+                if not setting.active or setting.kind not in (ENTITY, ENTITIES):
+                    continue
+                for entity_id in _entities(cfg[setting.key]):
+                    users = found.setdefault((entity_id, setting.key), [])
+                    if who not in users:
+                        users.append(who)
+
+        add(self.global_cfg, "")  # "" = global settings
+        for controller in self.controllers.values():
+            add(controller.cfg, controller.name)
+            switch = self.entry.subentries[controller.subentry_id].data.get(CONF_PROFILE_SWITCH)
+            if switch:
+                users = found.setdefault((switch, CONF_PROFILE_SWITCH), [])
+                users.append(controller.name)
+        rows = []
+        for (entity_id, key), users in sorted(found.items()):
+            rows.append(
+                {
+                    **self.entity_info(entity_id),
+                    "setting": key,
+                    "setting_name": self.label(key)
+                    if key != CONF_PROFILE_SWITCH
+                    else self.texts.get(
+                        "config_subentries.cover.step.base.data.profile_switch_entity", key
+                    ),
+                    "used_by": users,
+                }
+            )
+        return rows
+
+    def summary(self) -> dict[str, Any]:
+        """Configuration and information summary of all covers (as ASC in FHEM)."""
+        now = dt_util.utcnow()
+        cfg = self.global_cfg
+        temp, condition = self.forecast_today(cfg)
+        return {
+            "time": _iso(now),
+            "global": {
+                "switches": dict(self.switches),
+                "house_status": self.state_text("sensor", "house_status", self.house_status(now)),
+                "sun_azimuth": round(self.sun.azimuth(now), 1),
+                "sun_elevation": round(self.sun.elevation(now), 1),
+                "forecast": temp,
+                "forecast_condition": condition,
+                "protections": {k: v.active for k, v in self.global_protect.items()},
+            },
+            "covers": [
+                c.summary() for c in sorted(self.controllers.values(), key=lambda c: c.name)
+            ],
+            "entities": self.linked_entities(),
+        }
+
+    def summary_markdown(self) -> dict[str, str]:
+        """Rows of the overview tables in the options (markdown, see options.step.summary)."""
+        data = self.summary()
+        tz = self.tz
+
+        def cell(value: Any) -> str:
+            if value is None or value == "":
+                return "–"
+            return str(value).replace("|", "/").replace("\n", " ")
+
+        def when(iso: str | None, with_date: bool = True) -> str:
+            moment = _parse(iso)
+            if moment is None:
+                return "–"
+            local = moment.astimezone(tz)
+            return local.strftime("%d.%m. %H:%M" if with_date else "%H:%M")
+
+        def pos(value: Any) -> str:
+            return "–" if value is None else f"{round(float(value))} %"
+
+        def name(key: str, platform: str = "binary_sensor") -> str:
+            return self.texts.get(f"entity.{platform}.{key}.name", key)
+
+        covers = []
+        for c in data["covers"]:
+            notes = []
+            if not c["automatic"]:
+                notes.append(f"{name('cover_automatic', 'switch')} –")
+            if c["paused"]:
+                notes.append(name("cover_pause", "switch"))
+            if c["simulation"]:
+                notes.append(name("cover_simulation", "switch"))
+            if c["guest"]:
+                notes.append(name("guest"))
+            if c["override_until"]:
+                notes.append(f"{name('manual_override')} {when(c['override_until'], False)}")
+            if c["quiet"]:
+                notes.append(name("quiet"))
+            if c["hot_day"]:
+                notes.append(name("hot_day"))
+            notes.extend(name(f"protection_{p}") for p in c["protections"])
+            shading = cell(c["shading"])
+            if c["shading_since"]:
+                shading += f" {when(c['shading_since'], False)}"
+            last = "–"
+            if c["last_reason"]:
+                last = f"{cell(c['last_reason'])} {pos(c['last_position'])}, {when(c['last_time'])}"
+            target = f"{cell(c['target'])} {pos(c['target_position'])}"
+            if c["blocked_by"]:
+                target += f" ({cell(c['blocked_by'])})"
+            covers.append(
+                "| "
+                + " | ".join(
+                    [
+                        cell(c["name"]) + (f" ({cell(c['profile'])})" if c["profile"] else ""),
+                        when(c["next_up"]),
+                        when(c["next_down"]),
+                        f"{cell(c['up_mode'])} / {cell(c['down_mode'])}",
+                        pos(c["position"]),
+                        target,
+                        last,
+                        shading,
+                        cell(c["window"]),
+                        ", ".join(notes) or "–",
+                    ]
+                )
+                + " |"
+            )
+        entities = []
+        for e in data["entities"]:
+            value = "❗" if e["state"] is None else cell(e["state"])
+            if e["state"] is not None and e["unit"]:
+                value += f" {e['unit']}"
+            users = ", ".join(u or "Global" for u in e["used_by"])
+            entities.append(
+                f"| {cell(e['name'] or e['entity_id'])} | {value} | {cell(e['setting_name'])} "
+                f"| {cell(users)} |"
+            )
+        g = data["global"]
+        return {
+            "covers": "\n".join(covers) or "| – |",
+            "entities": "\n".join(entities) or "| – |",
+            "azimuth": f"{g['sun_azimuth']:.1f}",
+            "elevation": f"{g['sun_elevation']:.1f}",
+            "forecast": "–" if g["forecast"] is None else f"{g['forecast']:g}",
+            "house": cell(g["house_status"]),
+            "time": when(data["time"]),
+        }
 
     # --- global switches ------------------------------------------------------
 
@@ -836,6 +1027,7 @@ class CoverController:
         self._hot = False
         self._quiet: bool | None = None
         self._sun_cache: tuple[Any, bool] | None = None
+        self._guest = False
 
     # --- life cycle ---------------------------------------------------------
 
@@ -849,6 +1041,7 @@ class CoverController:
         self._res_key = self._residents_key(dt_util.utcnow())
         self._force = self.force_kind()
         self._trigger_pos = self.trigger_pos()
+        self._guest = self.guest_present()
         self._protection_tick(dt_util.utcnow(), evaluate=False)
         self._unsub_started = async_at_started(self.hass, self._on_started)
 
@@ -1018,12 +1211,55 @@ class CoverController:
             self._unsub_listeners.append(
                 async_track_state_change_event(self.hass, times, self._on_time_entity_change)
             )
+        if self.cfg["guest_entities"]:
+            self._unsub_listeners.append(
+                async_track_state_change_event(
+                    self.hass, list(self.cfg["guest_entities"]), self._on_guest_change
+                )
+            )
         if self.cfg["calendar"] and self.cfg["time_source"] == WINDOWS_CALENDAR:
             self._unsub_listeners.append(
                 async_track_state_change_event(
                     self.hass, [self.cfg["calendar"]], self._on_calendar_change
                 )
             )
+
+    @callback
+    def _on_guest_change(self, _event: Event) -> None:
+        self.guest_changed()
+
+    @callback
+    def guest_changed(self) -> None:
+        """A guest came or left: when the guest is gone the morning opening is caught up."""
+        present = self.guest_present()
+        if present == self._guest:
+            return
+        self._guest = present
+        self.notify()
+        if not present:
+            self.evaluate(TRIGGER_RESUME)
+
+    def guest_present(self) -> bool:
+        """A guest is in the room (switch "Guest present" or one of the guest entities)."""
+        if self.switches[SWITCH_GUEST]:
+            return True
+        for entity_id in self.cfg["guest_entities"]:
+            value = self._entity_state(entity_id)
+            if value is None:
+                continue
+            domain = entity_id.split(".", 1)[0]
+            if domain in ("person", "device_tracker"):
+                if value == "home":
+                    return True
+            elif domain == "zone":
+                try:
+                    if float(value) >= 1:
+                        return True
+                except ValueError:
+                    continue
+            elif value == STATE_ON:
+                return True
+        return False
 
     @callback
     def _on_time_entity_change(self, _event: Event) -> None:
@@ -2211,6 +2447,7 @@ class CoverController:
             ),
             after_temporary=(self.state.get("last") or {}).get("reason") in TEMPORARY_REASONS,
             quiet=self.quiet_now(now),
+            guest_manual=self.cfg["guest_mode"] == GUEST_MANUAL and self.guest_present(),
         )
 
     def target(self, trigger: str = TRIGGER_APPLY_TARGET) -> Decision:
@@ -2219,6 +2456,15 @@ class CoverController:
         situation = self.situation(trigger, now)
         house = self.house_status(now)
         shaded, heat = self.shaded(now)
+        hot = self.hot_day(now)
+        guest = self.guest_present()
+        guest_mode = self.cfg["guest_mode"] if guest else None
+        if (
+            guest_mode not in (None, GUEST_MANUAL)
+            and (situation.current_position or 0) < self.cfg["pos_shading"]
+        ):
+            # A guest sleeps: shading does not open the cover either
+            shaded = heat = hot = False
         wishes = build_wishes(
             self.cfg,
             trigger=trigger,
@@ -2229,15 +2475,17 @@ class CoverController:
             ),
             current=situation.current_position,
             morning_enabled=self.manager.switches[SWITCH_MORNING]
-            and presence_allows(self.cfg["presence_up"], house),
+            and presence_allows(self.cfg["presence_up"], house)
+            and guest_mode in (None, GUEST_MANUAL),
             evening_enabled=self.manager.switches[SWITCH_EVENING]
-            and presence_allows(self.cfg["presence_down"], house),
+            and presence_allows(self.cfg["presence_down"], house)
+            and guest_mode != GUEST_NO_SCHEDULE,
             sleeping=self.resident_status(now) in SLEEPING,
             self_defense=self.self_defense_active(now),
             shaded=shaded and self.manager.switches[SWITCH_SHADING],
             heat=heat and self.manager.switches[SWITCH_SHADING],
             shading_alt=bool(self._is_on(self.cfg["shading_alt_entity"])),
-            hot_day=self.hot_day(now),
+            hot_day=hot,
             force=self.force_kind(),
             lockout=situation.lockout,
             trigger_pos=self.trigger_pos(),
@@ -2259,6 +2507,7 @@ class CoverController:
             "shaded": shaded,
             "heat": heat,
             "hot_day": self._hot,
+            "guest": guest,
             "quiet": situation.quiet,
             "simulation": self.simulation,
             "protections": self.protections(),
@@ -2329,8 +2578,8 @@ class CoverController:
         function, same position, same manual override); otherwise the current
         target wins.
         """
-        if decision.source == "rain_window" or decision.blocked_by == BLOCK_QUIET:
-            # In the quiet hours the return waits for their end
+        if decision.source == "rain_window" or decision.blocked_by in (BLOCK_QUIET, BLOCK_GUEST):
+            # In the quiet hours (or with a guest) the return waits for their end
             return decision
         stored = self.state.pop("rain_return", None)
         if stored is None:
@@ -2716,6 +2965,59 @@ class CoverController:
             reason=self.manager.text(f"entity.sensor.last_reason.state.{decision.reason}"),
             blocked=self.manager.text(f"entity.sensor.blocked_by.state.{decision.blocked_by}"),
         )
+
+    # --- overview ---------------------------------------------------------
+
+    def summary(self) -> dict[str, Any]:
+        """One line of the overview page."""
+        manager = self.manager
+        cfg = self.cfg
+        now = dt_util.utcnow()
+        target = self.target()
+        last = self.state.get("last") or {}
+        shading = self.state.get("shading") or {}
+        override = self.override or {}
+        today = now.astimezone(self.tz).date()
+        sched = self.schedule_for(today)
+        marks = self.marks_for(today)
+        return {
+            "name": self.name,
+            "entity_id": self.cover_entity,
+            "profile": self.profile_name,
+            "next_up": _iso(self.next_up),
+            "next_down": _iso(self.next_down),
+            "up_today": _iso(effective_up(sched, marks)),
+            "down_today": _iso(effective_down(sched, marks)),
+            "up_mode": manager.option_text("up_mode", cfg["up_mode"]),
+            "down_mode": manager.option_text("down_mode", cfg["down_mode"]),
+            "presence_up": manager.option_text("presence_up", cfg["presence_up"]),
+            "presence_down": manager.option_text("presence_down", cfg["presence_down"]),
+            "shading_mode": manager.option_text("shading_mode", cfg["shading_mode"]),
+            "party": cfg["party"],
+            "lockout": manager.option_text("lockout", cfg["lockout"]),
+            "automatic": self.switches[SWITCH_AUTOMATIC],
+            "paused": self.switches[SWITCH_PAUSE] or self.pause_entity_on,
+            "simulation": self.simulation,
+            "position": self.current_position(),
+            "tilt": self.current_tilt(),
+            "target": manager.state_text("sensor", "target", target.kind),
+            "target_position": target.position,
+            "target_reason": manager.state_text("sensor", "last_reason", target.reason),
+            "blocked_by": manager.state_text("sensor", "blocked_by", target.blocked_by),
+            "last_reason": manager.state_text("sensor", "last_reason", last.get("reason")),
+            "last_position": last.get("position"),
+            "last_time": last.get("time"),
+            "shading": manager.state_text("sensor", "shading_state", self.shading_state),
+            "shading_since": shading.get("since"),
+            "window": manager.state_text("sensor", "window_state", self.window_state),
+            "residents": manager.state_text("sensor", "residents", self.resident_status(now)),
+            "override_until": override.get("until") if self.override_active else None,
+            "protections": [k for k, v in self.protections().items() if v],
+            "hot_day": self._hot,
+            "guest": self.guest_present(),
+            "quiet": self.quiet_now(),
+            "is_day": self.is_day(),
+        }
 
     # --- diagnostics --------------------------------------------------------
 

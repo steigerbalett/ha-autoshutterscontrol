@@ -137,6 +137,21 @@ Für jeden Rollladen zählt der Raum-Status, falls er Quellen hat, sonst der Hau
   abends schließen, sobald sie schlafen, jeweils zwischen frühester und spätester Zeit (späteste Zeit ist die
   Frist).
 
+### Gäste
+
+Am Rollladen (Seite *Bewohner*): *Gäste in diesem Raum* nimmt Personen, Device-Tracker oder einen
+Schalter/Input Boolean (`home` bzw. an = Gast da). Alternativ schaltet der Schalter **Gast anwesend** am
+Rollladen den Gast hart an. *Bei Gast* (Standard *Keine Morgenfahrt*):
+
+- *Keine Morgenfahrt*: der Rollladen öffnet morgens nicht (auch nicht für Beschattung oder Sichtschutz);
+  Schließen, Lüften und Schutzfunktionen bleiben.
+- *Keine Morgen- und Abendfahrt*: der Zeitplan fährt gar nicht.
+- *Nur manuelle Fahrten*: keine automatischen Fahrten außer Zwang und Schutz (Regen, Wind, Wasser, Frost,
+  Selbstschutz); *Nicht gefahren wegen* zeigt *Gast*.
+
+Ist der Gast weg bzw. der Schalter aus, fährt der Rollladen sofort in seinen Zielzustand (die Morgenfahrt
+wird nachgeholt). Binärsensor *Gast* je Rollladen.
+
 ## Selbstschutz
 
 Ist der Schalter *Selbstschutz* am zentralen Gerät an (Standard aus), schließen Rollläden mit offenem oder
@@ -307,6 +322,31 @@ erledigte Fahrten, Schutzfunktionen) liegt im Speicher von Home Assistant und ü
   und die letzten 50 Entscheidungen mit allen Eingangswerten (Lage, Wünsche, Bewohner, Fenster, Beschattung,
   Schutzfunktionen).
 
+## Übersicht
+
+Die Übersicht entspricht der *ASC Configuration and Information Summary* von FHEM. Es gibt sie an zwei
+Stellen:
+
+- direkt in der Integration: *Konfigurieren* → **Übersicht** (Stand beim Öffnen, zum Aktualisieren neu
+  öffnen);
+- optional als Seite **AutoShuttersControl** in der Seitenleiste (*Übersicht in der Seitenleiste*, Seite
+  *Fahrverhalten*, Standard aus), mit allen Spalten, aktualisiert alle 10 Sekunden.
+
+Gezeigt werden:
+
+- oben Sonnenrichtung und Sonnenhöhe, Vorhersage heute, Haus-Status, aktive Schutzfunktionen und alle
+  globalen Schalter;
+- je Rollladen: nächste Öffnung und nächstes Schließen, Morgens/Abends fahren nach, Bewohner auf/zu,
+  Beschattung, Partymodus, Aussperrschutz, letzte Fahrt (Grund, Position, Zeit), Position und Lamellen, Ziel
+  mit Grund, Nicht gefahren wegen, Beschattungszustand seit, Fenster, Bewohner sowie Hinweise wie Pause,
+  Simulation, Übersteuerung bis, Ruhezeit, heißer Tag, Regen/Wind/Wasser/Frost;
+- **Verknüpfte Sensoren und Werte** (wie die überwachten Geräte, NOTIFYDEV, in FHEM): jede Entität aus den
+  Einstellungen mit aktuellem Wert und Einheit (z. B. Helligkeitssensor 23000 lx, Regen, Wind,
+  Temperaturen, Fensterkontakte, Bewohner), der Einstellung, wer sie nutzt (Global und/oder Rollläden) und
+  wann sie sich zuletzt geändert hat. Fehlt eine Entität, steht dort *fehlt*.
+
+Auf der Seite in der Seitenleiste öffnet ein Klick auf einen Rollladen oder eine Entität ihren Dialog.
+
 ## Aus FHEM übernehmen
 
 Optionen → *Aus FHEM übernehmen*:
@@ -362,8 +402,12 @@ Binärsensoren Sonnig (Wetterlage jetzt in der Liste der Beschattung) und Heiße
 ab*); Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand, Alle wackeln, Aufgeschobene
 Fahrten freigeben.
 
-**Je Rollladen**: Schalter Automatik, Pause und Simulation; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
-Regenschutz, Wasserschutz, Windschutz, Frostschutz, Zwangsfunktion, Heißer Tag und Ruhezeit; Sensoren
+Die Entitäten eines Rollladens stehen auf dem Gerät des echten Rollladens (z. B. dem Shelly- oder
+Homematic-Aktor), so wie bei den Helfern von Home Assistant. Hat der Rollladen kein Gerät (z. B. ein
+Template-Cover), bekommt er ein eigenes Gerät „ASC ‹Name›“ unter dem zentralen Gerät.
+
+**Je Rollladen**: Schalter Automatik, Pause, Simulation und Gast anwesend; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
+Regenschutz, Wasserschutz, Windschutz, Frostschutz, Zwangsfunktion, Heißer Tag, Ruhezeit und Gast; Sensoren
 Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Nicht gefahren wegen, Fenster, Bewohner, Beschattung, Simulierte Fahrt; Knöpfe Zielzustand anfahren,
 Übersteuerung beenden und Wackeln; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.

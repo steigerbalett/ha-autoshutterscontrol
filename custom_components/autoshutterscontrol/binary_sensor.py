@@ -46,6 +46,7 @@ async def async_setup_entry(
                 ForceBinarySensor(controller),
                 HotDayBinarySensor(controller),
                 QuietBinarySensor(controller),
+                GuestBinarySensor(controller),
             ],
             config_subentry_id=controller.subentry_id,
         )
@@ -223,3 +224,14 @@ class QuietBinarySensor(_Refreshed, AscCoverEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool:
         return self.controller.quiet_now()
+
+
+class GuestBinarySensor(AscCoverEntity, BinarySensorEntity):
+    """A guest is in the room: no morning opening."""
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "guest")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.guest_present()
