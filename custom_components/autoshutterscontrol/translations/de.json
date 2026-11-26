@@ -57,7 +57,12 @@
           "extra": "Zusatzbedingungen und -aktionen",
           "fhem_import": "Aus FHEM übernehmen",
           "reset": "Felder auf Standard zurücksetzen",
-          "save": "Speichern"
+          "save": "💾 Speichern und schließen"
+        },
+        "menu_option_descriptions": {
+          "summary": "Alle Rollläden und Sensoren auf einen Blick",
+          "fhem_import": "Einstellungen aus ASC in FHEM einlesen",
+          "save": "Übernimmt alle Änderungen aus den Seiten oben. Ohne Speichern gehen sie verloren."
         }
       },
       "schedule": {
@@ -521,7 +526,7 @@
       },
       "fhem_import": {
         "title": "Aus FHEM übernehmen",
-        "description": "Füge deine fhem.cfg ein (oder die Zeilen des AutoShuttersControl-Geräts und der Rollläden mit dem Attribut ASC 1 oder 2). Gelesen werden nur define- und attr-Zeilen; nichts wird verschickt.",
+        "description": "Füge die Einstellungen aus FHEM ein. So bekommst du sie:\n\n1. In FHEM oben in die Befehlszeile eingeben: `list -r TYPE=AutoShuttersControl` und danach `list -r ASC=[12]`\n2. Die Ausgabe beider Befehle markieren, kopieren und hier einfügen.\n\nAlternativ geht die ganze fhem.cfg. Gelesen werden nur define- und attr-Zeilen, nichts wird verschickt. Einen einzelnen Rollladen übernimmst du einfacher am Rollladen selbst: Rollladen öffnen → *Aus FHEM übernehmen*.",
         "data": {
           "fhem_cfg": "fhem.cfg"
         }
@@ -536,15 +541,21 @@
       },
       "fhem_done": {
         "title": "Übernehmen",
-        "description": "Absenden legt die Rollläden an und speichert die globalen Einstellungen.\n\n**Globale Einstellungen:** {global}\n\n**Neue Rollläden:** {covers}\n\n**Schon eingerichtet (bleibt unverändert):** {existing}\n\n**FHEM-Rollläden ohne Zuordnung:** {skipped}\n\n**Geräte ohne Entität:** {unmapped}\n\n**Nicht übertragbar:** {not_transferred}"
+        "description": "Absenden legt die Rollläden an und speichert die globalen Einstellungen.\n\n**Globale Einstellungen:** {global}\n\n**Neue Rollläden:** {covers}\n\n**Schon eingerichtet:** {existing}\n\n**FHEM-Rollläden ohne Zuordnung:** {skipped}\n\n**Geräte ohne Entität:** {unmapped}\n\n**Nicht übertragbar:** {not_transferred}",
+        "data": {
+          "update_existing": "Schon eingerichtete Rollläden mit den FHEM-Werten aktualisieren"
+        },
+        "data_description": {
+          "update_existing": "Aus: diese Rollläden bleiben, wie sie sind."
+        }
       },
       "summary": {
         "title": "Übersicht",
-        "description": "Sonne {azimuth}° / {elevation}°, Vorhersage heute {forecast} °C, Haus-Status {house}. Stand {time}; zum Aktualisieren neu öffnen.\n\n**Rollläden**\n\n| Rollladen | Nächste Öffnung | Nächstes Schließen | Morgens / abends | Position | Ziel | Letzte Fahrt | Beschattung | Fenster | Hinweise |\n|---|---|---|---|---|---|---|---|---|---|\n{covers}\n\n**Verknüpfte Sensoren und Werte**\n\n| Entität | Wert | Einstellung | Verwendet von |\n|---|---|---|---|\n{entities}"
+        "description": "Sonne {azimuth}° / {elevation}° · Vorhersage heute {forecast} °C · Haus-Status {house} · Stand {time} (zum Aktualisieren neu öffnen)\n\n{panel}\n\n### Rollläden\n\n{covers}\n\n### Verknüpfte Sensoren\n\n{entities}"
       }
     },
     "error": {
-      "fhem_nothing_found": "Kein AutoShuttersControl-Gerät und kein Rollladen mit dem Attribut ASC gefunden."
+      "fhem_nothing_found": "Kein AutoShuttersControl-Gerät und kein Rollladen mit ASC-Attributen gefunden."
     }
   },
   "config_subentries": {
@@ -581,7 +592,10 @@
             "override": "Manuelle Übersteuerung",
             "extra": "Zusatzbedingungen und -aktionen",
             "reset": "Auf geerbten Wert zurücksetzen",
-            "save": "Speichern"
+            "save": "💾 Speichern und schließen"
+          },
+          "menu_option_descriptions": {
+            "save": "Übernimmt alle Änderungen aus den Seiten oben. Ohne Speichern gehen sie verloren."
           }
         },
         "reset": {
@@ -1150,7 +1164,12 @@
             "override": "Manuelle Übersteuerung",
             "extra": "Zusatzbedingungen und -aktionen",
             "reset": "Auf geerbten Wert zurücksetzen",
-            "save": "Speichern"
+            "save": "💾 Speichern und schließen",
+            "fhem_import": "Aus FHEM übernehmen"
+          },
+          "menu_option_descriptions": {
+            "save": "Übernimmt alle Änderungen aus den Seiten oben. Ohne Speichern gehen sie verloren.",
+            "fhem_import": "Einstellungen aus ASC in FHEM einlesen"
           }
         },
         "schedule": {
@@ -1707,12 +1726,41 @@
             "action_override_end": "↳ {inh_action_override_end}",
             "action_rain_window": "Einmal je Regen bei offenem Fenster, z. B. eine Benachrichtigung.\n↳ {inh_action_rain_window}"
           }
+        },
+        "fhem_import": {
+          "title": "Aus FHEM übernehmen",
+          "description": "Übernimmt die Einstellungen eines FHEM-Rollladens für **{name}**. Der Name in FHEM darf anders sein.\n\n1. In FHEM oben in die Befehlszeile `list -r` und dahinter den Namen des Rollladens in FHEM eingeben, z. B. `list -r EG_Wohnzimmer_Rollo`.\n2. Die ganze Ausgabe kopieren und hier einfügen.\n\nGelesen werden nur die attr-Zeilen mit ASC-Einstellungen. Enthält der Text mehrere Rollläden, wählst du im nächsten Schritt den richtigen aus.",
+          "data": {
+            "fhem_cfg": "Ausgabe von list -r"
+          }
+        },
+        "fhem_pick": {
+          "title": "FHEM-Rollladen wählen",
+          "description": "Im Text stehen {count} Rollläden. Welcher gehört zu **{name}**?",
+          "data": {
+            "shutter": "FHEM-Rollladen"
+          }
+        },
+        "fhem_entities": {
+          "title": "Geräte zuordnen",
+          "description": "{shutter} nutzt in FHEM diese Geräte (Sensoren, Fensterkontakte, Bewohner). Wähle für jedes die passende Entität in Home Assistant. Leer lassen = diese Einstellung wird nicht übernommen."
+        },
+        "fhem_done": {
+          "title": "Übernehmen",
+          "description": "Von **{shutter}** werden {count} Einstellungen für **{name}** übernommen. Werte, die schon so vom Profil oder global kommen, bleiben geerbt.\n\n{values}\n\n**Geräte ohne Entität:** {unmapped}\n\n**Nicht übertragbar:** {not_transferred}\n\nNach dem Absenden bist du wieder im Menü. **Erst mit *Speichern und schließen* wird es übernommen.**",
+          "data": {
+            "replace": "Bisherige eigene Werte dieses Rollladens vorher löschen"
+          },
+          "data_description": {
+            "replace": "Aus: nur die Werte aus FHEM werden ersetzt, alles andere bleibt."
+          }
         }
       },
       "error": {
         "no_new_cover": "Alle gewählten Rollläden sind schon eingerichtet.",
         "invalid_day": "Bitte als Tag und Monat eingeben, z. B. 1.11. oder 31.03.",
-        "period_incomplete": "Für einen Zeitraum braucht es Beginn und Ende."
+        "period_incomplete": "Für einen Zeitraum braucht es Beginn und Ende.",
+        "fhem_nothing_found": "Im Text ist kein Rollladen mit ASC-Attributen (attr … ASC_…)."
       }
     }
   },
@@ -2204,6 +2252,22 @@
         "hold": "Halten",
         "open": "Auf erzwingen",
         "closed": "Zu erzwingen"
+      }
+    },
+    "summary_row": {
+      "options": {
+        "profile": "Profil",
+        "position": "Position",
+        "target": "Ziel",
+        "next_up": "Öffnet",
+        "next_down": "Schließt",
+        "last": "Letzte Fahrt",
+        "shading": "Beschattung",
+        "window": "Fenster",
+        "notes": "Hinweise",
+        "global": "Global",
+        "panel_open": "Große Übersicht in der Seitenleiste öffnen",
+        "panel_hint": "Tipp: Mehr Platz hat die Übersicht in der Seitenleiste. Einschalten unter *Fahrverhalten* → *Übersicht in der Seitenleiste*."
       }
     }
   },

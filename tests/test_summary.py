@@ -114,8 +114,9 @@ async def test_summary_in_options(hass: HomeAssistant) -> None:
     )
     assert result["step_id"] == "summary"
     placeholders = result["description_placeholders"]
-    assert placeholders["covers"].startswith("| living_room |")
-    assert "| 100 % |" in placeholders["covers"]
+    assert placeholders["covers"].startswith("**living_room**")
+    assert "Position: 100 %" in placeholders["covers"]
+    assert "Seitenleiste" in placeholders["panel"]
     assert "23000 lx" in placeholders["entities"]
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["step_id"] == "init"

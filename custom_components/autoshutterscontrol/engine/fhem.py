@@ -39,11 +39,18 @@ class FhemImport:
         """FHEM devices used in the attributes (not the shutters), sorted."""
         found: set[str] = set()
         for values in (self.global_settings, *self.shutters.values()):
-            for value in values.values():
-                for item in value if isinstance(value, list) else [value]:
-                    if isinstance(item, Ref):
-                        found.add(item.device)
+            found.update(references_in(values))
         return sorted(found - set(self.shutters))
+
+
+def references_in(values: Mapping[str, Any]) -> list[str]:
+    """FHEM devices used in the converted values of one device, sorted."""
+    found: set[str] = set()
+    for value in values.values():
+        for item in value if isinstance(value, list) else [value]:
+            if isinstance(item, Ref):
+                found.add(item.device)
+    return sorted(found)
 
 
 # --- reading fhem.cfg ---------------------------------------------------------
@@ -335,15 +342,23 @@ def _sun_range(out: dict[str, Any]) -> None:
     out["shading_azimuth_end"] = int(round(direction + (right if right is not None else 75))) % 360
 
 
-def convert(text: str) -> FhemImport:
-    """Read fhem.cfg and convert the ASC device and its shutters."""
+def convert(text: str, *, loose: bool = False) -> FhemImport:
+    """Read fhem.cfg and convert the ASC device and its shutters.
+
+    ``loose``: also devices with ASC_ attributes but without ``ASC 1/2`` count as
+    shutters (the export of one shutter).
+    """
     asc, attrs, _types = read(text)
     result = FhemImport(asc_device=asc)
     if asc is not None:
         _convert(attrs.get(asc, {}), result.global_settings, result.not_transferred, asc)
         _sun_range(result.global_settings)
     for name, values in attrs.items():
-        if name == asc or values.get("ASC") not in ("1", "2"):
+        if name == asc:
+            continue
+        if values.get("ASC") not in ("1", "2") and not (
+            loose and any(key.startswith("ASC_") for key in values)
+        ):
             continue
         settings: dict[str, Any] = {}
         _convert(values, settings, result.not_transferred, name)

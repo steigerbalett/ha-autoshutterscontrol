@@ -13,9 +13,12 @@ Home Assistant 2026.10 or newer is needed.
 
 ## Setup
 
+New here? The [setup guide](setup.md) explains everything step by step, with recipes for typical rooms.
+
 There is **one** entry for the whole house.
 
-1. **Main entry**: choose the workday sensors (optional). Without a sensor Monday to Friday are workdays.
+1. **Main entry**: choose the sensors of the house (workday, brightness, weather, all optional). Without a
+   workday sensor Monday to Friday are workdays.
 2. **Options** (gear icon of the entry): global settings, one page each for schedule, sensors,
    brightness and sun elevation, residents and self defense, positions, window, shading,
    slats, privacy, rain/wind/frost, special functions, drive behaviour, manual override, extra
@@ -23,6 +26,7 @@ There is **one** entry for the whole house.
 3. **Profiles** (optional, *Add profile*): settings for a group of covers, e.g. "South side".
 4. **Covers** (*Add covers*): choose one or more covers and a profile. Change only what differs
    with the cover's *Reconfigure* button.
+5. Changes on the pages are kept only with **💾 Save and close** in the menu.
 
 ### Inheritance
 
@@ -375,9 +379,11 @@ is kept in the storage of Home Assistant and survives every restart.
 
 The overview matches the *ASC Configuration and Information Summary* of FHEM. It is available in two places:
 
-- right in the integration: *Configure* → **Overview** (state when opened, open again to refresh);
+- right in the integration: *Configure* → **Overview** (state when opened, open again to refresh), one block
+  per cover so that it is readable in the narrow dialog;
 - optionally as the page **AutoShuttersControl** in the sidebar (*Overview in the sidebar*, page *Drive
-  behaviour*, default off), with all columns, refreshed every 10 seconds.
+  behaviour*, default off), as a large table with all columns, refreshed every 10 seconds. The overview in
+  the dialog links to it.
 
 It shows:
 
@@ -396,18 +402,26 @@ On the sidebar page a click on a cover or an entity opens its dialog.
 
 ## Import from FHEM
 
-Options → *Import from FHEM*:
+The names in FHEM and in Home Assistant may differ: you choose the mapping. Step by step with
+the commands: [setup guide](setup.md#10-moving-from-fhem).
 
-1. Paste `fhem.cfg` (or only the lines of the AutoShuttersControl device and of the shutters with
-   `ASC 1/2`). Only `define` and `attr` lines are read.
+**Everything at once**: Options → *Import from FHEM*:
+
+1. Paste the output of `list -r TYPE=AutoShuttersControl` and `list -r ASC=[12]` from the FHEM command line
+   (or the whole `fhem.cfg`). Only `define` and `attr` lines are read.
 2. Choose a Home Assistant cover for each FHEM shutter. Suggestions come from similar names.
 3. Choose entities for the FHEM devices in the attributes (sensors, window contacts, residents).
 4. The summary shows what is imported and what cannot be transferred (Perl code, unknown attributes).
+   Covers that are already set up stay unchanged unless *Update covers that are already set up* is on.
    Submit creates the covers and saves the global settings.
 
 The attributes of the ASC device become global settings, those of the shutters cover settings. Values all
-shutters share move to the global settings; values that only repeat the default are dropped. Covers that
-are already configured stay unchanged.
+shutters share move to the global settings; values that only repeat the default are dropped.
+
+**One shutter**: on the cover *Reconfigure* → *Import from FHEM*. Paste the output of
+`list -r <name in FHEM>`. With several shutters in the text you choose one. Then map its devices; the list shows every value
+that is taken over. Values that equal what the cover inherits stay inherited. *Delete the own values of this
+cover first* starts from scratch. Back in the menu, **💾 Save and close** keeps it.
 
 ## Manual override
 

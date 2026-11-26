@@ -350,7 +350,17 @@ class AscOptionsFlow(OptionsFlow):
         manager = getattr(self.config_entry, "runtime_data", None)
         if manager is None:
             placeholders = dict.fromkeys(
-                ("covers", "entities", "azimuth", "elevation", "forecast", "house", "time"), "–"
+                (
+                    "covers",
+                    "entities",
+                    "azimuth",
+                    "elevation",
+                    "forecast",
+                    "house",
+                    "time",
+                    "panel",
+                ),
+                "–",
             )
         else:
             placeholders = manager.summary_markdown()
@@ -528,6 +538,20 @@ class AscOptionsFlow(OptionsFlow):
         if user_input is not None:
             for key, value in plan.global_settings.items():
                 self.settings[key] = to_storage(BY_KEY[key], value)
+            if user_input.get("update_existing"):
+                by_cover = {
+                    sub.data.get(CONF_COVER_ENTITY): sub
+                    for sub in entry.subentries.values()
+                    if sub.subentry_type == SUBENTRY_COVER
+                }
+                for cover, _name, values in plan.covers:
+                    if (sub := by_cover.get(cover)) is None:
+                        continue
+                    merged = dict(sub.data.get(CONF_SETTINGS, {}))
+                    merged.update({k: to_storage(BY_KEY[k], v) for k, v in values.items()})
+                    self.hass.config_entries.async_update_subentry(
+                        entry, sub, data={**sub.data, CONF_SETTINGS: merged}
+                    )
             for cover, _name, values in new:
                 state = self.hass.states.get(cover)
                 title = str(state.attributes.get("friendly_name", cover)) if state else cover
@@ -554,9 +578,14 @@ class AscOptionsFlow(OptionsFlow):
             section = BY_KEY[key].section
             return texts.get(f"component.{DOMAIN}.options.step.{section}.data.{key}", key)
 
+        schema = (
+            vol.Schema({vol.Optional("update_existing", default=False): bool})
+            if any(c in existing for c, _n, _v in plan.covers)
+            else vol.Schema({})
+        )
         return self.async_show_form(
             step_id="fhem_done",
-            data_schema=vol.Schema({}),
+            data_schema=schema,
             description_placeholders={
                 "global": ", ".join(sorted(label(k) for k in plan.global_settings)) or dash,
                 "covers": ", ".join(f"{name} → {cover}" for cover, name, _v in new) or dash,
@@ -592,10 +621,13 @@ class _SettingsSubentryFlow(ConfigSubentryFlow):
     def _profile_settings(self) -> Mapping[str, Any] | None:
         return None
 
+    extra_menu: tuple[str, ...] = ()
+
     def _menu(self) -> SubentryFlowResult:
+        extra = list(self.extra_menu) if self.source != "user" else []
         return self.async_show_menu(
             step_id="menu",
-            menu_options=[STEP_BASE, *sections_for(self.level), STEP_RESET, STEP_SAVE],
+            menu_options=[STEP_BASE, *sections_for(self.level), *extra, STEP_RESET, STEP_SAVE],
             description_placeholders={"name": self._title or ""},
         )
 
@@ -726,6 +758,15 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
     """One cover; several can be added at once."""
 
     level = LEVEL_COVER
+    extra_menu = (STEP_FHEM,)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._fhem: fhem.FhemImport | None = None
+        self._fhem_name: str | None = None
+        self._fhem_values: dict[str, Any] = {}
+        self._fhem_unmapped: list[str] = []
+        self._fhem_resolved: set[str] = set()
 
     def _profiles(self) -> dict[str, ConfigSubentry]:
         return {
@@ -862,4 +903,135 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
             data_schema=schema,
             errors=errors,
             description_placeholders={"entity_id": self._data.get(CONF_COVER_ENTITY, "")},
+        )
+
+    # --- import of one shutter from FHEM ---------------------------------------
+
+    async def async_step_fhem_import(self, user_input=None) -> SubentryFlowResult:
+        """Paste the FHEM export of one shutter (list -r <name>)."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            self._fhem = fhem.convert(user_input.get(CONF_FHEM_CFG, ""), loose=True)
+            if not self._fhem.shutters:
+                errors[CONF_FHEM_CFG] = "fhem_nothing_found"
+            elif len(self._fhem.shutters) == 1:
+                self._fhem_name = next(iter(self._fhem.shutters))
+                return await self.async_step_fhem_entities()
+            else:
+                return await self.async_step_fhem_pick()
+        return self.async_show_form(
+            step_id=STEP_FHEM,
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_FHEM_CFG): selector.TextSelector(
+                        selector.TextSelectorConfig(multiline=True)
+                    )
+                }
+            ),
+            errors=errors,
+            description_placeholders={"name": self._title or ""},
+        )
+
+    async def async_step_fhem_pick(self, user_input=None) -> SubentryFlowResult:
+        """Several shutters in the text: which one belongs to this cover."""
+        assert self._fhem is not None
+        names = list(self._fhem.shutters)
+        if user_input is not None:
+            self._fhem_name = user_input["shutter"]
+            return await self.async_step_fhem_entities()
+        guess = fhem.suggest(self._title or "", {n: n for n in names}, minimum=0.0) or names[0]
+        entity = self._data.get(CONF_COVER_ENTITY) or ""
+        guess = fhem.suggest(entity, {n: n for n in names}) or guess
+        return self.async_show_form(
+            step_id="fhem_pick",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("shutter", default=guess): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=names, mode=selector.SelectSelectorMode.DROPDOWN
+                        )
+                    )
+                }
+            ),
+            description_placeholders={"name": self._title or "", "count": str(len(names))},
+        )
+
+    def _candidates(self) -> dict[str, str]:
+        return {
+            state.entity_id: str(state.attributes.get("friendly_name", state.entity_id))
+            for state in self.hass.states.async_all()
+        }
+
+    async def async_step_fhem_entities(self, user_input=None) -> SubentryFlowResult:
+        """FHEM sensors and contacts of this shutter -> Home Assistant entities."""
+        assert self._fhem is not None and self._fhem_name is not None
+        values = self._fhem.shutters[self._fhem_name]
+        references = [r for r in fhem.references_in(values) if r != self._fhem_name]
+        if user_input is not None or not references:
+            resolved, self._fhem_unmapped = fhem.resolve(
+                values, dict(user_input or {}), LEVEL_COVER
+            )
+            inherited = dict(
+                resolve(self._get_entry().options.get(CONF_SETTINGS, {}), self._profile_settings())
+            )
+            self._fhem_resolved = set(resolved)
+            self._fhem_values = fhem.without_defaults(resolved, inherited)
+            return await self.async_step_fhem_done()
+        entities = self._candidates()
+        fields: dict[Any, Any] = {}
+        for name in references:
+            guess = fhem.suggest(name, entities)
+            key = (
+                vol.Optional(name, description={"suggested_value": guess})
+                if guess
+                else vol.Optional(name)
+            )
+            fields[key] = selector.EntitySelector()
+        return self.async_show_form(
+            step_id="fhem_entities",
+            data_schema=vol.Schema(fields),
+            description_placeholders={"shutter": self._fhem_name},
+        )
+
+    async def async_step_fhem_done(self, user_input=None) -> SubentryFlowResult:
+        """What is taken over; back to the menu (then save)."""
+        assert self._fhem is not None and self._fhem_name is not None
+        if user_input is not None:
+            if user_input.get("replace"):
+                self.settings.clear()
+            for key in self._fhem_resolved - set(self._fhem_values):
+                # FHEM value equals the inherited one: inherit again
+                self.settings.pop(key, None)
+            for key, value in self._fhem_values.items():
+                self.settings[key] = to_storage(BY_KEY[key], value)
+            return self._menu()
+        texts = await translation.async_get_translations(
+            self.hass, self.hass.config.language, "selector", [DOMAIN]
+        )
+
+        def label(key: str) -> str:
+            return texts.get(f"component.{DOMAIN}.selector.setting_key.options.{key}", key)
+
+        lines = [
+            f"- {label(key)}: {_display(BY_KEY[key], value)}"
+            for key, value in sorted(self._fhem_values.items(), key=lambda kv: label(kv[0]))
+        ]
+        prefix = f"{self._fhem_name}: "
+        not_transferred = [
+            item.removeprefix(prefix)
+            for item in self._fhem.not_transferred
+            if item.startswith(prefix)
+        ]
+        dash = "–"
+        return self.async_show_form(
+            step_id="fhem_done",
+            data_schema=vol.Schema({vol.Optional("replace", default=False): bool}),
+            description_placeholders={
+                "name": self._title or "",
+                "shutter": self._fhem_name,
+                "count": str(len(lines)),
+                "values": "\n".join(lines) or dash,
+                "unmapped": ", ".join(sorted(set(self._fhem_unmapped))) or dash,
+                "not_transferred": ", ".join(not_transferred) or dash,
+            },
         )

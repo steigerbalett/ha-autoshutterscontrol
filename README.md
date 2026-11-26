@@ -18,7 +18,7 @@ detect manual drives, and inherit every setting from global to profile to cover.
 It rebuilds the functions of the FHEM module AutoShuttersControl (ASC) developed by CoolTux in Python and
 replaces per-cover blueprint automations.
 
-📖 [Documentation](docs/en/README.md)
+📖 [Setup guide](docs/en/setup.md) · [Documentation](docs/en/README.md)
 
 ### Installation
 
@@ -70,7 +70,7 @@ Handfahrten erkennen und jede Einstellung von global über Profil bis zum Rollla
 Sie baut die Funktionen des von CoolTux entwickelten FHEM-Moduls AutoShuttersControl (ASC) in Python nach und
 ersetzt Blueprint-Automationen je Rollladen.
 
-📖 [Dokumentation](docs/de/README.md)
+📖 [Einrichtungsanleitung](docs/de/einrichtung.md) · [Dokumentation](docs/de/README.md)
 
 ### Installation
 

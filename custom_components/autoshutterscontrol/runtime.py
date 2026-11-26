@@ -934,6 +934,9 @@ class AscManager:
         def name(key: str, platform: str = "binary_sensor") -> str:
             return self.texts.get(f"entity.{platform}.{key}.name", key)
 
+        def row(key: str) -> str:
+            return self.texts.get(f"selector.summary_row.options.{key}", key)
+
         covers = []
         for c in data["covers"]:
             notes = []
@@ -961,38 +964,38 @@ class AscManager:
             target = f"{cell(c['target'])} {pos(c['target_position'])}"
             if c["blocked_by"]:
                 target += f" ({cell(c['blocked_by'])})"
-            covers.append(
-                "| "
-                + " | ".join(
-                    [
-                        cell(c["name"]) + (f" ({cell(c['profile'])})" if c["profile"] else ""),
-                        when(c["next_up"]),
-                        when(c["next_down"]),
-                        f"{cell(c['up_mode'])} / {cell(c['down_mode'])}",
-                        pos(c["position"]),
-                        target,
-                        last,
-                        shading,
-                        cell(c["window"]),
-                        ", ".join(notes) or "–",
-                    ]
-                )
-                + " |"
-            )
+            title = f"**{cell(c['name'])}**"
+            if c["profile"]:
+                title += f" · {row('profile')} {cell(c['profile'])}"
+            lines = [
+                title,
+                f"- {row('position')}: {pos(c['position'])} · {row('target')}: {target}",
+                f"- {row('next_up')}: {when(c['next_up'])} ({cell(c['up_mode'])}) · "
+                f"{row('next_down')}: {when(c['next_down'])} ({cell(c['down_mode'])})",
+                f"- {row('last')}: {last}",
+                f"- {row('shading')}: {shading} · {row('window')}: {cell(c['window'])}",
+            ]
+            if notes:
+                lines.append(f"- {row('notes')}: {', '.join(notes)}")
+            covers.append("\n".join(lines))
         entities = []
         for e in data["entities"]:
             value = "❗" if e["state"] is None else cell(e["state"])
             if e["state"] is not None and e["unit"]:
                 value += f" {e['unit']}"
-            users = ", ".join(u or "Global" for u in e["used_by"])
+            users = ", ".join(u or row("global") for u in e["used_by"])
             entities.append(
-                f"| {cell(e['name'] or e['entity_id'])} | {value} | {cell(e['setting_name'])} "
-                f"| {cell(users)} |"
+                f"- **{cell(e['name'] or e['entity_id'])}**: {value}  \n"
+                f"  {cell(e['setting_name'])} · {cell(users)}"
             )
+        panel = (
+            f"[{row('panel_open')}](/{DOMAIN})" if self.global_cfg["panel"] else row("panel_hint")
+        )
         g = data["global"]
         return {
-            "covers": "\n".join(covers) or "| – |",
-            "entities": "\n".join(entities) or "| – |",
+            "covers": "\n\n".join(covers) or "–",
+            "entities": "\n".join(entities) or "–",
+            "panel": panel,
             "azimuth": f"{g['sun_azimuth']:.1f}",
             "elevation": f"{g['sun_elevation']:.1f}",
             "forecast": "–" if g["forecast"] is None else f"{g['forecast']:g}",

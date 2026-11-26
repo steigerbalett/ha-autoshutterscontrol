@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1
+
+- Setup guide step by step in German and English (`docs/de/einrichtung.md`, `docs/en/setup.md`), with recipes
+  for typical rooms and the move from FHEM. Linked from the README.
+- Import of one shutter from FHEM: on the cover *Reconfigure* → *Import from FHEM*, paste the output of
+  `list -r <name>`. The names may differ; with several shutters in the text you choose one. Values equal to
+  the inherited ones stay inherited; optionally the own values of the cover are deleted first.
+- Import of everything from FHEM: the help names the commands `list -r TYPE=AutoShuttersControl` and
+  `list -r ASC=[12]`; new option *Update covers that are already set up*.
+- The menu item *Save* is now *💾 Save and close* with a hint below it, in the global menu, in profiles and in
+  covers.
+- The overview in the dialog shows one block per cover instead of a wide table, so it is readable in the
+  narrow dialog, and links to the overview in the sidebar.
+
 ## 0.9.0
 
 - Drive check (*Check every drive*, default on): after the drive time the cover must be at its position;

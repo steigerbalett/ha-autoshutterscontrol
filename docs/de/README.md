@@ -13,9 +13,13 @@ Nötig ist Home Assistant 2026.10 oder neuer.
 
 ## Einrichtung
 
+Neu hier? Die [Einrichtungsanleitung](einrichtung.md) erklärt alles Schritt für Schritt, mit Rezepten für
+typische Räume.
+
 Es gibt **einen** Eintrag für das ganze Haus.
 
-1. **Haupteintrag**: Arbeitstag-Sensoren wählen (optional). Ohne Sensor gelten Montag bis Freitag als Arbeitstage.
+1. **Haupteintrag**: die Sensoren des Hauses wählen (Arbeitstag, Helligkeit, Wetter, alles optional). Ohne
+   Arbeitstag-Sensor gelten Montag bis Freitag als Arbeitstage.
 2. **Optionen** (Zahnrad am Eintrag): globale Einstellungen, je eine Seite für Zeitplan, Sensoren,
    Helligkeit und Sonnenhöhe, Bewohner und Selbstschutz, Positionen, Fenster, Beschattung,
    Lamellen, Sichtschutz, Regen/Wind/Frost, Sonderfunktionen, Fahrverhalten, manuelle Übersteuerung,
@@ -23,6 +27,7 @@ Es gibt **einen** Eintrag für das ganze Haus.
 3. **Profile** (optional, *Profil hinzufügen*): Einstellungen für eine Gruppe von Rollläden, z. B. „Südseite“.
 4. **Rollläden** (*Rollläden hinzufügen*): einen oder mehrere Rollläden und ein Profil wählen. Abweichungen
    trägst du über *Neu konfigurieren* am Rollladen ein.
+5. Änderungen auf den Seiten werden erst mit **💾 Speichern und schließen** im Menü übernommen.
 
 ### Erben
 
@@ -383,9 +388,10 @@ Die Übersicht entspricht der *ASC Configuration and Information Summary* von FH
 Stellen:
 
 - direkt in der Integration: *Konfigurieren* → **Übersicht** (Stand beim Öffnen, zum Aktualisieren neu
-  öffnen);
+  öffnen), je Rollladen ein Block, damit sie im schmalen Dialog lesbar ist;
 - optional als Seite **AutoShuttersControl** in der Seitenleiste (*Übersicht in der Seitenleiste*, Seite
-  *Fahrverhalten*, Standard aus), mit allen Spalten, aktualisiert alle 10 Sekunden.
+  *Fahrverhalten*, Standard aus), als große Tabelle mit allen Spalten, aktualisiert alle 10 Sekunden. Die
+  Übersicht im Dialog verlinkt dorthin.
 
 Gezeigt werden:
 
@@ -404,18 +410,28 @@ Auf der Seite in der Seitenleiste öffnet ein Klick auf einen Rollladen oder ein
 
 ## Aus FHEM übernehmen
 
-Optionen → *Aus FHEM übernehmen*:
+Die Namen in FHEM und in Home Assistant dürfen verschieden sein, du wählst die Zuordnung selbst. Schritt für
+Schritt mit den Befehlen: [Einrichtungsanleitung](einrichtung.md#10-umstieg-von-fhem).
 
-1. `fhem.cfg` einfügen (oder nur die Zeilen des AutoShuttersControl-Geräts und der Rollläden mit `ASC 1/2`).
-   Gelesen werden nur `define`- und `attr`-Zeilen.
+**Alles auf einmal**: Optionen → *Aus FHEM übernehmen*:
+
+1. Die Ausgabe von `list -r TYPE=AutoShuttersControl` und `list -r ASC=[12]` aus der FHEM-Befehlszeile
+   einfügen (oder die ganze `fhem.cfg`). Gelesen werden nur `define`- und `attr`-Zeilen.
 2. Jedem FHEM-Rollladen einen Rollladen in Home Assistant zuordnen. Vorschläge kommen aus ähnlichen Namen.
 3. Den FHEM-Geräten in den Attributen (Sensoren, Fensterkontakte, Bewohner) Entitäten zuordnen.
 4. Die Übersicht zeigt, was übernommen wird und was nicht übertragbar ist (Perl-Code, unbekannte Attribute).
-   Absenden legt die Rollläden an und speichert die globalen Einstellungen.
+   Schon eingerichtete Rollläden bleiben unverändert, außer *Schon eingerichtete Rollläden mit den FHEM-Werten
+   aktualisieren* ist an. Absenden legt die Rollläden an und speichert die globalen Einstellungen.
 
 Übernommen werden die Attribute des ASC-Geräts als globale Einstellungen und die der Rollläden je Rollladen.
 Werte, die alle Rollläden gleich haben, wandern in die globalen Einstellungen; Werte, die nur den Standard
-wiederholen, entfallen. Schon eingerichtete Rollläden bleiben unverändert.
+wiederholen, entfallen.
+
+**Ein Rollladen**: am Rollladen *Neu konfigurieren* → *Aus FHEM übernehmen*. Die Ausgabe von
+`list -r <Name in FHEM>` einfügen. Stehen mehrere Rollläden im Text, wählst du einen aus. Danach seine Geräte
+zuordnen; die Liste zeigt jeden Wert, der übernommen wird. Werte, die der Rollladen ohnehin erbt, bleiben
+geerbt. *Bisherige eigene Werte dieses Rollladens vorher löschen* fängt neu an. Zurück im Menü übernimmt
+**💾 Speichern und schließen**.
 
 ## Manuelle Übersteuerung
 

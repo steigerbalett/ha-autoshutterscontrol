@@ -57,7 +57,12 @@
           "extra": "Extra conditions and actions",
           "fhem_import": "Import from FHEM",
           "reset": "Reset fields to the default",
-          "save": "Save"
+          "save": "💾 Save and close"
+        },
+        "menu_option_descriptions": {
+          "summary": "All covers and sensors at a glance",
+          "fhem_import": "Read the settings of ASC in FHEM",
+          "save": "Keeps all changes made on the pages above. Without saving they are lost."
         }
       },
       "schedule": {
@@ -521,7 +526,7 @@
       },
       "fhem_import": {
         "title": "Import from FHEM",
-        "description": "Paste your fhem.cfg (or the lines of the AutoShuttersControl device and of the shutters with the attribute ASC 1 or 2). Only define and attr lines are read; nothing is sent anywhere.",
+        "description": "Paste the settings from FHEM. To get them:\n\n1. In FHEM, enter in the command line at the top: `list -r TYPE=AutoShuttersControl` and then `list -r ASC=[12]`\n2. Select the output of both commands, copy it and paste it here.\n\nThe whole fhem.cfg works as well. Only define and attr lines are read, nothing is sent anywhere. A single shutter is easier to take over at the cover itself: open the cover → *Import from FHEM*.",
         "data": {
           "fhem_cfg": "fhem.cfg"
         }
@@ -536,15 +541,21 @@
       },
       "fhem_done": {
         "title": "Import",
-        "description": "Submit to create the covers and save the global settings.\n\n**Global settings:** {global}\n\n**New covers:** {covers}\n\n**Already configured (not changed):** {existing}\n\n**Shutters without cover:** {skipped}\n\n**Devices without entity:** {unmapped}\n\n**Not transferable:** {not_transferred}"
+        "description": "Submit creates the covers and saves the global settings.\n\n**Global settings:** {global}\n\n**New covers:** {covers}\n\n**Already set up:** {existing}\n\n**FHEM shutters without a cover:** {skipped}\n\n**Devices without an entity:** {unmapped}\n\n**Not transferable:** {not_transferred}",
+        "data": {
+          "update_existing": "Update covers that are already set up with the FHEM values"
+        },
+        "data_description": {
+          "update_existing": "Off: these covers stay as they are."
+        }
       },
       "summary": {
         "title": "Overview",
-        "description": "Sun {azimuth}° / {elevation}°, forecast today {forecast} °C, house status {house}. As of {time}; open again to refresh.\n\n**Covers**\n\n| Cover | Next opening | Next closing | Morning / evening | Position | Target | Last drive | Shading | Window | Notes |\n|---|---|---|---|---|---|---|---|---|---|\n{covers}\n\n**Linked sensors and values**\n\n| Entity | Value | Setting | Used by |\n|---|---|---|---|\n{entities}"
+        "description": "Sun {azimuth}° / {elevation}° · forecast today {forecast} °C · house status {house} · as of {time} (open again to refresh)\n\n{panel}\n\n### Covers\n\n{covers}\n\n### Linked sensors\n\n{entities}"
       }
     },
     "error": {
-      "fhem_nothing_found": "No AutoShuttersControl device and no shutter with the attribute ASC found."
+      "fhem_nothing_found": "No AutoShuttersControl device and no shutter with ASC attributes found."
     }
   },
   "config_subentries": {
@@ -581,7 +592,10 @@
             "override": "Manual override",
             "extra": "Extra conditions and actions",
             "reset": "Back to the inherited value",
-            "save": "Save"
+            "save": "💾 Save and close"
+          },
+          "menu_option_descriptions": {
+            "save": "Keeps all changes made on the pages above. Without saving they are lost."
           }
         },
         "reset": {
@@ -1150,7 +1164,12 @@
             "override": "Manual override",
             "extra": "Extra conditions and actions",
             "reset": "Back to the inherited value",
-            "save": "Save"
+            "save": "💾 Save and close",
+            "fhem_import": "Import from FHEM"
+          },
+          "menu_option_descriptions": {
+            "save": "Keeps all changes made on the pages above. Without saving they are lost.",
+            "fhem_import": "Read the settings of ASC in FHEM"
           }
         },
         "schedule": {
@@ -1707,12 +1726,41 @@
             "action_override_end": "↳ {inh_action_override_end}",
             "action_rain_window": "Once per rain with an open window, e.g. a notification.\n↳ {inh_action_rain_window}"
           }
+        },
+        "fhem_import": {
+          "title": "Import from FHEM",
+          "description": "Takes over the settings of one FHEM shutter for **{name}**. The name in FHEM may be different.\n\n1. In FHEM, enter `list -r` followed by the name of the shutter in FHEM in the command line at the top, e.g. `list -r EG_Wohnzimmer_Rollo`.\n2. Copy the whole output and paste it here.\n\nOnly the attr lines with ASC settings are read. If the text contains several shutters, you pick the right one in the next step.",
+          "data": {
+            "fhem_cfg": "Output of list -r"
+          }
+        },
+        "fhem_pick": {
+          "title": "Choose the FHEM shutter",
+          "description": "The text contains {count} shutters. Which one belongs to **{name}**?",
+          "data": {
+            "shutter": "FHEM shutter"
+          }
+        },
+        "fhem_entities": {
+          "title": "Map devices",
+          "description": "In FHEM, {shutter} uses these devices (sensors, window contacts, residents). Choose the matching Home Assistant entity for each. Leave empty = this setting is not taken over."
+        },
+        "fhem_done": {
+          "title": "Take over",
+          "description": "{count} settings of **{shutter}** are taken over for **{name}**. Values that already come from the profile or the global settings stay inherited.\n\n{values}\n\n**Devices without an entity:** {unmapped}\n\n**Not transferable:** {not_transferred}\n\nAfter submitting you are back in the menu. **Only *Save and close* keeps it.**",
+          "data": {
+            "replace": "Delete the own values of this cover first"
+          },
+          "data_description": {
+            "replace": "Off: only the values from FHEM are replaced, everything else stays."
+          }
         }
       },
       "error": {
         "no_new_cover": "All chosen covers are already set up.",
         "invalid_day": "Please enter day and month, e.g. 1.11. or 31.03.",
-        "period_incomplete": "A period needs a start and an end."
+        "period_incomplete": "A period needs a start and an end.",
+        "fhem_nothing_found": "The text contains no shutter with ASC attributes (attr … ASC_…)."
       }
     }
   },
@@ -2204,6 +2252,22 @@
         "hold": "Hold",
         "open": "Force open",
         "closed": "Force closed"
+      }
+    },
+    "summary_row": {
+      "options": {
+        "profile": "Profile",
+        "position": "Position",
+        "target": "Target",
+        "next_up": "Opens",
+        "next_down": "Closes",
+        "last": "Last drive",
+        "shading": "Shading",
+        "window": "Window",
+        "notes": "Notes",
+        "global": "Global",
+        "panel_open": "Open the large overview in the sidebar",
+        "panel_hint": "Tip: the overview in the sidebar has more room. Turn it on under *Drive behaviour* → *Overview in the sidebar*."
       }
     }
   },
