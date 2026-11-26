@@ -60,7 +60,7 @@ jobs:
             exit 1
           fi
           echo "ready=$ready" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.checks.outputs.ready == 'true'
         with:
           ref: ${{ steps.checks.outputs.sha }}
