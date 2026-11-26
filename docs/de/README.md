@@ -55,7 +55,7 @@ eins von beiden zutrifft.
 |---|---|
 | Morgens/Abends fahren nach | *Sonne*: Sonnenereignis plus Versatz, begrenzt auf früheste und späteste Zeit. *Zeit*: zur frühesten Zeit (wie ASC). *Entität*: zur Zeit einer Entität plus Versatz, begrenzt auf früheste und späteste Zeit. |
 | Morgen-/Abendzeit aus Entität | Für *Entität*: ein `input_datetime`, eine Zeit-Entität oder ein Zeitstempel-Sensor, z. B. *Nächster Wecker* der Home-Assistant-App, `sensor.sun_next_rising`/`_setting` oder eine eigene Template-Berechnung. Ein Zeitstempel zählt nur an seinem Tag; ohne brauchbaren Wert gilt morgens die späteste, abends die früheste Zeit. Ist die Fahrt gelaufen, ist der Tag erledigt, auch wenn der Wecker schon den nächsten Tag zeigt. |
-| Sonnenereignis | Sonnenauf-/-untergang, bürgerliche, nautische, astronomische Dämmerung oder eigene Sonnenhöhe. |
+| Sonnenereignis | Sonnenauf-/-untergang, bürgerliche, nautische, astronomische Dämmerung, *Golden Hour* (Sonne 6° über dem Horizont, morgens etwas später als der Sonnenaufgang, abends etwas früher als der Sonnenuntergang) oder eigene Sonnenhöhe. |
 | Früheste/späteste Öffnung und Schließen | Getrennt für Arbeitstage und freie Tage. |
 | Abends nach dem morgigen Tag richten | Freitagabend gelten schon die Zeiten des freien Tages. |
 
@@ -83,6 +83,17 @@ ersetzt an diesem Tag früheste und späteste Öffnung durch Beginn und Ende des
 Schließen* (Standard `close`) genauso für den Abend. Groß-/Kleinschreibung zählt nicht, ganztägige Termine werden
 ignoriert. Tage ohne passenden Termin und ein nicht lesbarer Kalender nutzen die eingestellten Zeiten.
 
+### Schließen per Entität und Nachtposition
+
+- *Abends schließen, sobald an*: eine Entität (Binärsensor, Input Boolean, Schalter, Licht), z. B. das Licht
+  im Wohnzimmer. Geht sie abends an, schließt der Rollladen sofort, nicht erst zur geplanten Zeit. Das gilt
+  frühestens ab *Schließen per Entität frühestens ab* und nicht in der ersten Stunde nach der Morgenfahrt. Die
+  geplante Abendfahrt ist damit für heute erledigt.
+- *Nachtposition (2. Stufe)* (Seite *Positionen*, leer = aus): Abends fährt der Rollladen zuerst auf *Position
+  geschlossen*, z. B. 20 % mit Spalt, und später auf die Nachtposition, z. B. 0 %. Später heißt ab *Nachtposition
+  ab* (Uhrzeit) oder sobald *Nachtposition, sobald an* an ist (z. B. der Schlafmodus). Morgens gilt wieder der
+  normale Zeitplan.
+
 ## Fenster
 
 Je Rollladen auf der Seite *Fenster*: Kontakt *offen*, Kontakt *gekippt* und/oder ein Sensor mit drei
@@ -101,6 +112,15 @@ geschlossen, gekippt oder offen.
 - **Aussperrschutz**: *Weich* oder *hart*: Solange die Tür offen ist (gekippt nur mit *Aussperrschutz auch bei gekippt*), fährt
   der Rollladen nicht nach unten. Eine gesperrte Fahrt wird nachgeholt, sobald die Tür zu ist. *Hart* lässt
   zusätzlich Regen- und Windschutz warten und kann den Aktor sperren (siehe *Hardware-Sperre*).
+- **Vorlage** (Profil und Rollladen): setzt die passenden Felder dieser Seite auf einmal.
+  - *Terrassentür*: Lüften an, nur nach oben, beim Lüften ganz öffnen, Aussperrschutz weich, auch bei gekippt.
+  - *Lüftungsfenster*: Lüften auf die Lüftungsposition, kein Aussperrschutz.
+  - *Nur Schutz*: kein Lüften, nur Aussperrschutz weich.
+  - Selbst eingetragene Felder gehen der Vorlage vor. *Eigene* setzt nichts.
+- **Kontakt nicht erreichbar**: Meldet ein Fensterkontakt *nicht verfügbar* oder *unbekannt*, zählt das
+  Fenster nicht als geschlossen. Mit Aussperrschutz fährt der Rollladen dann nicht herunter. Nach 2 Minuten
+  erscheint unter *Einstellungen → Reparaturen* ein Hinweis mit dem Kontakt. Meldet er sich wieder, verschwindet
+  der Hinweis, und eine aufgeschobene Fahrt wird nachgeholt.
 
 ## Sichtschutz
 
@@ -321,6 +341,16 @@ Seite *Sonderfunktionen*; Felder mit Entitäten gibt es nur am Rollladen.
     *Adventsmodus bis* = 6. Januar (Standard), 2. Februar oder *Eigener Tag* mit *Eigenes Ende*, z. B. `24.12.`
     oder `15.1.`. Tage als TT.MM., der Zeitraum darf über den Jahreswechsel gehen.
   - Fehlt ein eigener Tag oder ist er ungültig, gilt der Standard, und unter *Reparaturen* erscheint ein Hinweis.
+  - *Position im Advent* (Seite *Positionen*): Ist sie gesetzt, wartet das Schließen nicht, sondern fährt nur bis
+    zu dieser Position, z. B. 30 %, damit die Lichter im Fenster zu sehen sind.
+- **Im Sommer nicht schließen** (Standard aus): Zwischen *Sommer ab* und *Sommer bis* (Standard `1.5.` bis
+  `30.9.`, nur global) bleibt die Abendfahrt aus, ebenso der Sichtschutz. Schutzfunktionen, Zwang, Beschattung
+  und der Schlafmodus der Bewohner wirken weiter. Das Logbuch nennt den Grund „Sommer“.
+- **Notfall**: *Notfall-Eingang* (nur global), z. B. Rauchmelder oder ein Input Boolean. Ist einer an, fahren
+  alle Rollläden auf ihre *Notfall-Position* (Standard 100 % = Fluchtweg frei), Markisen fahren ein. Das geht
+  allem vor, auch Automatik aus, Pause, Sperre und Aussperrschutz. Mit *Notfall bleibt bis zum Zurücksetzen*
+  (Standard an) bleibt der Notfall, auch wenn der Melder wieder aus ist, bis zum Knopf *Notfall zurücksetzen*
+  am zentralen Gerät. Danach fahren alle in den Zielzustand. Binärsensor *Notfall* am zentralen Gerät.
 - **Externer Trigger**: eine beliebige Entität mit bis zu zwei Werten und je einer Position, z. B. eine
   Auswahl *Kino* → 0 %. Endet der Wert, fährt der Rollladen in den Zielzustand.
 - **Wackeln**: Taste *Wackeln* je Rollladen, *Alle wackeln* am zentralen Gerät, oder Aktion
@@ -340,6 +370,29 @@ Seite *Sonderfunktionen*; Felder mit Entitäten gibt es nur am Rollladen.
 - **Hardware-Sperre**: Mit *Aussperrschutz hart* und einer Entität unter *Hardware-Sperre* (Schalter,
   Schloss, Input Boolean) wird der Aktor gesperrt, solange die Tür offen ist, und danach entsperrt. Schalter
   *Hardware-Sperre* am zentralen Gerät (Standard an) schaltet das ab.
+
+## Markisen
+
+Seite *Positionen*, *Art* = **Markise** (nur am Rollladen). Bei einer Markise heißt 0 % eingefahren und
+100 % ganz ausgefahren.
+
+- Beschattung bei Tag: Die Markise fährt auf *Markise ausgefahren* (Standard 100 %). Es gelten dieselben
+  Bedingungen wie bei der Beschattung der Rollläden (Sonne, Helligkeit, Temperatur, Richtung).
+- Sonst und nachts fährt sie ein, ebenso bei Wind, Regen und Frost, auch während der Beschattung.
+- Morgen- und Abendfahrt, Lüften, Aussperrschutz, Sichtschutz und Schließen per Entität gibt es bei Markisen
+  nicht. Markisen gehören zu keiner Gruppe.
+
+## Gruppen
+
+Am zentralen Gerät gibt es die Cover-Entität **Alle Rollläden** und je Profil eine Cover-Entität mit dem Namen
+des Profils. Damit fährst du alle Rollläden oder eine Fassade aus dem Dashboard, per Sprachassistent oder in
+einer Automation. Die Position der Gruppe ist der Mittelwert.
+
+- Jeder Befehl geht einzeln an die Rollläden der Gruppe, mit dem Mindestabstand zwischen Fahrbefehlen.
+- Für die Rollläden zählt ein Befehl der Gruppe als Handfahrt.
+- Der Aussperrschutz gilt weiter: Ein Rollladen vor einer offenen Tür fährt nicht herunter, das Logbuch
+  vermerkt es.
+- Kann ein Rollladen keine Position anfahren, fährt er ab 50 % auf und darunter zu.
 
 ## Zusatzbedingungen und -aktionen
 
@@ -408,6 +461,59 @@ Gezeigt werden:
 
 Auf der Seite in der Seitenleiste öffnet ein Klick auf einen Rollladen oder eine Entität ihren Dialog.
 
+### Rollläden bearbeiten
+
+Die Seite in der Seitenleiste (einschalten mit *Übersicht in der Seitenleiste*, Seite *Fahrverhalten*) hat
+oben zwei Reiter: **Übersicht** und **Rollläden bearbeiten**. Der zweite zeigt
+alle Rollläden als Tabelle mit Profil und der Zahl eigener Werte.
+
+- **Bearbeiten**: alle Seiten wie im Dialog, je Feld mit dem geerbten Wert und woher er kommt. *Erben* löscht den
+  eigenen Wert, *Zurück* nimmt eine Änderung zurück. Bedingungen und Aktionen bleiben im Dialog.
+- **Mehrere auf einmal**: Rollläden ankreuzen → *Auswahl bearbeiten*. Gespeichert werden nur die Felder, die du
+  änderst, bei jedem ausgewählten Rollladen. Felder, in denen die Rollläden verschiedene Werte haben, zeigen das.
+- **Hinzufügen**: Rollläden aus Home Assistant wählen, optional mit Profil.
+- **Duplizieren**: neue Rollläden mit dem Profil und den eigenen Werten eines anderen. Fensterkontakte und
+  Raumsensoren werden nicht kopiert.
+- **Entfernen**: nimmt Rollläden aus AutoShuttersControl heraus. Die Rollläden selbst bleiben.
+
+Die Werte stehen danach genau dort, wo sie auch der Dialog speichert. Ändern dürfen nur Administratoren.
+
+## Dashboard-Karte
+
+AutoShuttersControl bringt zwei Karten mit. Sie werden automatisch geladen, ohne Eintrag unter *Ressourcen*.
+Nach dem ersten Installieren lädst du die Seite im Browser einmal neu. Danach findest du sie im Dashboard unter
+*Karte hinzufügen* → *Benutzerdefiniert*:
+
+- **AutoShuttersControl**: alle oder ausgewählte Rollläden als *Raster*, *Liste* oder *Kompakt*.
+- **AutoShuttersControl Rollladen**: ein Rollladen, passt in jeden Abschnitt.
+
+Jeder Rollladen zeigt ein Fenster mit dem Behang auf der aktuellen Position, eine gestrichelte Linie am Ziel, das
+Ziel mit Grund, *Nicht gefahren wegen* und die nächsten Fahrten. Darunter liegen die Knöpfe Auf, Stopp, Zu,
+*Zielzustand anfahren* und Automatik. Bei Übersteuerung zeigt der Automatik-Knopf ✋. Ein Klick darauf beendet
+die Übersteuerung, sonst schaltet er die Automatik des Rollladens. Ist der Aussperrschutz aktiv, fragt die Karte
+vor dem Schließen nach. Ein Klick auf den Namen öffnet den Dialog des Rollladens.
+
+Alles lässt sich im Karteneditor einstellen, auch als YAML:
+
+```yaml
+type: custom:autoshutterscontrol-card
+title: Rollläden
+layout: grid          # grid, list oder compact
+covers:               # leer: alle
+  - cover.wohnzimmer
+  - cover.kueche
+show_reason: true     # Ziel und Begründung
+show_times: true      # nächste Fahrten
+show_buttons: true
+show_automatic: true
+confirm_lockout: true # vor dem Schließen bei offener Tür fragen
+```
+
+```yaml
+type: custom:autoshutterscontrol-cover-card
+entity: cover.wohnzimmer
+```
+
 ## Aus FHEM übernehmen
 
 Die Namen in FHEM und in Home Assistant dürfen verschieden sein, du wählst die Zuordnung selbst. Schritt für
@@ -444,6 +550,9 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
   geplanten Fahrt oder nur von Hand (Knopf *Übersteuerung beenden*).
 - *Öffnen von Hand zählt als Morgenfahrt*: zwischen frühester Öffnung und geplanter Zeit von Hand geöffnet,
   dann an diesem Tag keine zweite Morgenfahrt. Abends genauso.
+- *Handfahrt auf bekannte Position lässt Automatik an* (Standard aus): Endet eine Handfahrt auf *Position offen*,
+  *geschlossen*, *Beschattung*, *Schlafen* oder der *Nachtposition* (± Toleranz, mindestens 2 %), gibt es keine
+  Übersteuerung. Das Logbuch vermerkt es. Gut für Taster, die nur ganz auf oder ganz zu fahren.
 
 ## Regeln
 
@@ -453,6 +562,9 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 - *Gestaffelt fahren* (nur global, Standard 0): Rollläden, die zur gleichen Zeit fahren sollen, starten
   nacheinander im eingestellten Abstand in Sekunden (Funk, Strom). Zwang, Regen-, Wind- und Wasserschutz
   fahren immer sofort. Aus FHEM wird `ASC_shuttersDriveDelay` übernommen.
+- *Mindestabstand zwischen Fahrbefehlen* (nur global, Standard 0 = aus): zwischen zwei Befehlen an irgendeinen
+  Rollladen liegen mindestens so viele Sekunden, auch bei Gruppen und Schutzfahrten. Hilft bei Funk wie
+  Homematic oder Somfy, wenn viele Befehle auf einmal verloren gehen.
 - *Ruhezeit von/bis* (Seite *Fahrverhalten*, feste Zeit oder aus einem `input_datetime`/einer Zeit-Entität,
   auch über Mitternacht): keine automatischen Fahrten, außer Zwang, Regen-, Wind-, Wasser-, Frostschutz und
   Selbstschutz. *Lüften in der Ruhezeit* (Standard an) lässt ein geöffnetes Fenster weiter auf die
@@ -467,11 +579,11 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 
 **Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause,
 Komfort, Beschattung, Selbstschutz, Party, Advent, Hardware-Sperre, Simulation, Urlaub; Sensor Haus-Status; Binärsensoren Regen,
-Wind, Frost, Winter; Diagnose: Sensoren Sonnenrichtung, Sonnenhöhe (aus dem Standort von Home Assistant berechnet),
+Wind, Frost, Winter, Notfall; Cover *Alle Rollläden* und je Profil eine Gruppe; Diagnose: Sensoren Sonnenrichtung, Sonnenhöhe (aus dem Standort von Home Assistant berechnet),
 Höchstwert Vorhersage heute (globaler Vorhersage-Sensor oder Tagesvorhersage der globalen Wetter-Entität),
 Binärsensoren Sonnig (Wetterlage jetzt in der Liste der Beschattung) und Heißer Tag (Vorhersage ab *Heißer Tag
 ab*); Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand, Alle wackeln, Aufgeschobene
-Fahrten freigeben.
+Fahrten freigeben, Notfall zurücksetzen.
 
 Die Entitäten eines Rollladens stehen auf dem Gerät des echten Rollladens (z. B. dem Shelly- oder
 Homematic-Aktor), so wie bei den Helfern von Home Assistant. Hat der Rollladen kein Gerät (z. B. ein

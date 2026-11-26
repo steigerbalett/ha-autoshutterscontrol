@@ -17,6 +17,8 @@ STATIC_URL = f"/{DOMAIN}_static"
 ELEMENT = "asc-summary-panel"
 _STATIC_DONE = f"{DOMAIN}_static_done"
 _PANEL_ON = f"{DOMAIN}_panel_on"
+_CARD_DONE = f"{DOMAIN}_card_done"
+CARD_FILE = "asc-card.js"
 WS_SUMMARY = f"{DOMAIN}/summary"
 
 
@@ -39,6 +41,25 @@ def ws_summary(
     connection.send_result(msg["id"], entries[0].runtime_data.summary())
 
 
+async def _async_static(hass: HomeAssistant) -> None:
+    """Serve the files of the page and the card (once)."""
+    if not hass.data.get(_STATIC_DONE):
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(STATIC_URL, str(Path(__file__).parent / "www"), False)]
+        )
+        hass.data[_STATIC_DONE] = True
+
+
+async def async_setup_card(hass: HomeAssistant) -> None:
+    """Load the dashboard cards on every page of the frontend."""
+    if "frontend" not in hass.config.components or hass.data.get(_CARD_DONE):
+        return
+    await _async_static(hass)
+    version = (await async_get_integration(hass, DOMAIN)).version
+    frontend.add_extra_js_url(hass, f"{STATIC_URL}/{CARD_FILE}?v={version}")
+    hass.data[_CARD_DONE] = True
+
+
 async def async_update_panel(hass: HomeAssistant, enabled: bool) -> None:
     """Show or hide the page in the sidebar."""
     if "frontend" not in hass.config.components:
@@ -48,11 +69,7 @@ async def async_update_panel(hass: HomeAssistant, enabled: bool) -> None:
         return
     if hass.data.get(_PANEL_ON):
         return
-    if not hass.data.get(_STATIC_DONE):
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig(STATIC_URL, str(Path(__file__).parent / "www"), False)]
-        )
-        hass.data[_STATIC_DONE] = True
+    await _async_static(hass)
     version = (await async_get_integration(hass, DOMAIN)).version
     await panel_custom.async_register_panel(
         hass,

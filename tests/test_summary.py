@@ -79,6 +79,7 @@ async def test_panel_registered(hass: HomeAssistant, freezer) -> None:
     with (
         patch.object(panel.panel_custom, "async_register_panel", AsyncMock()) as register,
         patch.object(panel.frontend, "async_remove_panel") as remove,
+        patch.object(panel.frontend, "add_extra_js_url"),
     ):
         entry = await setup_entry(hass, {})
         assert register.call_count == 0  # off by default

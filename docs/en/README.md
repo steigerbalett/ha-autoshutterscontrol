@@ -54,7 +54,7 @@ either one applies.
 |---|---|
 | Morning/Evening drive by | *Sun*: sun event plus offset, kept between earliest and latest time. *Time*: at the earliest time (as in ASC). *Entity*: at the time of an entity plus offset, kept between earliest and latest time. |
 | Morning/Evening time from entity | For *Entity*: an `input_datetime`, a time entity or a timestamp sensor, e.g. *Next alarm* of the Home Assistant app, `sensor.sun_next_rising`/`_setting` or an own template. A timestamp counts only on its own day; without a usable value the latest time applies in the morning, the earliest in the evening. Once the drive ran the day is done, even when the alarm already shows the next day. |
-| Sun event | Sunrise/sunset, civil, nautical, astronomical twilight or an own sun elevation. |
+| Sun event | Sunrise/sunset, civil, nautical, astronomical twilight, *Golden hour* (sun 6° above the horizon, a little later than sunrise in the morning and a little earlier than sunset in the evening) or an own sun elevation. |
 | Earliest/latest opening and closing | Separate for workdays and days off. |
 | Evening by tomorrow's day type | On Friday evening the day-off times apply. |
 
@@ -83,6 +83,17 @@ the earliest and latest opening of that day with the start and end of the event;
 closing* (default `close`) does the same for the evening. Case does not matter, all-day events are ignored. Days
 without a matching event and an unreadable calendar use the configured times.
 
+### Close by entity and night position
+
+- *Close in the evening as soon as on*: an entity (binary sensor, input boolean, switch, light), e.g. the
+  light in the living room. When it turns on in the evening, the cover closes at once, not only at the
+  scheduled time. This applies not before *Close by entity not before* and not in the first hour after the
+  morning drive. The scheduled evening drive is then done for today.
+- *Night position (2nd stage)* (page *Positions*, empty = off): in the evening the cover first goes to *Closed
+  position*, e.g. 20 % with a gap, and later to the night position, e.g. 0 %. Later means from *Night position
+  from* (a time) or as soon as *Night position as soon as on* is on (e.g. the sleep mode). In the morning the
+  normal schedule applies again.
+
 ## Window
 
 Per cover on the page *Window*: an *open* contact, a *tilted* contact and/or a sensor with three states
@@ -100,6 +111,15 @@ open.
 - **Lock-out protection**: *Soft* or *hard*: while the door is open (tilted only with *Lock-out protection also when tilted*) the
   cover does not move down. A blocked drive is done as soon as the door is closed. *Hard* also makes
   rain and wind protection wait and can lock the actuator (see *Hardware lock*).
+- **Preset** (profile and cover): sets the matching fields of this page at once.
+  - *Patio door*: ventilation on, only up, open fully when ventilating, lock-out protection soft, also when tilted.
+  - *Vent window*: ventilation to the ventilation position, no lock-out protection.
+  - *Protection only*: no ventilation, only lock-out protection soft.
+  - Fields you set yourself win over the preset. *Custom* sets nothing.
+- **Contact not available**: when a window contact reports *unavailable* or *unknown*, the window does not count
+  as closed. With lock-out protection the cover then does not go down. After 2 minutes a notice with the
+  contact appears in *Settings → Repairs*. When it reports again, the notice disappears and a deferred drive is
+  done.
 
 ## Privacy
 
@@ -315,6 +335,16 @@ Page *Special functions*; fields with entities exist only on the cover.
     *Advent mode until* = 6 January (default), 2 February or *Own day* with *Own end*, e.g. `24.12.` or
     `15.1.`. Days as DD.MM., the period may span the new year.
   - If an own day is missing or invalid, the default applies and a repair issue appears.
+  - *Advent position* (page *Positions*): when set, the closing does not wait but only goes down to this
+    position, e.g. 30 %, so that the lights in the window can be seen.
+- **Do not close in summer** (default off): between *Summer from* and *Summer until* (default `1.5.` to
+  `30.9.`, global only) the evening drive does not happen, nor does the privacy drive. Protection, force,
+  shading and the sleep mode of the residents still work. The logbook gives the reason "summer".
+- **Emergency**: *Emergency input* (global only), e.g. smoke detectors or an input boolean. When one is on, all
+  covers drive to their *Emergency position* (default 100 % = escape route clear), awnings retract. This wins
+  over everything, also automatic off, pause, lock and lock-out protection. With *Emergency stays until reset*
+  (default on) the emergency stays, even when the detector is off again, until the button *Reset emergency* on
+  the central device. Then all covers drive to their target. Binary sensor *Emergency* on the central device.
 - **External trigger**: any entity with up to two values and one position each, e.g. a select *Cinema* → 0 %.
   When the value ends, the cover drives to its target.
 - **Wiggle**: button *Wiggle* per cover, *Wiggle all* on the central device, or the action
@@ -334,6 +364,27 @@ Page *Special functions*; fields with entities exist only on the cover.
 - **Hardware lock**: with *Lock-out protection hard* and an entity in *Hardware lock* (switch, lock, input
   boolean) the actuator is locked while the door is open and unlocked afterwards. The switch *Hardware lock*
   of the central device (on by default) turns this off.
+
+## Awnings
+
+Page *Positions*, *Type* = **Awning** (cover only). For an awning 0 % means retracted and 100 % fully extended.
+
+- Shading by day: the awning goes to *Awning extended* (default 100 %). The same conditions apply as for the
+  shading of shutters (sun, brightness, temperature, direction).
+- Otherwise and at night it retracts, as well as with wind, rain and frost, also during shading.
+- Morning and evening drive, ventilation, lock-out protection, privacy and close by entity do not exist for
+  awnings. Awnings are not part of any group.
+
+## Groups
+
+The central device has the cover entity **All covers** and one cover entity per profile, named like the
+profile. With them you drive all covers or one facade from the dashboard, by voice assistant or in an
+automation. The position of a group is the mean.
+
+- Every command goes to the covers of the group one by one, with the minimum gap between commands.
+- For the covers a command of the group counts as a manual drive.
+- The lock-out protection still holds: a cover in front of an open door does not go down; the logbook notes it.
+- A cover that cannot go to a position opens from 50 % and closes below.
 
 ## Extra conditions and actions
 
@@ -400,6 +451,59 @@ It shows:
 
 On the sidebar page a click on a cover or an entity opens its dialog.
 
+### Edit covers
+
+The page in the sidebar (switch it on with *Overview in the sidebar*, page *Drive behaviour*) has two tabs at
+the top: **Overview** and **Edit covers**. The second shows all covers as a table with profile and the number
+of own values.
+
+- **Edit**: all pages as in the dialog, every field with the inherited value and where it comes from.
+  *Inherit* deletes the own value, *Undo* takes back a change. Conditions and actions stay in the dialog.
+- **Several at once**: tick covers → *Edit selected*. Only the fields you change are saved, for every selected
+  cover. Fields in which the covers have different values say so.
+- **Add**: choose covers from Home Assistant, optionally with a profile.
+- **Duplicate**: new covers with the profile and the own values of another one. Window contacts and room
+  sensors are not copied.
+- **Remove**: takes covers out of AutoShuttersControl. The covers themselves stay.
+
+The values are then stored exactly where the dialog stores them. Only administrators can change anything.
+
+## Dashboard card
+
+AutoShuttersControl brings two cards. They are loaded automatically, without an entry under *Resources*. After
+the first installation reload the page in the browser once. Then you find them in the dashboard under *Add
+card* → *Custom*:
+
+- **AutoShuttersControl**: all or selected covers as *Grid*, *List* or *Compact*.
+- **AutoShuttersControl cover**: one cover, fits into any section.
+
+Every cover shows a window with the curtain at the current position, a dashed line at the target, the target
+with its reason, *Not driven because* and the next drives. Below are the buttons Open, Stop, Close, *Drive to
+target* and Automatic. During an override the automatic button shows ✋. A click on it ends the override,
+otherwise it switches the automatic of the cover. While the lock-out protection is active, the card asks before
+closing. A click on the name opens the dialog of the cover.
+
+Everything can be set in the card editor, also as YAML:
+
+```yaml
+type: custom:autoshutterscontrol-card
+title: Covers
+layout: grid          # grid, list or compact
+covers:               # empty: all
+  - cover.living_room
+  - cover.kitchen
+show_reason: true     # target and reason
+show_times: true      # next drives
+show_buttons: true
+show_automatic: true
+confirm_lockout: true # ask before closing at an open door
+```
+
+```yaml
+type: custom:autoshutterscontrol-cover-card
+entity: cover.living_room
+```
+
 ## Import from FHEM
 
 The names in FHEM and in Home Assistant may differ: you choose the mapping. Step by step with
@@ -434,6 +538,9 @@ context; position reports during the *drive time* after its own command also cou
   drive, or only by hand (button *End manual override*).
 - *Opening by hand counts as morning drive*: opened by hand between the earliest opening and the
   scheduled time: no second morning drive that day. The same for closing.
+- *Manual drive to a known position keeps the automatic* (default off): when a manual drive ends at *Open
+  position*, *Closed*, *Shading*, *Sleep* or the *Night position* (± tolerance, at least 2 %), there is no
+  override. The logbook notes it. Good for buttons that only go fully up or fully down.
 
 ## Rules
 
@@ -443,6 +550,9 @@ context; position reports during the *drive time* after its own command also cou
 - *Staggered drives* (global only, default 0): covers that are due at the same time start one after the
   other, the set number of seconds apart (radio, power). Force, rain, wind and water protection always drive
   at once. The FHEM import takes `ASC_shuttersDriveDelay`.
+- *Minimum gap between commands* (global only, default 0 = off): between two commands to any cover there are
+  at least this many seconds, also for groups and protection drives. Helps with radio such as Homematic or
+  Somfy when many commands at once get lost.
 - *Quiet hours from/until* (page *Drive behaviour*, a fixed time or from an `input_datetime`/time entity,
   also across midnight): no automatic drives, except force, rain, wind, water and frost protection and self
   defense. *Ventilate in the quiet hours* (default on) still moves the cover to the ventilation position for
@@ -457,10 +567,10 @@ context; position reports during the *drive time* after its own command also cou
 
 **Central device**: switches Automatic, Weekend and holiday times, Morning drive, Evening drive,
 Pause, Comfort, Shading, Self defense, Party, Advent, Hardware lock, Simulation, Holiday; sensor House status; binary sensors Rain,
-Wind, Frost, Winter; diagnostics: sensors Sun azimuth, Sun elevation (calculated from the location of Home
+Wind, Frost, Winter, Emergency; cover *All covers* and one group per profile; diagnostics: sensors Sun azimuth, Sun elevation (calculated from the location of Home
 Assistant), Forecast maximum today (global forecast sensor or daily forecast of the global weather entity),
 binary sensors Sunny (weather now in the list of the shading) and Hot day (forecast from *Hot day from*);
-buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives.
+buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives, Reset emergency.
 
 The entities of a cover are on the device of the real cover (e.g. the Shelly or Homematic actuator), as
 with the helpers of Home Assistant. A cover without a device (e.g. a template cover) gets an own device

@@ -20,3 +20,7 @@ Every language is one file. A new language needs no code change.
 
 The reasons of drives (`night_close`, `shading` …) are stored as keys and translated only for display, so
 automations do not depend on the language. Logbook texts are in `exceptions.logbook_*`.
+
+The sidebar page and the dashboard cards are web components with their own texts: the object `TEXTS` at the
+top of `www/summary-panel.js`, `www/editor.js` and `www/asc-card.js`. Add a block for your language there (two
+letter code, e.g. `fr`). The labels of the settings on the page *Edit covers* come from the translation files.

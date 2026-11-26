@@ -26,3 +26,12 @@ def no_drive_check(request, monkeypatch):
             "custom_components.autoshutterscontrol.runtime.CoverController._start_drive_check",
             lambda *args, **kwargs: None,
         )
+
+
+@pytest.fixture(autouse=True)
+async def cover_component(hass):
+    """Set up the cover integration first (the group covers need it), so that the
+    mocked cover services of a test are not replaced when the entry loads."""
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "cover", {})

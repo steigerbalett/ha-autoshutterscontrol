@@ -15,14 +15,19 @@ from homeassistant.util import dt as dt_util
 from . import AscConfigEntry
 from .engine.arbiter import (
     BLOCKS,
+    REASON_ADVENT,
+    REASON_AWNING_IN,
+    REASON_AWNING_OUT,
     REASON_COMFORT,
     REASON_DAY_OPEN,
+    REASON_EMERGENCY,
     REASON_FORCE,
     REASON_GLARE,
     REASON_HEAT,
     REASON_HOT_DAY,
     REASON_LOCK,
     REASON_MANUAL,
+    REASON_NIGHT,
     REASON_NIGHT_CLOSE,
     REASON_PRIVACY_DOWN,
     REASON_PRIVACY_UP,
@@ -72,6 +77,11 @@ REASONS = [
     REASON_WIGGLE,
     REASON_SERVICE,
     REASON_MANUAL,
+    REASON_EMERGENCY,
+    REASON_NIGHT,
+    REASON_ADVENT,
+    REASON_AWNING_OUT,
+    REASON_AWNING_IN,
 ]
 
 

@@ -123,12 +123,14 @@ TWILIGHT_CIVIL = "civil"
 TWILIGHT_NAUTICAL = "nautical"
 TWILIGHT_ASTRONOMICAL = "astronomical"
 TWILIGHT_HORIZON = "horizon"
+TWILIGHT_GOLDEN = "golden"
 TWILIGHTS = (
     TWILIGHT_REAL,
     TWILIGHT_CIVIL,
     TWILIGHT_NAUTICAL,
     TWILIGHT_ASTRONOMICAL,
     TWILIGHT_HORIZON,
+    TWILIGHT_GOLDEN,
 )
 
 KIND_OPEN = "open"
@@ -258,6 +260,42 @@ LOCK_OPEN = "open"
 LOCK_CLOSED = "closed"
 LOCK_MODES = (LOCK_NONE, LOCK_HOLD, LOCK_OPEN, LOCK_CLOSED)
 
+# Presets for doors and windows (set several window fields at once)
+PRESET_CUSTOM = "custom"
+PRESET_TERRACE = "terrace_door"
+PRESET_VENT = "vent_window"
+PRESET_PROTECT = "protection_only"
+WINDOW_PRESETS = (PRESET_CUSTOM, PRESET_TERRACE, PRESET_VENT, PRESET_PROTECT)
+# Value "=pos_open": the value of that setting
+PRESET_VALUES: dict[str, dict[str, Any]] = {
+    PRESET_TERRACE: {
+        "ventilate_enabled": True,
+        "ventilate_only_up": True,
+        "pos_ventilate": "=pos_open",
+        "lockout": LOCKOUT_SOFT,
+        "lockout_tilted": True,
+        "window_close_return": RETURN_TARGET,
+    },
+    PRESET_VENT: {
+        "ventilate_enabled": True,
+        "ventilate_only_up": True,
+        "lockout": LOCKOUT_OFF,
+        "window_close_return": RETURN_TARGET,
+    },
+    PRESET_PROTECT: {
+        "ventilate_enabled": False,
+        "lockout": LOCKOUT_SOFT,
+        "lockout_tilted": True,
+    },
+}
+
+# Type of the cover
+TYPE_SHUTTER = "shutter"
+TYPE_AWNING = "awning"
+COVER_TYPES = (TYPE_SHUTTER, TYPE_AWNING)
+
+PROFILE_AND_COVER = frozenset({LEVEL_PROFILE, LEVEL_COVER})
+
 
 @dataclass(frozen=True)
 class Setting:
@@ -321,6 +359,24 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("down_tomorrow_workday", BOOL, False, SEC_SCHEDULE),
     Setting("up_time_entity", ENTITY, None, SEC_SCHEDULE, domains=TIME_DOMAINS),
     Setting("down_time_entity", ENTITY, None, SEC_SCHEDULE, domains=TIME_DOMAINS),
+    Setting(
+        "close_entity",
+        ENTITY,
+        None,
+        SEC_SCHEDULE,
+        stage=5,
+        domains=("binary_sensor", "input_boolean", "switch", "light"),
+    ),
+    Setting("close_entity_from", TIME, None, SEC_SCHEDULE, stage=5),
+    Setting("night_time", TIME, None, SEC_SCHEDULE, stage=5),
+    Setting(
+        "night_entity",
+        ENTITY,
+        None,
+        SEC_SCHEDULE,
+        stage=5,
+        domains=("binary_sensor", "input_boolean", "switch"),
+    ),
     Setting("time_source", SELECT, WINDOWS_TIMES, SEC_SCHEDULE, stage=2, options=WINDOW_SOURCES),
     Setting("calendar_open_title", TEXT, "open", SEC_SCHEDULE, stage=2),
     Setting("calendar_close_title", TEXT, "close", SEC_SCHEDULE, stage=2),
@@ -454,6 +510,19 @@ SETTINGS: tuple[Setting, ...] = (
     _pos("pos_wind", 0, 4),
     _pos("pos_rain", 0, 4),
     _pos("pos_rain_window", 0, 4),
+    _pos("pos_night", None, 5),
+    _pos("pos_advent", None, 5),
+    _pos("pos_emergency", 100, 5),
+    _pos("pos_awning", 100, 5),
+    Setting(
+        "cover_type",
+        SELECT,
+        TYPE_SHUTTER,
+        SEC_POSITIONS,
+        stage=5,
+        levels=COVER_ONLY,
+        options=COVER_TYPES,
+    ),
     Setting("tolerance", INT, 2, SEC_POSITIONS, minimum=0, maximum=20, unit="%"),
     Setting("invert", BOOL, False, SEC_POSITIONS, levels=COVER_ONLY),
     Setting(
@@ -494,6 +563,15 @@ SETTINGS: tuple[Setting, ...] = (
     ),
     Setting("window_value_open", TEXT, "open", SEC_WINDOW, stage=2),
     Setting("window_value_tilted", TEXT, "tilted", SEC_WINDOW, stage=2),
+    Setting(
+        "window_preset",
+        SELECT,
+        PRESET_CUSTOM,
+        SEC_WINDOW,
+        stage=5,
+        levels=PROFILE_AND_COVER,
+        options=WINDOW_PRESETS,
+    ),
     Setting("ventilate_enabled", BOOL, True, SEC_WINDOW, stage=2),
     Setting("ventilate_only_up", BOOL, True, SEC_WINDOW, stage=2),
     Setting("window_open_delay", INT, 0, SEC_WINDOW, stage=2, minimum=0, maximum=600, unit="s"),
@@ -963,6 +1041,19 @@ SETTINGS: tuple[Setting, ...] = (
         unit="%",
     ),
     Setting("trigger_return", BOOL, True, SEC_SPECIAL, stage=4, levels=COVER_ONLY),
+    Setting("summer_no_close", BOOL, False, SEC_SPECIAL, stage=5),
+    Setting("summer_start", TEXT, "1.5.", SEC_SPECIAL, stage=5, levels=GLOBAL_ONLY),
+    Setting("summer_end", TEXT, "30.9.", SEC_SPECIAL, stage=5, levels=GLOBAL_ONLY),
+    Setting(
+        "emergency_entities",
+        ENTITIES,
+        (),
+        SEC_SPECIAL,
+        stage=5,
+        levels=GLOBAL_ONLY,
+        domains=("binary_sensor", "input_boolean", "switch"),
+    ),
+    Setting("emergency_latch", BOOL, True, SEC_SPECIAL, stage=5, levels=GLOBAL_ONLY),
     Setting("holiday_shift", INT, 30, SEC_SPECIAL, stage=5, minimum=0, maximum=120, unit="min"),
     Setting("wiggle_value", INT, 5, SEC_SPECIAL, stage=4, minimum=1, maximum=50, unit="%"),
     Setting("wiggle_wait", INT, 5, SEC_SPECIAL, stage=4, minimum=1, maximum=120, unit="s"),
@@ -1022,6 +1113,18 @@ SETTINGS: tuple[Setting, ...] = (
         "quiet_end_entity", ENTITY, None, SEC_DRIVE, stage=5, domains=("input_datetime", "time")
     ),
     Setting("quiet_window", BOOL, True, SEC_DRIVE, stage=5),
+    Setting(
+        "command_gap",
+        FLOAT,
+        0.0,
+        SEC_DRIVE,
+        stage=5,
+        levels=GLOBAL_ONLY,
+        minimum=0,
+        maximum=30,
+        step=0.5,
+        unit="s",
+    ),
     # --- manual override ------------------------------------------------
     Setting(
         "override_blocks",
@@ -1036,6 +1139,7 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("override_return", BOOL, False, SEC_OVERRIDE),
     Setting("manual_counts_open", BOOL, True, SEC_OVERRIDE),
     Setting("manual_counts_close", BOOL, True, SEC_OVERRIDE),
+    Setting("manual_known", BOOL, False, SEC_OVERRIDE, stage=5),
 )
 
 BY_KEY: dict[str, Setting] = {s.key: s for s in SETTINGS}

@@ -27,6 +27,7 @@ async def async_setup_entry(
             GlobalButton(manager, "global_apply_target"),
             GlobalButton(manager, "global_wiggle"),
             GlobalButton(manager, "global_release_deferred"),
+            GlobalButton(manager, "global_clear_emergency"),
         ]
     )
     for controller in manager.controllers.values():
@@ -54,6 +55,9 @@ class GlobalButton(AscGlobalEntity, ButtonEntity):
             return
         if self._key == "global_release_deferred":
             self.manager.release_deferred()
+            return
+        if self._key == "global_clear_emergency":
+            self.manager.clear_emergency()
             return
         if self._key == "global_wiggle":
             for controller in self.manager.controllers.values():

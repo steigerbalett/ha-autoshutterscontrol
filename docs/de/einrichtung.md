@@ -183,6 +183,26 @@ Nachbarhaus verschwindet. Dann weiß AutoShuttersControl, wo der Horizont dieses
 Am zentralen Gerät den Schalter **Urlaub** einschalten. Morgen- und Abendfahrt verschieben sich dann jeden
 Tag zufällig um bis zu 30 Minuten, je Rollladen anders.
 
+### Schulferien: in den Ferien später öffnen
+
+Zwei Wege, je nachdem, was du schon hast:
+
+1. **Arbeitstag-Sensor im Profil**: Leg einen Template-Binärsensor an, der in den Ferien aus ist, z. B. aus
+   einem Ferienkalender: `{{ is_state('binary_sensor.workday_sensor', 'on') and is_state('calendar.schulferien', 'off') }}`.
+   Leg ein Profil „Kinderzimmer“ an und trag ihn dort auf der Seite *Sensoren* als *Arbeitstag-Sensor (heute)*
+   ein. Dann gelten in den Ferien für diese Rollläden die Zeiten der freien Tage, für alle anderen nicht.
+2. **Alternatives Profil mit Kalender**: Leg ein Profil „Ferien“ mit späterer frühester und spätester Öffnung an.
+   Am Rollladen, *Name und Profil*: *Alternatives Profil* = „Ferien“, *Entität für das alternative Profil* =
+   der Kalender mit den Ferien (z. B. `calendar.schulferien`, er ist an, solange ein Termin läuft). Für feste
+   Ferien geht auch der Zeitraum *ab*/*bis*.
+
+### Rauchmelder: im Notfall alles auf
+
+1. *Konfigurieren* → *Sonderfunktionen*: *Notfall-Eingang* = deine Rauchmelder (Binärsensoren).
+2. Geht einer an, fahren alle Rollläden auf (*Notfall-Position*, Standard 100 %), Markisen fahren ein, auch bei
+   Automatik aus oder Pause.
+3. Danach am zentralen Gerät **Notfall zurücksetzen** drücken. Erst dann fahren die Rollläden wieder normal.
+
 ## 10. Umstieg von FHEM
 
 Deine Einstellungen aus ASC in FHEM lassen sich übernehmen. Die Namen in FHEM und in Home Assistant dürfen
@@ -235,6 +255,14 @@ die es nicht gibt.
 Der Dialog von Home Assistant ist schmal. Mehr Platz hat die Seite in der Seitenleiste: *Konfigurieren* →
 *Fahrverhalten* → **Übersicht in der Seitenleiste** einschalten und speichern. Dann gibt es links den Eintrag
 *AutoShuttersControl* mit einer großen Tabelle, die sich alle 10 Sekunden aktualisiert.
+
+Auf derselben Seite gibt es den Reiter **Rollläden bearbeiten**. Dort siehst du alle Rollläden in einer Tabelle,
+kannst sie hinzufügen, duplizieren und entfernen und mehrere auf einmal ändern: ankreuzen, *Auswahl bearbeiten*,
+nur die Felder ändern, die für alle gelten sollen, und speichern.
+
+Für das Dashboard gibt es die Karte **AutoShuttersControl**: *Dashboard bearbeiten* → *Karte hinzufügen* →
+*Benutzerdefiniert*. Sie zeigt jeden Rollladen mit Position, Ziel und Grund, den nächsten Fahrten und Knöpfen.
+Lade die Seite nach dem Installieren einmal neu, damit die Karte in der Auswahl erscheint.
 
 ## 12. Wenn etwas nicht klappt
 

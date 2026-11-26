@@ -7,6 +7,7 @@ advent (6), lock-out (7), manual override (8), external trigger (9), window
 (10), residents and temperature limits (11), shading and glare (12), privacy
 (13) and schedule (14). A lock (action or select) ranks with self defense.
 In the quiet hours only priorities up to 5 drive (and ventilation, if allowed).
+The emergency input (0) wins over everything, also over the blocks of priority 0.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from .settings import (
 )
 
 # Priorities (lower wins)
+PRIO_EMERGENCY = 0
 PRIO_FORCE = 1
 PRIO_RAIN_WINDOW = 2
 PRIO_WIND_RAIN = 3
@@ -65,6 +67,8 @@ TRIGGER_RELEASE = "release"
 TRIGGER_RECOVERY = "recovery"
 TRIGGER_PROFILE = "profile"
 TRIGGER_LOCK = "lock"
+TRIGGER_EMERGENCY = "emergency"
+TRIGGER_NIGHT = "night"
 SCHEDULE_TRIGGERS = frozenset({TRIGGER_SCHEDULE_UP, TRIGGER_SCHEDULE_DOWN, TRIGGER_RECOVERY})
 
 # Reasons of a wish (stored as keys, translated only for display)
@@ -93,6 +97,11 @@ REASON_GLARE = "glare"
 REASON_LOCK = "lock"
 REASON_TEMP_HIGH = "temp_high"
 REASON_TEMP_LOW = "temp_low"
+REASON_EMERGENCY = "emergency"
+REASON_NIGHT = "night"
+REASON_ADVENT = "advent"
+REASON_AWNING_OUT = "awning_out"
+REASON_AWNING_IN = "awning_in"
 # Drives that are undone when their cause ends
 TEMPORARY_REASONS = frozenset(
     {
@@ -103,6 +112,7 @@ TEMPORARY_REASONS = frozenset(
         REASON_TRIGGER,
         REASON_WIGGLE,
         REASON_LOCK,
+        REASON_EMERGENCY,
     }
 )
 
@@ -125,6 +135,7 @@ BLOCK_CONDITION = "condition"
 BLOCK_QUIET = "quiet"
 BLOCK_GUEST = "guest"
 BLOCK_LOCK = "locked"
+BLOCK_SUMMER = "summer"
 # Blocks that mean "deliberately not driven" (logbook)
 LOGGED_BLOCKS = frozenset(
     {
@@ -143,6 +154,7 @@ LOGGED_BLOCKS = frozenset(
         BLOCK_QUIET,
         BLOCK_GUEST,
         BLOCK_LOCK,
+        BLOCK_SUMMER,
     }
 )
 BLOCKS = (
@@ -164,6 +176,7 @@ BLOCKS = (
     BLOCK_QUIET,
     BLOCK_GUEST,
     BLOCK_LOCK,
+    BLOCK_SUMMER,
 )
 
 
@@ -211,6 +224,10 @@ class Situation:
     lock_hold: bool = False
     # Position the last shading drive went to (shading following the sun)
     shading_from: float | None = None
+    # Summer: the evening drive does not close
+    summer: bool = False
+    # The cover is an awning (shading extends it)
+    awning: bool = False
 
 
 @dataclass(frozen=True)
@@ -244,15 +261,58 @@ def schedule_wish(
     *,
     morning_enabled: bool = True,
     evening_enabled: bool = True,
+    night_stage: bool = False,
 ) -> Wish | None:
-    """Wish of the schedule: open by day, closed by night."""
+    """Wish of the schedule: open by day, closed by night (later the night position)."""
     if is_day:
         if not morning_enabled:
             return None
         return Wish(PRIO_SCHEDULE, "schedule", KIND_OPEN, cfg["pos_open"], REASON_DAY_OPEN)
     if not evening_enabled:
         return None
+    if night_stage and cfg["pos_night"] is not None:
+        return Wish(PRIO_SCHEDULE, "schedule", KIND_CLOSE, cfg["pos_night"], REASON_NIGHT)
     return Wish(PRIO_SCHEDULE, "schedule", KIND_CLOSE, cfg["pos_closed"], REASON_NIGHT_CLOSE)
+
+
+def emergency_wish(cfg: Mapping[str, Any], active: bool, awning: bool = False) -> Wish | None:
+    """Emergency input (smoke detector): escape route, before everything else."""
+    if not active:
+        return None
+    position = 0 if awning else cfg["pos_emergency"]
+    kind = KIND_CLOSE if awning or position < 50 else KIND_OPEN
+    return Wish(PRIO_EMERGENCY, "emergency", kind, position, REASON_EMERGENCY, bypass_rules=True)
+
+
+def awning_wishes(
+    cfg: Mapping[str, Any],
+    *,
+    is_day: bool,
+    shaded: bool = False,
+    heat: bool = False,
+    glare: bool = False,
+    force: str | None = None,
+    wind: bool = False,
+    rain: bool = False,
+    frost: bool = False,
+    emergency: bool = False,
+    lock: str | None = None,
+    trigger_pos: int | None = None,
+) -> list[Wish]:
+    """Awning: out while shading, in otherwise, by night and in wind, rain or frost."""
+    out: list[Wish | None] = [
+        emergency_wish(cfg, emergency, awning=True),
+        force_wish(cfg, force),
+    ]
+    for active, reason in ((wind, REASON_WIND), (rain, REASON_RAIN), (frost, REASON_AWNING_IN)):
+        if active:
+            out.append(Wish(PRIO_WIND_RAIN, reason, KIND_CLOSE, 0, reason))
+    out += [lock_wish(cfg, lock), trigger_wish(trigger_pos)]
+    if is_day and (shaded or heat or glare):
+        reason = REASON_GLARE if glare and not (shaded or heat) else REASON_AWNING_OUT
+        out.append(Wish(PRIO_SHADING, "shading", KIND_SHADING, cfg["pos_awning"], reason))
+    out.append(Wish(PRIO_SCHEDULE, "schedule", KIND_CLOSE, 0, REASON_AWNING_IN))
+    return [w for w in out if w is not None]
 
 
 def privacy_wish(
@@ -470,8 +530,10 @@ def build_wishes(
     depth: int | None = None,
     lock: str | None = None,
     temp_limit: str | None = None,
+    emergency: bool = False,
+    night_stage: bool = False,
 ) -> list[Wish]:
-    """All wishes, from force down to the schedule.
+    """All wishes, from the emergency input down to the schedule.
 
     ``morning_enabled``/``evening_enabled`` include the presence modes.
     """
@@ -481,6 +543,7 @@ def build_wishes(
         is_day,
         morning_enabled=morning_enabled and not (sleeping and not cfg["sleep_allow_open"]),
         evening_enabled=evening_enabled,
+        night_stage=night_stage,
     )
     priv = privacy_wish(
         cfg, privacy_phase, morning_enabled=morning_enabled, evening_enabled=evening_enabled
@@ -499,6 +562,7 @@ def build_wishes(
     # What the functions below the protections want (for the wind position "nearest")
     wanted = next((w.position for w in (locked, defense, trig, win, base) if w is not None), None)
     top = [
+        emergency_wish(cfg, emergency),
         force_wish(cfg, force),
         rain_window_wish(cfg, rain_window, lockout),
         *weather_wishes(cfg, wind, rain, wanted),
@@ -542,7 +606,7 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         wish = replace(wish, position=cfg["pos_frost"])
 
     # Priority 0: nothing moves, the target is still tracked (force functions do)
-    forced = wish is not None and wish.priority == PRIO_FORCE
+    forced = wish is not None and wish.priority <= PRIO_FORCE
     if not situation.automatic and not forced:
         return _blocked(situation, wish, BLOCK_AUTOMATIC_OFF)
     if situation.paused and not forced:
@@ -586,7 +650,13 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
         if situation.party and wish.priority > PRIO_PARTY:
             return _blocked(situation, wish, BLOCK_PARTY)
         if situation.advent and wish.kind == KIND_CLOSE and wish.priority > PRIO_PARTY:
-            return _blocked(situation, wish, BLOCK_ADVENT)
+            if cfg["pos_advent"] is None:
+                return _blocked(situation, wish, BLOCK_ADVENT)
+            if wish.position < cfg["pos_advent"]:
+                # Advent: close only down to the advent position (lights in the window)
+                wish = replace(wish, position=cfg["pos_advent"], reason=REASON_ADVENT)
+        if situation.summer and wish.kind == KIND_CLOSE and wish.source in ("schedule", "privacy"):
+            return _blocked(situation, wish, BLOCK_SUMMER)
         if (
             situation.override_active
             and wish.priority > PRIO_OVERRIDE
@@ -604,7 +674,7 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
     current = situation.current_position
     tol = cfg["tolerance"]
     if situation.trigger == TRIGGER_SHADING_END and not wish.bypass_rules:
-        if not cfg["shading_end_open"]:
+        if not cfg["shading_end_open"] and not situation.awning:
             return _blocked(situation, wish, BLOCK_NO_WISH)
         shading_positions = [
             p
@@ -612,6 +682,7 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
                 cfg["pos_shading"],
                 cfg["pos_shading_alt"],
                 cfg["pos_glare"],
+                cfg["pos_awning"] if situation.awning else None,
                 situation.shading_from,
             )
             if p is not None
@@ -652,6 +723,7 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
                 return _blocked(situation, wish, BLOCK_DIRECTION)
             if (
                 wish.kind == KIND_SHADING
+                and not situation.awning
                 and cfg["shading_only_down"]
                 and current < wish.position
                 # The morning opening (or catching it up) goes to the shading position

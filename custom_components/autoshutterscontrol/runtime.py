@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections import ChainMap, deque
 from collections.abc import Mapping
 from dataclasses import asdict
@@ -126,9 +127,11 @@ from .engine.arbiter import (
     REASON_WINDOW_RETURN,
     TEMPORARY_REASONS,
     TRIGGER_APPLY_TARGET,
+    TRIGGER_EMERGENCY,
     TRIGGER_EXTERNAL,
     TRIGGER_FORCE,
     TRIGGER_LOCK,
+    TRIGGER_NIGHT,
     TRIGGER_OVERRIDE_END,
     TRIGGER_PRIVACY,
     TRIGGER_PROFILE,
@@ -145,6 +148,7 @@ from .engine.arbiter import (
     TRIGGER_WINDOW_CLOSED,
     Decision,
     Situation,
+    awning_wishes,
     build_wishes,
     decide,
 )
@@ -208,6 +212,7 @@ from .engine.settings import (
     LOCK_MODES,
     LOCK_NONE,
     LOCKOUT_HARD,
+    LOCKOUT_OFF,
     MODE_ENTITY,
     MODE_RESIDENTS,
     PRESENCE_OFF,
@@ -222,6 +227,7 @@ from .engine.settings import (
     SETTINGS,
     TILT_AFTER,
     TILT_FIRST,
+    TYPE_AWNING,
     WIND_POSITION,
     WINDOW_CLOSED,
     WINDOW_OPEN,
@@ -257,7 +263,9 @@ RECOVERY_WAIT = 45  # seconds after start before missed drives are caught up
 # Triggers whose blocked decision is not worth a logbook entry
 _QUIET_TRIGGERS = frozenset({TRIGGER_APPLY_TARGET})
 # Drives that are never staggered (protection must be fast)
-_URGENT_SOURCES = frozenset({"force", "rain_window", "wind", "rain"})
+_URGENT_SOURCES = frozenset({"force", "rain_window", "wind", "rain", "emergency"})
+# A window contact that reports nothing this long gets a repair issue
+CONTACT_ISSUE_DELAY = 120
 # Shading drives (slat position by the sun)
 _SHADING_REASONS = frozenset({REASON_SHADING, REASON_HEAT, REASON_HOT_DAY, REASON_GLARE})
 # Outdoor temperature samples for the 24 hour mean (winter)
@@ -420,6 +428,11 @@ class AscManager:
         # Last usable state of the entities that switch profiles
         self.profile_switch_states: dict[str, str] = {}
         self.texts: dict[str, str] = {}
+        # Minimum gap between cover commands (radio duty cycle)
+        self._cmd_lock = asyncio.Lock()
+        self._last_cmd = 0.0
+        self._unsub_emergency: CALLBACK_TYPE | None = None
+        self._emergency_input = False
 
     # --- configuration ----------------------------------------------------
 
@@ -508,6 +521,91 @@ class AscManager:
     @callback
     def _on_global_residents(self, _event: Event) -> None:
         async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+
+    # --- cover commands -------------------------------------------------------
+
+    @callback
+    def send_cover(self, service: str, data: dict[str, Any], context: Context, name: str) -> None:
+        """Send a cover command; with a gap set, one after the other."""
+        gap = float(self.global_cfg["command_gap"] or 0)
+        if gap <= 0:
+            self.hass.async_create_task(
+                self.hass.services.async_call(
+                    COVER_DOMAIN, service, data, blocking=False, context=context
+                ),
+                name,
+            )
+            return
+        self.entry.async_create_background_task(
+            self.hass, self._send_queued(service, data, context, gap), name
+        )
+
+    async def _send_queued(
+        self, service: str, data: dict[str, Any], context: Context, gap: float
+    ) -> None:
+        async with self._cmd_lock:
+            wait = self._last_cmd + gap - monotonic_time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            try:
+                await self.hass.services.async_call(
+                    COVER_DOMAIN, service, data, blocking=False, context=context
+                )
+            finally:
+                self._last_cmd = monotonic_time.monotonic()
+
+    # --- emergency input --------------------------------------------------------
+
+    def _subscribe_emergency(self) -> None:
+        if self._unsub_emergency:
+            self._unsub_emergency()
+            self._unsub_emergency = None
+        entities = list(self.global_cfg["emergency_entities"])
+        if entities:
+            self._unsub_emergency = async_track_state_change_event(
+                self.hass, entities, self._on_emergency_change
+            )
+
+    def emergency_input_on(self) -> bool:
+        """One of the emergency entities is on."""
+        for entity_id in self.global_cfg["emergency_entities"]:
+            state = self.hass.states.get(entity_id)
+            if state is not None and state.state == STATE_ON:
+                return True
+        return False
+
+    @property
+    def emergency(self) -> bool:
+        """Emergency: an input is on, or it was on and is latched until reset."""
+        return self._emergency_input or bool(self.data["global"].get("emergency"))
+
+    @callback
+    def _on_emergency_change(self, _event: Event) -> None:
+        on = self.emergency_input_on()
+        if on == self._emergency_input:
+            return
+        before = self.emergency
+        self._emergency_input = on
+        if on and self.global_cfg["emergency_latch"]:
+            self.data["global"]["emergency"] = True
+            self.save()
+        if self.emergency != before:
+            self._emergency_changed()
+
+    @callback
+    def clear_emergency(self) -> None:
+        """Reset a latched emergency (button)."""
+        if self.data["global"].pop("emergency", None) is None:
+            return
+        self.save()
+        if not self.emergency:
+            self._emergency_changed()
+
+    def _emergency_changed(self) -> None:
+        _LOGGER.info("Emergency %s", "on" if self.emergency else "off")
+        async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
+        for controller in self.controllers.values():
+            controller.evaluate(TRIGGER_EMERGENCY, stagger=False)
 
     def forecast(self, entity_id: str) -> float | None:
         """Forecast maximum temperature of today (refreshed in the background)."""
@@ -656,6 +754,8 @@ class AscManager:
             await controller.async_compile()
             controller.async_start()
         self._subscribe_residents()
+        self._subscribe_emergency()
+        self._emergency_input = self.emergency_input_on()
         self.global_protection(dt_util.utcnow())
         self.sample_temperature(dt_util.utcnow())
 
@@ -753,6 +853,9 @@ class AscManager:
         if self._unsub_residents:
             self._unsub_residents()
             self._unsub_residents = None
+        if self._unsub_emergency:
+            self._unsub_emergency()
+            self._unsub_emergency = None
         for controller in self.controllers.values():
             controller.async_stop()
         await self.store.async_save(self.data)
@@ -768,6 +871,7 @@ class AscManager:
                 self.hass, controller.async_compile(), f"{DOMAIN} compile {controller.cover_entity}"
             )
         self._subscribe_residents()
+        self._subscribe_emergency()
         async_dispatcher_send(self.hass, SIGNAL_GLOBAL_UPDATE)
 
     async def async_load_texts(self) -> None:
@@ -1107,6 +1211,10 @@ class CoverController:
         self._unsub_check: CALLBACK_TYPE | None = None
         self._unsub_lock: CALLBACK_TYPE | None = None
         self._unsub_later: CALLBACK_TYPE | None = None
+        # Window contacts that report nothing (unavailable, unknown, missing)
+        self.contacts_missing: list[str] = []
+        self._unsub_contact_issue: CALLBACK_TYPE | None = None
+        self._night: bool | None = None
 
     # --- life cycle ---------------------------------------------------------
 
@@ -1144,6 +1252,7 @@ class CoverController:
             "_unsub_check",
             "_unsub_lock",
             "_unsub_later",
+            "_unsub_contact_issue",
         ):
             unsub = getattr(self, name)
             if unsub:
@@ -1299,6 +1408,11 @@ class CoverController:
                 async_track_state_change_event(
                     self.hass, list(self.cfg["guest_entities"]), self._on_guest_change
                 )
+            )
+        stage_entities = [e for e in (self.cfg["close_entity"], self.cfg["night_entity"]) if e]
+        if stage_entities:
+            self._unsub_listeners.append(
+                async_track_state_change_event(self.hass, stage_entities, self._on_light_change)
             )
         if self.cfg["calendar"] and self.cfg["time_source"] == WINDOWS_CALENDAR:
             self._unsub_listeners.append(
@@ -1838,6 +1952,8 @@ class CoverController:
         self._check_residents(now)
         self._shading_tick(now)
         self._check_quiet(now)
+        self._check_night(now)
+        self._check_close_entity(now)
         today = now.astimezone(self.tz).date()
         sched = self.schedule_for(today)
         marks = self.marks_for(today)
@@ -2086,6 +2202,64 @@ class CoverController:
                 self.evaluate(TRIGGER_EXTERNAL)
 
     # --- party, advent ------------------------------------------------------------
+
+    @property
+    def awning(self) -> bool:
+        """The cover is an awning."""
+        return self.cfg["cover_type"] == TYPE_AWNING
+
+    def summer_now(self, now: datetime | None = None) -> bool:
+        """Summer: the evening drive of this cover does not close."""
+        if not self.cfg["summer_no_close"]:
+            return False
+        start = parse_day(self.cfg["summer_start"])
+        end = parse_day(self.cfg["summer_end"])
+        if start is None or end is None:
+            return False
+        day = (now or dt_util.now(self.tz)).astimezone(self.tz).date()
+        return in_period(day, start, end)
+
+    def night_stage(self, now: datetime | None = None) -> bool:
+        """Second closing stage: night time reached or the night entity is on."""
+        if self.cfg["pos_night"] is None:
+            return False
+        now = now or dt_util.now(self.tz)
+        if self.is_day(now):
+            return False
+        if self._is_on(self.cfg["night_entity"]):
+            return True
+        start = self.cfg["night_time"]
+        if start is None:
+            return False
+        clock = now.astimezone(self.tz).time()
+        noon = dt_time(12, 0)
+        if start >= noon:
+            return clock >= start or clock < noon
+        return start <= clock < noon
+
+    def _check_night(self, now: datetime) -> None:
+        night = self.night_stage(now)
+        if self._night is not None and night and not self._night:
+            self.evaluate(TRIGGER_NIGHT, delayed=True)
+        self._night = night
+
+    def _check_close_entity(self, now: datetime) -> None:
+        """Close in the evening as soon as an entity turns on (e.g. the light)."""
+        entity = self.cfg["close_entity"]
+        if not entity or self.awning or not self._is_on(entity):
+            return
+        start = self.cfg["close_entity_from"]
+        if start is not None and now.astimezone(self.tz).time() < start:
+            return
+        today = now.astimezone(self.tz).date()
+        if self.marks_for(today).down is not None or not self.is_day(now):
+            return
+        sched = self.schedule_for(today)
+        if now < effective_up(sched, self.marks_for(today)) + timedelta(hours=1):
+            # Not right after the morning drive
+            return
+        self._set_mark(now, DOWN)
+        self._schedule_event(TRIGGER_SCHEDULE_DOWN)
 
     def advent_now(self, now: datetime | None = None) -> bool:
         """Advent defers the closing of this cover now."""
@@ -2651,14 +2825,10 @@ class CoverController:
                 setattr(self, name, None)
 
     def _call_tilt(self, tilt: int, context: Context) -> None:
-        self.hass.async_create_task(
-            self.hass.services.async_call(
-                COVER_DOMAIN,
-                SERVICE_SET_COVER_TILT_POSITION,
-                {ATTR_ENTITY_ID: self.tilt_entity, ATTR_TILT_POSITION: tilt},
-                blocking=False,
-                context=context,
-            ),
+        self.manager.send_cover(
+            SERVICE_SET_COVER_TILT_POSITION,
+            {ATTR_ENTITY_ID: self.tilt_entity, ATTR_TILT_POSITION: tilt},
+            context,
             f"{DOMAIN} tilt {self.tilt_entity}",
         )
 
@@ -2742,7 +2912,7 @@ class CoverController:
             current_position=self.current_position(),
             override_active=self.override_active,
             done_today=self.done_today(now),
-            lockout=lockout_active(self.cfg, self.window_state),
+            lockout=self.lockout_now,
             lockout_hard=self.cfg["lockout"] == LOCKOUT_HARD,
             frost_block=frost[0],
             frost_soft=frost[1],
@@ -2764,6 +2934,8 @@ class CoverController:
             guest_manual=self.cfg["guest_mode"] == GUEST_MANUAL and self.guest_present(),
             lock_hold=self.lock == LOCK_HOLD,
             shading_from=self._shading_from(),
+            summer=self.summer_now(now),
+            awning=self.awning,
         )
 
     def _shading_from(self) -> float | None:
@@ -2793,7 +2965,30 @@ class CoverController:
             and (situation.current_position or 0) < self.cfg["pos_glare"]
         ):
             glare = False
-        wishes = build_wishes(
+        protections = self.protections()
+        if self.awning:
+            wishes = awning_wishes(
+                self.cfg,
+                is_day=self.is_day(now),
+                shaded=shaded and self.manager.switches[SWITCH_SHADING],
+                heat=heat and self.manager.switches[SWITCH_SHADING],
+                glare=glare,
+                force=self.force_kind(),
+                wind=protections[WIND],
+                rain=protections[RAIN],
+                frost=protections[FROST],
+                emergency=self.manager.emergency,
+                lock=self.lock,
+                trigger_pos=self.trigger_pos(),
+            )
+        else:
+            wishes = self._shutter_wishes(trigger, now, situation, shaded, heat, hot, glare, house)
+        return self._finish_target(situation, wishes, house, shaded, heat, guest)
+
+    def _shutter_wishes(self, trigger, now, situation, shaded, heat, hot, glare, house):
+        guest = self.guest_present()
+        guest_mode = self.cfg["guest_mode"] if guest else None
+        return build_wishes(
             self.cfg,
             trigger=trigger,
             is_day=self.is_day(now),
@@ -2821,8 +3016,13 @@ class CoverController:
             depth=self.depth,
             lock=self.lock,
             temp_limit=self.temp_limit,
+            emergency=self.manager.emergency,
+            night_stage=self.night_stage(now),
             **{k: v for k, v in self.protections().items() if k != FROST},
         )
+
+    def _finish_target(self, situation, wishes, house, shaded, heat, guest) -> Decision:
+        now = dt_util.now(self.tz)
         # What would apply without water protection (for the return after the rain)
         base = next(
             (w for w in sorted(wishes, key=lambda w: w.priority) if w.source != "rain_window"),
@@ -2933,11 +3133,7 @@ class CoverController:
         previous = int(round(previous))
         current = self.current_position()
         tol = self.cfg["tolerance"]
-        if (
-            current is not None
-            and previous < current - tol
-            and lockout_active(self.cfg, self.window_state)
-        ):
+        if current is not None and previous < current - tol and self.lockout_now:
             # Never down while the door is open
             return decision
         at_target = current is not None and abs(current - previous) <= tol
@@ -3229,12 +3425,7 @@ class CoverController:
         self, service: str, data: dict[str, Any], context: Context, _now: datetime | None = None
     ) -> None:
         self._unsub_position = None
-        self.hass.async_create_task(
-            self.hass.services.async_call(
-                COVER_DOMAIN, service, data, blocking=False, context=context
-            ),
-            f"{DOMAIN} drive {self.cover_entity}",
-        )
+        self.manager.send_cover(service, data, context, f"{DOMAIN} drive {self.cover_entity}")
 
     @callback
     def drive_to(self, position: int, *, respect_rules: bool) -> bool:
@@ -3277,6 +3468,40 @@ class CoverController:
             ):
                 return
         self._check_manual(new.context)
+        if new.state not in (CoverState.OPENING, CoverState.CLOSING):
+            self._known_position_check()
+
+    def known_position(self, position: float | None) -> str | None:
+        """Name of the configured position the cover stands at (open, closed, shading)."""
+        if position is None:
+            return None
+        tol = max(self.cfg["tolerance"], 2)
+        for key in ("pos_open", "pos_closed", "pos_shading", "pos_sleep", "pos_night"):
+            value = self.cfg[key]
+            if value is not None and abs(position - value) <= tol:
+                return key
+        return None
+
+    def _known_position_check(self) -> None:
+        """A manual drive that ends on a known position keeps the automatic on."""
+        if not self.cfg["manual_known"] or self.awning:
+            return
+        override = self.state.get("override")
+        last = self.state.get("last") or {}
+        if not override or last.get("reason") != REASON_MANUAL:
+            return
+        since = _parse(override.get("since"))
+        if since is None or dt_util.utcnow() - since > timedelta(seconds=self.cfg["drive_time"]):
+            return
+        if self.known_position(self.current_position()) is None:
+            return
+        if self._unsub_override:
+            self._unsub_override()
+            self._unsub_override = None
+        self.state["override"] = None
+        self._save()
+        self._logbook("logbook_manual_known", position=int(round(self.current_position() or 0)))
+        self.notify()
 
     @callback
     def _wind_snap(self) -> None:
@@ -3328,27 +3553,94 @@ class CoverController:
     # --- window contacts ------------------------------------------------------
 
     def _read_window(self) -> str | None:
+        missing: list[str] = []
+
         def value(key: str) -> str | None:
             entity = self.cfg[key]
             if not entity:
                 return None
             state = self.hass.states.get(entity)
             if state is None or state.state in _UNUSABLE:
+                missing.append(entity)
                 return None
             return state.state
 
-        return window_state(
+        result = window_state(
             self.cfg,
             value("window_open_sensor"),
             value("window_tilted_sensor"),
             value("window_state_sensor"),
         )
+        self._contacts_changed(missing)
+        return result
+
+    def _contacts_changed(self, missing: list[str]) -> None:
+        """Window contacts without a state: repair issue after a while."""
+        if missing == self.contacts_missing:
+            return
+        self.contacts_missing = missing
+        if self._unsub_contact_issue:
+            self._unsub_contact_issue()
+            self._unsub_contact_issue = None
+        if missing:
+            self._unsub_contact_issue = async_call_later(
+                self.hass, CONTACT_ISSUE_DELAY, self._contact_issue
+            )
+        else:
+            ir.async_delete_issue(self.hass, DOMAIN, f"contact_{self.subentry_id}")
+
+    @callback
+    def _contact_issue(self, _now: datetime) -> None:
+        self._unsub_contact_issue = None
+        if not self.contacts_missing:
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            f"contact_{self.subentry_id}",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="contact_unavailable",
+            translation_placeholders={
+                "name": self.name,
+                "entities": ", ".join(self.contacts_missing),
+            },
+        )
+
+    def lockout_blocks(self, position: int) -> bool:
+        """A command to ``position`` would go down in front of an open door."""
+        if not self.lockout_now:
+            return False
+        current = self.current_position()
+        return current is None or position < current - self.cfg["tolerance"]
+
+    def group_blocked(self, position: int) -> None:
+        """A group command was held back by the lock-out protection."""
+        self._logbook("logbook_group_lockout", position=position)
+
+    @property
+    def lockout_now(self) -> bool:
+        """Lock-out protection holds: the door is open, or a contact reports nothing."""
+        if self.awning:
+            return False
+        if lockout_active(self.cfg, self.window_state):
+            return True
+        return self.cfg["lockout"] != LOCKOUT_OFF and bool(self.contacts_missing)
 
     @callback
     def _on_window_change(self, _event: Event) -> None:
+        had_missing = bool(self.contacts_missing)
         new = self._read_window()
+        if had_missing and not self.contacts_missing and new == self.window_state:
+            # The contact is back with the same state: drive what the lock-out held back
+            if self.state.pop("lockout_deferred", False):
+                self._save()
+                self.evaluate(TRIGGER_WINDOW_CLOSED)
+            self.notify()
+            return
         if new is None:
-            # Contact unavailable: keep the last known state
+            # Contact unavailable: keep the last known state (the lock-out holds)
+            self.notify()
             return
         if self._unsub_window_delay:
             self._unsub_window_delay()
@@ -3492,6 +3784,27 @@ class CoverController:
             "temp_limit": self.temp_limit,
             "quiet": self.quiet_now(),
             "is_day": self.is_day(),
+            "subentry_id": self.subentry_id,
+            "awning": self.awning,
+            "invert": bool(cfg["invert"]),
+            "lockout_now": self.lockout_now,
+            "pos_open": cfg["pos_open"],
+            "pos_closed": cfg["pos_closed"],
+            "entities": self._own_entities(),
+        }
+
+    def _own_entities(self) -> dict[str, str | None]:
+        """Entity ids of the switches and buttons the dashboard card uses."""
+        registry = er.async_get(self.manager.hass)
+        keys = {
+            "automatic": ("switch", "cover_automatic"),
+            "pause": ("switch", "cover_pause"),
+            "apply_target": ("button", "apply_target"),
+            "clear_override": ("button", "clear_override"),
+        }
+        return {
+            name: registry.async_get_entity_id(platform, DOMAIN, f"{self.subentry_id}_{key}")
+            for name, (platform, key) in keys.items()
         }
 
     # --- diagnostics --------------------------------------------------------

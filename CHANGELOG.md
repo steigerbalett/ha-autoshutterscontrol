@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.10.0
+
+- Sidebar page, tab *Edit covers*: all covers as a table; edit one or several at once (only the changed fields
+  are saved for every selected cover), with the inherited value and its source next to every field; add,
+  duplicate and remove covers. The values stay in the subentries. Only administrators can change anything.
+- Dashboard cards, loaded automatically: `custom:autoshutterscontrol-card` (all or selected covers as grid,
+  list or compact) and `custom:autoshutterscontrol-cover-card` (one cover). Animated window with position and
+  target, target with reason, not driven because, next drives, buttons open, stop, close, drive to target and
+  automatic (ends a manual override). Asks before closing while the lock-out protection is active. Card editor.
+- Groups: cover entity *All covers* and one per profile on the central device. Commands go to every member as a
+  manual drive; the lock-out protection of every member holds. Awnings are not part of groups.
+- *Minimum gap between commands* (global, default off): all commands to covers go through one queue.
+- *Manual drive to a known position keeps the automatic* (default off).
+- Emergency: *Emergency input* (e.g. smoke detectors) drives all covers to the *Emergency position* (default
+  100 %) and retracts awnings, before everything else. Latched until the button *Reset emergency* (default on).
+  Binary sensor *Emergency*.
+- A window contact that is unavailable or unknown counts as not closed (lock-out protection holds) and raises a
+  repair issue after 2 minutes.
+- Window presets *Patio door*, *Vent window* and *Protection only* (profile and cover); own fields win.
+- *Close in the evening as soon as on* (e.g. the light) with *Close by entity not before*; night position as a
+  second stage from a time or an entity.
+- Sun event *Golden hour* (sun 6°).
+- *Do not close in summer* with *Summer from/until*; *Advent position*: in Advent the closing goes to this
+  position instead of waiting.
+- Awnings: *Type* = *Awning* extends for shading by day and retracts otherwise, at night and with wind, rain
+  and frost.
+- Docs: recipes for school holidays and smoke detectors in the setup guide.
+- Sidebar overview: the switch *Holiday* shows its name.
+
 ## 0.9.1
 
 - Setup guide step by step in German and English (`docs/de/einrichtung.md`, `docs/en/setup.md`), with recipes

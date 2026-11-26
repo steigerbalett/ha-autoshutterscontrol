@@ -88,6 +88,10 @@
           "down_tomorrow_workday": "Evening by tomorrow's day type",
           "up_time_entity": "Morning time from entity",
           "down_time_entity": "Evening time from entity",
+          "close_entity": "Close in the evening as soon as on",
+          "close_entity_from": "Close by entity not before",
+          "night_time": "Night position from",
+          "night_entity": "Night position as soon as on",
           "time_source": "Earliest and latest times from",
           "calendar_open_title": "Calendar: title for opening",
           "calendar_close_title": "Calendar: title for closing"
@@ -102,6 +106,10 @@
           "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.",
           "up_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor (e.g. the next alarm of the phone app). Kept between the earliest and the latest time; without a usable value the latest time applies.",
           "down_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor. Kept between the earliest and the latest time; without a usable value the earliest time applies.",
+          "close_entity": "E.g. a light in the room: when it turns on, the cover closes now (not in the first hour after opening). This counts as the evening drive.",
+          "close_entity_from": "Before this time the entity does not close. Empty = any time of the day.",
+          "night_time": "From this time on the cover goes to the night position at night (page Positions).",
+          "night_entity": "E.g. a sleep mode: while it is on, the night position applies at night.",
           "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.",
           "calendar_open_title": "Case does not matter, e.g. \"open\".",
           "calendar_close_title": "Case does not matter, e.g. \"close\"."
@@ -153,6 +161,10 @@
           "pos_wind": "Wind position",
           "pos_rain": "Rain position",
           "pos_rain_window": "Water protection position",
+          "pos_night": "Night position (2nd stage)",
+          "pos_advent": "Advent position",
+          "pos_emergency": "Emergency position",
+          "pos_awning": "Awning extended",
           "tolerance": "Tolerance"
         },
         "data_description": {
@@ -165,6 +177,10 @@
           "pos_wind": "Venetian blinds and awnings: usually 100 (up).",
           "pos_rain": "Awnings: usually 100 (retracted).",
           "pos_rain_window": "Rain with an open window. With the lock-out protection at most the ventilation position.",
+          "pos_night": "In the evening the cover first goes to the closed position, later (night position from, or the entity) to this position. Empty = off.",
+          "pos_advent": "With Advent the cover closes in the evening only down to here instead of waiting. Empty = wait as before.",
+          "pos_emergency": "Position in an emergency (page Special functions). Default 100 % = escape route free. Awnings retract.",
+          "pos_awning": "Awnings only: how far it extends for shading.",
           "tolerance": "A cover within this distance of a position counts as being there."
         }
       },
@@ -186,7 +202,8 @@
           "quiet_end": "Quiet hours until",
           "quiet_start_entity": "Quiet hours from (entity)",
           "quiet_end_entity": "Quiet hours until (entity)",
-          "quiet_window": "Ventilate in the quiet hours"
+          "quiet_window": "Ventilate in the quiet hours",
+          "command_gap": "Minimum gap between commands"
         },
         "data_description": {
           "delay_fixed": "Seconds to wait before a scheduled drive.",
@@ -203,7 +220,8 @@
           "quiet_end": "End of the quiet hours (may be after midnight).",
           "quiet_start_entity": "Start from an input_datetime or time entity; wins over the fixed time.",
           "quiet_end_entity": "End from an input_datetime or time entity; wins over the fixed time.",
-          "quiet_window": "An opened window still moves the cover to the ventilation position in the quiet hours."
+          "quiet_window": "An opened window still moves the cover to the ventilation position in the quiet hours.",
+          "command_gap": "All commands to covers are sent one after the other with this gap, e.g. 1 s for the duty cycle of Homematic IP. 0 = off."
         }
       },
       "override": {
@@ -216,7 +234,8 @@
           "override_reset_time": "End time",
           "override_return": "Drive to the target afterwards",
           "manual_counts_open": "Opening by hand counts as morning drive",
-          "manual_counts_close": "Closing by hand counts as evening drive"
+          "manual_counts_close": "Closing by hand counts as evening drive",
+          "manual_known": "Manual drive to a known position keeps the automatic"
         },
         "data_description": {
           "override_blocks": "These drives wait until the override ends.",
@@ -224,7 +243,8 @@
           "override_reset_time": "Used with \"at a fixed time\".",
           "override_return": "When the override ends the cover drives to its current target.",
           "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.",
-          "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day."
+          "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.",
+          "manual_known": "When a manual drive ends at open, closed, shading, sleep or night, there is no manual override."
         }
       },
       "reset": {
@@ -487,6 +507,11 @@
           "advent_start_date": "Own start (DD.MM.)",
           "advent_end": "Advent mode until",
           "advent_end_date": "Own end (DD.MM.)",
+          "summer_no_close": "Do not close in summer",
+          "summer_start": "Summer from (DD.MM.)",
+          "summer_end": "Summer until (DD.MM.)",
+          "emergency_entities": "Emergency input",
+          "emergency_latch": "Emergency stays until reset",
           "holiday_shift": "Holiday: shift the times up to",
           "wiggle_value": "Wiggle by",
           "wiggle_wait": "Wiggle wait"
@@ -498,6 +523,9 @@
           "advent_start": "First Sunday of Advent (calculated every year) or a fixed day.",
           "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.",
           "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.",
+          "summer_no_close": "In summer (period below) the evening drive and privacy do not close. Sleep, self defense and protections still close.",
+          "emergency_entities": "E.g. smoke detectors. When one is on, all covers go to the emergency position, before everything else, also before the lock-out protection and with the automatic off.",
+          "emergency_latch": "On: the emergency only ends with the button Reset emergency. Off: it ends when the input is off.",
           "holiday_shift": "With the switch Holiday on, the morning and the evening drive shift every day by a random number of minutes, different for every cover and the same after a restart. 0: no shift.",
           "wiggle_value": "Percent for the function check (button Wiggle).",
           "wiggle_wait": "Seconds before the cover goes back."
@@ -628,6 +656,10 @@
             "down_tomorrow_workday": "Evening by tomorrow's day type",
             "up_time_entity": "Morning time from entity",
             "down_time_entity": "Evening time from entity",
+            "close_entity": "Close in the evening as soon as on",
+            "close_entity_from": "Close by entity not before",
+            "night_time": "Night position from",
+            "night_entity": "Night position as soon as on",
             "time_source": "Earliest and latest times from",
             "calendar_open_title": "Calendar: title for opening",
             "calendar_close_title": "Calendar: title for closing"
@@ -652,6 +684,10 @@
             "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}",
             "up_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor (e.g. the next alarm of the phone app). Kept between the earliest and the latest time; without a usable value the latest time applies.\n↳ {inh_up_time_entity}",
             "down_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor. Kept between the earliest and the latest time; without a usable value the earliest time applies.\n↳ {inh_down_time_entity}",
+            "close_entity": "E.g. a light in the room: when it turns on, the cover closes now (not in the first hour after opening). This counts as the evening drive.\n↳ {inh_close_entity}",
+            "close_entity_from": "Before this time the entity does not close. Empty = any time of the day.\n↳ {inh_close_entity_from}",
+            "night_time": "From this time on the cover goes to the night position at night (page Positions).\n↳ {inh_night_time}",
+            "night_entity": "E.g. a sleep mode: while it is on, the night position applies at night.\n↳ {inh_night_entity}",
             "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.\n↳ {inh_time_source}",
             "calendar_open_title": "Case does not matter, e.g. \"open\".\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Case does not matter, e.g. \"close\".\n↳ {inh_calendar_close_title}"
@@ -703,6 +739,10 @@
             "pos_wind": "Wind position",
             "pos_rain": "Rain position",
             "pos_rain_window": "Water protection position",
+            "pos_night": "Night position (2nd stage)",
+            "pos_advent": "Advent position",
+            "pos_emergency": "Emergency position",
+            "pos_awning": "Awning extended",
             "tolerance": "Tolerance"
           },
           "data_description": {
@@ -720,6 +760,10 @@
             "pos_wind": "Venetian blinds and awnings: usually 100 (up).\n↳ {inh_pos_wind}",
             "pos_rain": "Awnings: usually 100 (retracted).\n↳ {inh_pos_rain}",
             "pos_rain_window": "Rain with an open window. With the lock-out protection at most the ventilation position.\n↳ {inh_pos_rain_window}",
+            "pos_night": "In the evening the cover first goes to the closed position, later (night position from, or the entity) to this position. Empty = off.\n↳ {inh_pos_night}",
+            "pos_advent": "With Advent the cover closes in the evening only down to here instead of waiting. Empty = wait as before.\n↳ {inh_pos_advent}",
+            "pos_emergency": "Position in an emergency (page Special functions). Default 100 % = escape route free. Awnings retract.\n↳ {inh_pos_emergency}",
+            "pos_awning": "Awnings only: how far it extends for shading.\n↳ {inh_pos_awning}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}"
           }
         },
@@ -767,7 +811,8 @@
             "override_reset_time": "End time",
             "override_return": "Drive to the target afterwards",
             "manual_counts_open": "Opening by hand counts as morning drive",
-            "manual_counts_close": "Closing by hand counts as evening drive"
+            "manual_counts_close": "Closing by hand counts as evening drive",
+            "manual_known": "Manual drive to a known position keeps the automatic"
           },
           "data_description": {
             "override_blocks": "These drives wait until the override ends.\n↳ {inh_override_blocks}",
@@ -776,7 +821,8 @@
             "override_reset_time": "Used with \"at a fixed time\".\n↳ {inh_override_reset_time}",
             "override_return": "When the override ends the cover drives to its current target.\n↳ {inh_override_return}",
             "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.\n↳ {inh_manual_counts_open}",
-            "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}"
+            "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}",
+            "manual_known": "When a manual drive ends at open, closed, shading, sleep or night, there is no manual override.\n↳ {inh_manual_known}"
           }
         },
         "light": {
@@ -809,6 +855,7 @@
           "data": {
             "window_value_open": "State text \"open\"",
             "window_value_tilted": "State text \"tilted\"",
+            "window_preset": "Preset",
             "ventilate_enabled": "Ventilate",
             "ventilate_only_up": "Ventilation only drives up",
             "window_open_delay": "Delay when opening",
@@ -820,6 +867,7 @@
           "data_description": {
             "window_value_open": "For a window sensor with three states.\n↳ {inh_window_value_open}",
             "window_value_tilted": "For a window sensor with three states.\n↳ {inh_window_value_tilted}",
+            "window_preset": "Sets matching fields of this page: patio door (opens fully, does not go down while the door is open), vent window (ventilation position, no lock-out), protection only (no drive, only not down). Fields you set yourself win.\n↳ {inh_window_preset}",
             "ventilate_enabled": "Drive to the ventilation position when the window is tilted or open.\n↳ {inh_ventilate_enabled}",
             "ventilate_only_up": "Opening the window never lowers the cover.\n↳ {inh_ventilate_only_up}",
             "window_open_delay": "Seconds the contact must stay open (against fluttering).\n↳ {inh_window_open_delay}",
@@ -1064,6 +1112,7 @@
             "advent_start_date": "Own start (DD.MM.)",
             "advent_end": "Advent mode until",
             "advent_end_date": "Own end (DD.MM.)",
+            "summer_no_close": "Do not close in summer",
             "holiday_shift": "Holiday: shift the times up to",
             "wiggle_value": "Wiggle by",
             "wiggle_wait": "Wiggle wait"
@@ -1076,6 +1125,7 @@
             "advent_start_date": "Only with \"Advent mode from\" = Own day, e.g. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
             "advent_end_date": "Only with \"Advent mode until\" = Own day, e.g. 15.1. May be in the new year.\n↳ {inh_advent_end_date}",
+            "summer_no_close": "In summer (period below) the evening drive and privacy do not close. Sleep, self defense and protections still close.\n↳ {inh_summer_no_close}",
             "holiday_shift": "With the switch Holiday on, the morning and the evening drive shift every day by a random number of minutes, different for every cover and the same after a restart. 0: no shift.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}"
@@ -1195,6 +1245,10 @@
             "down_tomorrow_workday": "Evening by tomorrow's day type",
             "up_time_entity": "Morning time from entity",
             "down_time_entity": "Evening time from entity",
+            "close_entity": "Close in the evening as soon as on",
+            "close_entity_from": "Close by entity not before",
+            "night_time": "Night position from",
+            "night_entity": "Night position as soon as on",
             "time_source": "Earliest and latest times from",
             "calendar_open_title": "Calendar: title for opening",
             "calendar_close_title": "Calendar: title for closing"
@@ -1219,6 +1273,10 @@
             "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}",
             "up_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor (e.g. the next alarm of the phone app). Kept between the earliest and the latest time; without a usable value the latest time applies.\n↳ {inh_up_time_entity}",
             "down_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor. Kept between the earliest and the latest time; without a usable value the earliest time applies.\n↳ {inh_down_time_entity}",
+            "close_entity": "E.g. a light in the room: when it turns on, the cover closes now (not in the first hour after opening). This counts as the evening drive.\n↳ {inh_close_entity}",
+            "close_entity_from": "Before this time the entity does not close. Empty = any time of the day.\n↳ {inh_close_entity_from}",
+            "night_time": "From this time on the cover goes to the night position at night (page Positions).\n↳ {inh_night_time}",
+            "night_entity": "E.g. a sleep mode: while it is on, the night position applies at night.\n↳ {inh_night_entity}",
             "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.\n↳ {inh_time_source}",
             "calendar_open_title": "Case does not matter, e.g. \"open\".\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Case does not matter, e.g. \"close\".\n↳ {inh_calendar_close_title}"
@@ -1240,6 +1298,11 @@
             "pos_wind": "Wind position",
             "pos_rain": "Rain position",
             "pos_rain_window": "Water protection position",
+            "pos_night": "Night position (2nd stage)",
+            "pos_advent": "Advent position",
+            "pos_emergency": "Emergency position",
+            "pos_awning": "Awning extended",
+            "cover_type": "Type",
             "tolerance": "Tolerance",
             "invert": "Invert direction",
             "position_entity": "Position from another entity"
@@ -1259,6 +1322,11 @@
             "pos_wind": "Venetian blinds and awnings: usually 100 (up).\n↳ {inh_pos_wind}",
             "pos_rain": "Awnings: usually 100 (retracted).\n↳ {inh_pos_rain}",
             "pos_rain_window": "Rain with an open window. With the lock-out protection at most the ventilation position.\n↳ {inh_pos_rain_window}",
+            "pos_night": "In the evening the cover first goes to the closed position, later (night position from, or the entity) to this position. Empty = off.\n↳ {inh_pos_night}",
+            "pos_advent": "With Advent the cover closes in the evening only down to here instead of waiting. Empty = wait as before.\n↳ {inh_pos_advent}",
+            "pos_emergency": "Position in an emergency (page Special functions). Default 100 % = escape route free. Awnings retract.\n↳ {inh_pos_emergency}",
+            "pos_awning": "Awnings only: how far it extends for shading.\n↳ {inh_pos_awning}",
+            "cover_type": "Shutter or awning. An awning extends for shading and retracts otherwise, at night, in wind, rain and frost. It is in no group.\n↳ {inh_cover_type}",
             "tolerance": "A cover within this distance of a position counts as being there.\n↳ {inh_tolerance}",
             "invert": "For covers that report 0 % as open.\n↳ {inh_invert}",
             "position_entity": "Sensor or number with the position, if the cover itself does not report it.\n↳ {inh_position_entity}"
@@ -1345,7 +1413,8 @@
             "override_reset_time": "End time",
             "override_return": "Drive to the target afterwards",
             "manual_counts_open": "Opening by hand counts as morning drive",
-            "manual_counts_close": "Closing by hand counts as evening drive"
+            "manual_counts_close": "Closing by hand counts as evening drive",
+            "manual_known": "Manual drive to a known position keeps the automatic"
           },
           "data_description": {
             "override_blocks": "These drives wait until the override ends.\n↳ {inh_override_blocks}",
@@ -1354,7 +1423,8 @@
             "override_reset_time": "Used with \"at a fixed time\".\n↳ {inh_override_reset_time}",
             "override_return": "When the override ends the cover drives to its current target.\n↳ {inh_override_return}",
             "manual_counts_open": "Opened by hand between the earliest opening and the scheduled time: no further morning drive that day.\n↳ {inh_manual_counts_open}",
-            "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}"
+            "manual_counts_close": "Closed by hand between the earliest closing and the scheduled time: no further evening drive that day.\n↳ {inh_manual_counts_close}",
+            "manual_known": "When a manual drive ends at open, closed, shading, sleep or night, there is no manual override.\n↳ {inh_manual_known}"
           }
         },
         "window": {
@@ -1364,6 +1434,7 @@
             "window_state_sensor": "Window sensor with three states",
             "window_value_open": "State text \"open\"",
             "window_value_tilted": "State text \"tilted\"",
+            "window_preset": "Preset",
             "ventilate_enabled": "Ventilate",
             "ventilate_only_up": "Ventilation only drives up",
             "window_open_delay": "Delay when opening",
@@ -1378,6 +1449,7 @@
             "window_state_sensor": "Sensor with the states closed / tilted / open (texts below).\n↳ {inh_window_state_sensor}",
             "window_value_open": "For a window sensor with three states.\n↳ {inh_window_value_open}",
             "window_value_tilted": "For a window sensor with three states.\n↳ {inh_window_value_tilted}",
+            "window_preset": "Sets matching fields of this page: patio door (opens fully, does not go down while the door is open), vent window (ventilation position, no lock-out), protection only (no drive, only not down). Fields you set yourself win.\n↳ {inh_window_preset}",
             "ventilate_enabled": "Drive to the ventilation position when the window is tilted or open.\n↳ {inh_ventilate_enabled}",
             "ventilate_only_up": "Opening the window never lowers the cover.\n↳ {inh_ventilate_only_up}",
             "window_open_delay": "Seconds the contact must stay open (against fluttering).\n↳ {inh_window_open_delay}",
@@ -1619,6 +1691,7 @@
             "trigger_value2": "Second trigger value",
             "trigger_position2": "Second trigger position",
             "trigger_return": "Go back after the trigger",
+            "summer_no_close": "Do not close in summer",
             "holiday_shift": "Holiday: shift the times up to",
             "wiggle_value": "Wiggle by",
             "wiggle_wait": "Wiggle wait",
@@ -1643,6 +1716,7 @@
             "trigger_value2": "Optional second state with its own position.\n↳ {inh_trigger_value2}",
             "trigger_position2": "↳ {inh_trigger_position2}",
             "trigger_return": "When the trigger state ends, the cover goes to its target.\n↳ {inh_trigger_return}",
+            "summer_no_close": "In summer (period below) the evening drive and privacy do not close. Sleep, self defense and protections still close.\n↳ {inh_summer_no_close}",
             "holiday_shift": "With the switch Holiday on, the morning and the evening drive shift every day by a random number of minutes, different for every cover and the same after a restart. 0: no shift.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Percent for the function check (button Wiggle).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Seconds before the cover goes back.\n↳ {inh_wiggle_wait}",
@@ -1803,7 +1877,8 @@
         "nautical": "Nautical twilight",
         "astronomical": "Astronomical twilight",
         "horizon": "Own sun elevation",
-        "inherit": "Inherit"
+        "inherit": "Inherit",
+        "golden": "Golden hour (sun 6°)"
       }
     },
     "twilight_down": {
@@ -1813,7 +1888,8 @@
         "nautical": "Nautical twilight",
         "astronomical": "Astronomical twilight",
         "horizon": "Own sun elevation",
-        "inherit": "Inherit"
+        "inherit": "Inherit",
+        "golden": "Golden hour (sun 6°)"
       }
     },
     "override_blocks": {
@@ -1856,6 +1932,10 @@
         "down_tomorrow_workday": "Evening by tomorrow's day type",
         "up_time_entity": "Morning time from entity",
         "down_time_entity": "Evening time from entity",
+        "close_entity": "Close in the evening as soon as on",
+        "close_entity_from": "Close by entity not before",
+        "night_time": "Night position from",
+        "night_entity": "Night position as soon as on",
         "time_source": "Earliest and latest times from",
         "calendar_open_title": "Calendar: title for opening",
         "calendar_close_title": "Calendar: title for closing",
@@ -1907,6 +1987,11 @@
         "pos_wind": "Wind position",
         "pos_rain": "Rain position",
         "pos_rain_window": "Water protection position",
+        "pos_night": "Night position (2nd stage)",
+        "pos_advent": "Advent position",
+        "pos_emergency": "Emergency position",
+        "pos_awning": "Awning extended",
+        "cover_type": "Type",
         "tolerance": "Tolerance",
         "invert": "Invert direction",
         "position_entity": "Position from another entity",
@@ -1915,6 +2000,7 @@
         "window_state_sensor": "Window sensor with three states",
         "window_value_open": "State text \"open\"",
         "window_value_tilted": "State text \"tilted\"",
+        "window_preset": "Preset",
         "ventilate_enabled": "Ventilate",
         "ventilate_only_up": "Ventilation only drives up",
         "window_open_delay": "Delay when opening",
@@ -2020,6 +2106,11 @@
         "trigger_value2": "Second trigger value",
         "trigger_position2": "Second trigger position",
         "trigger_return": "Go back after the trigger",
+        "summer_no_close": "Do not close in summer",
+        "summer_start": "Summer from (DD.MM.)",
+        "summer_end": "Summer until (DD.MM.)",
+        "emergency_entities": "Emergency input",
+        "emergency_latch": "Emergency stays until reset",
         "holiday_shift": "Holiday: shift the times up to",
         "wiggle_value": "Wiggle by",
         "wiggle_wait": "Wiggle wait",
@@ -2051,13 +2142,15 @@
         "quiet_start_entity": "Quiet hours from (entity)",
         "quiet_end_entity": "Quiet hours until (entity)",
         "quiet_window": "Ventilate in the quiet hours",
+        "command_gap": "Minimum gap between commands",
         "override_blocks": "Blocked during the override",
         "override_reset": "The override ends",
         "override_minutes": "Duration",
         "override_reset_time": "End time",
         "override_return": "Drive to the target afterwards",
         "manual_counts_open": "Opening by hand counts as morning drive",
-        "manual_counts_close": "Closing by hand counts as evening drive"
+        "manual_counts_close": "Closing by hand counts as evening drive",
+        "manual_known": "Manual drive to a known position keeps the automatic"
       }
     },
     "light_logic": {
@@ -2269,6 +2362,22 @@
         "panel_open": "Open the large overview in the sidebar",
         "panel_hint": "Tip: the overview in the sidebar has more room. Turn it on under *Drive behaviour* → *Overview in the sidebar*."
       }
+    },
+    "window_preset": {
+      "options": {
+        "custom": "Custom",
+        "terrace_door": "Patio door",
+        "vent_window": "Vent window",
+        "protection_only": "Protection only",
+        "inherit": "Inherit"
+      }
+    },
+    "cover_type": {
+      "options": {
+        "shutter": "Shutter",
+        "awning": "Awning",
+        "inherit": "Inherit"
+      }
     }
   },
   "entity": {
@@ -2382,6 +2491,9 @@
       },
       "stuck": {
         "name": "Stuck"
+      },
+      "emergency": {
+        "name": "Emergency"
       }
     },
     "sensor": {
@@ -2418,7 +2530,12 @@
           "glare": "Glare protection",
           "lock": "Lock",
           "temp_high": "Above temperature limit",
-          "temp_low": "Below temperature limit"
+          "temp_low": "Below temperature limit",
+          "emergency": "Emergency",
+          "night": "Night position",
+          "advent": "Advent",
+          "awning_out": "Awning out",
+          "awning_in": "Awning in"
         }
       },
       "target": {
@@ -2493,7 +2610,8 @@
           "condition": "Extra condition",
           "quiet": "Quiet hours",
           "guest": "Guest",
-          "locked": "Lock"
+          "locked": "Lock",
+          "summer": "Summer"
         }
       },
       "sun_azimuth": {
@@ -2533,6 +2651,9 @@
       },
       "sun_left": {
         "name": "Sun has left the window"
+      },
+      "global_clear_emergency": {
+        "name": "Reset emergency"
       }
     },
     "select": {
@@ -2617,6 +2738,14 @@
       },
       "pos_shading": {
         "name": "Shading position"
+      }
+    },
+    "cover": {
+      "group_all": {
+        "name": "All covers"
+      },
+      "group_profile": {
+        "name": "{name}"
       }
     }
   },
@@ -2801,6 +2930,12 @@
     },
     "logbook_stuck": {
       "message": "is stuck: should be at {position} %, is at {current} %"
+    },
+    "logbook_manual_known": {
+      "message": "moved by hand to the known position {position} %, automatic stays on"
+    },
+    "logbook_group_lockout": {
+      "message": "group command to {position} % not done: door open (lock-out protection)"
     }
   },
   "issues": {
@@ -2903,6 +3038,10 @@
     "check_temp_limits_order": {
       "title": "{name}: temperature limits",
       "description": "Close below {below} °C is not below close above {above} °C (page Weather protection)."
+    },
+    "contact_unavailable": {
+      "title": "{name}: window contact reports nothing",
+      "description": "The contact {entities} is not available. Meanwhile the window does not count as closed, and with lock-out protection the cover does not go down. Check the battery and the connection. The notice disappears as soon as the contact reports a state again."
     }
   }
 }

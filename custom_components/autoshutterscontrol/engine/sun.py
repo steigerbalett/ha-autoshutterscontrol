@@ -23,10 +23,14 @@ from astral.sun import (
 from .settings import (
     TWILIGHT_ASTRONOMICAL,
     TWILIGHT_CIVIL,
+    TWILIGHT_GOLDEN,
     TWILIGHT_HORIZON,
     TWILIGHT_NAUTICAL,
     TWILIGHT_REAL,
 )
+
+# Golden hour: the sun below 6 degrees (morning: its end, evening: its start)
+GOLDEN_ELEVATION = 6.0
 
 _DEPRESSION = {
     TWILIGHT_CIVIL: 6.0,
@@ -58,9 +62,13 @@ class SunCalculator:
         try:
             if twilight == TWILIGHT_REAL:
                 return sunrise(self._observer, day, tzinfo=tz)
-            if twilight == TWILIGHT_HORIZON:
+            if twilight in (TWILIGHT_HORIZON, TWILIGHT_GOLDEN):
                 return time_at_elevation(
-                    self._observer, horizon, day, SunDirection.RISING, tzinfo=tz
+                    self._observer,
+                    GOLDEN_ELEVATION if twilight == TWILIGHT_GOLDEN else horizon,
+                    day,
+                    SunDirection.RISING,
+                    tzinfo=tz,
                 )
             return dawn(self._observer, day, depression=_DEPRESSION[twilight], tzinfo=tz)
         except ValueError:
@@ -72,9 +80,13 @@ class SunCalculator:
         try:
             if twilight == TWILIGHT_REAL:
                 return sunset(self._observer, day, tzinfo=tz)
-            if twilight == TWILIGHT_HORIZON:
+            if twilight in (TWILIGHT_HORIZON, TWILIGHT_GOLDEN):
                 return time_at_elevation(
-                    self._observer, horizon, day, SunDirection.SETTING, tzinfo=tz
+                    self._observer,
+                    GOLDEN_ELEVATION if twilight == TWILIGHT_GOLDEN else horizon,
+                    day,
+                    SunDirection.SETTING,
+                    tzinfo=tz,
                 )
             return dusk(self._observer, day, depression=_DEPRESSION[twilight], tzinfo=tz)
         except ValueError:

@@ -177,6 +177,26 @@ neighbour's house. Then AutoShuttersControl knows where the horizon of this wind
 Switch on **Holiday** on the central device. The morning and evening drives then shift every day by up to
 30 random minutes, differently for each cover.
 
+### School holidays: open later during the holidays
+
+Two ways, depending on what you already have:
+
+1. **Workday sensor in a profile**: add a template binary sensor that is off during the holidays, e.g. from a
+   holiday calendar: `{{ is_state('binary_sensor.workday_sensor', 'on') and is_state('calendar.school_holidays', 'off') }}`.
+   Add a profile "Children's rooms" and enter it there on the page *Sensors* as *Workday sensor (today)*. Then
+   these covers use the times of days off during the holidays, all others do not.
+2. **Alternative profile with a calendar**: add a profile "Holidays" with later earliest and latest opening.
+   On the cover, *Name and profile*: *Alternative profile* = "Holidays", *Entity for the alternative profile* =
+   the calendar with the holidays (e.g. `calendar.school_holidays`, it is on while an event runs). For fixed
+   holidays the period *from*/*to* works as well.
+
+### Smoke detector: everything up in an emergency
+
+1. *Configure* → *Special functions*: *Emergency input* = your smoke detectors (binary sensors).
+2. When one turns on, all covers open (*Emergency position*, default 100 %) and awnings retract, even with
+   automatic off or pause.
+3. Afterwards press **Reset emergency** on the central device. Only then the covers drive normally again.
+
 ## 10. Moving from FHEM
 
 Your settings from ASC in FHEM can be taken over. The names in FHEM and in Home Assistant may differ, because
@@ -224,6 +244,14 @@ window, and below that all linked sensors with their current value. A ❗ marks 
 The Home Assistant dialog is narrow. The page in the sidebar has more room: *Configure* → *Drive behaviour* →
 switch on **Overview in the sidebar** and save. Then the sidebar has the item *AutoShuttersControl* with a
 large table that refreshes every 10 seconds.
+
+The same page has the tab **Edit covers**. It lists all covers in a table. You can add, duplicate and remove
+covers and change several at once: tick them, *Edit selected*, change only the fields that should apply to all,
+and save.
+
+For dashboards there is the card **AutoShuttersControl**: *Edit dashboard* → *Add card* → *Custom*. It shows
+every cover with position, target and reason, the next drives and buttons. Reload the page once after
+installing so that the card appears in the list.
 
 ## 12. When something does not work
 

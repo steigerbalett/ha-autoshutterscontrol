@@ -32,6 +32,7 @@ async def async_setup_entry(
             SunnyBinarySensor(manager),
             GlobalHotBinarySensor(manager),
             WinterBinarySensor(manager),
+            EmergencyBinarySensor(manager),
         ]
     )
     for controller in manager.controllers.values():
@@ -294,4 +295,24 @@ class StuckBinarySensor(AscCoverEntity, BinarySensorEntity):
             "target": stuck.get("target"),
             "position": stuck.get("position"),
             "since": stuck.get("time"),
+        }
+
+
+class EmergencyBinarySensor(AscGlobalEntity, BinarySensorEntity):
+    """Emergency input on (or latched until reset)."""
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+
+    def __init__(self, manager: AscManager) -> None:
+        super().__init__(manager, "emergency")
+
+    @property
+    def is_on(self) -> bool:
+        return self.manager.emergency
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {
+            "input": self.manager.emergency_input_on(),
+            "latched": bool(self.manager.data["global"].get("emergency")),
         }

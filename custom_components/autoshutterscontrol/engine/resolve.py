@@ -8,9 +8,19 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-from .settings import BY_KEY, LEVEL_COVER, LEVEL_GLOBAL, LEVEL_PROFILE, SETTINGS, from_storage
+from .settings import (
+    BY_KEY,
+    LEVEL_COVER,
+    LEVEL_GLOBAL,
+    LEVEL_PROFILE,
+    PRESET_VALUES,
+    SETTINGS,
+    from_storage,
+)
 
 SOURCE_DEFAULT = "default"
+SOURCE_PRESET = "preset"
+_RANK = {LEVEL_COVER: 0, LEVEL_PROFILE: 1, LEVEL_GLOBAL: 2, SOURCE_DEFAULT: 3}
 
 
 class ResolvedConfig(Mapping[str, Any]):
@@ -80,7 +90,23 @@ def resolve(
         else:
             values[setting.key] = setting.default
             sources[setting.key] = SOURCE_DEFAULT
+    _apply_preset(values, sources)
     return ResolvedConfig(values, sources)
+
+
+def _apply_preset(values: dict[str, Any], sources: dict[str, str]) -> None:
+    """A window preset sets its fields, unless they are set on its level or below."""
+    preset = PRESET_VALUES.get(values.get("window_preset") or "")
+    if not preset:
+        return
+    rank = _RANK[sources["window_preset"]]
+    for key, value in preset.items():
+        if _RANK.get(sources[key], 3) <= rank:
+            continue
+        if isinstance(value, str) and value.startswith("="):
+            value = values[value[1:]]
+        values[key] = value
+        sources[key] = SOURCE_PRESET
 
 
 def inherited_value(

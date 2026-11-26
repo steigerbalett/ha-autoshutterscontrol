@@ -50,6 +50,8 @@ const TEXTS = {
     hot_day: "hot day",
     quiet: "quiet hours",
     error: "AutoShuttersControl is not loaded.",
+    tab_overview: "Overview",
+    tab_edit: "Edit covers",
     sw: {
       automatic: "Automatic",
       weekend_times: "Weekend times",
@@ -63,6 +65,7 @@ const TEXTS = {
       advent: "Advent",
       hardware_lock: "Hardware lock",
       simulation: "Simulation",
+      holiday: "Holiday",
     },
     prot: { rain: "rain", wind: "wind", frost: "frost", rain_window: "water" },
   },
@@ -114,6 +117,8 @@ const TEXTS = {
     hot_day: "heißer Tag",
     quiet: "Ruhezeit",
     error: "AutoShuttersControl ist nicht geladen.",
+    tab_overview: "Übersicht",
+    tab_edit: "Rollläden bearbeiten",
     sw: {
       automatic: "Automatik",
       weekend_times: "Wochenendzeiten",
@@ -127,10 +132,20 @@ const TEXTS = {
       advent: "Advent",
       hardware_lock: "Hardware-Sperre",
       simulation: "Simulation",
+      holiday: "Urlaub",
     },
     prot: { rain: "Regen", wind: "Wind", frost: "Frost", rain_window: "Wasser" },
   },
 };
+
+// The editor tab lives in its own file (same version as this one)
+let editorLoaded = null;
+function loadEditor() {
+  if (!editorLoaded) {
+    editorLoaded = import(new URL(`./editor.js${new URL(import.meta.url).search}`, import.meta.url).href);
+  }
+  return editorLoaded;
+}
 
 const esc = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (c) =>
@@ -150,6 +165,7 @@ class AscSummaryPanel extends HTMLElement {
   set hass(hass) {
     const first = !this._hass;
     this._hass = hass;
+    if (this._editor) this._editor.hass = hass;
     if (first) this._load();
   }
 
@@ -163,7 +179,7 @@ class AscSummaryPanel extends HTMLElement {
   }
 
   connectedCallback() {
-    this._timer = window.setInterval(() => this._load(), 10000);
+    this._timer = window.setInterval(() => this._tab !== "edit" && this._load(), 10000);
     if (this._hass) this._load();
   }
 
@@ -196,7 +212,21 @@ class AscSummaryPanel extends HTMLElement {
       this.dispatchEvent(event);
       return;
     }
-    if (ev.target.closest("#refresh")) this._load();
+    const tab = ev.target.closest("[data-tab]");
+    if (tab) {
+      this._tab = tab.dataset.tab;
+      if (this._tab === "edit") {
+        loadEditor().then(() => this._render());
+      } else {
+        this._load();
+      }
+      this._render();
+      return;
+    }
+    if (ev.target.closest("#refresh")) {
+      if (this._tab === "edit" && this._editor) this._editor.reload();
+      else this._load();
+    }
     if (ev.target.closest("#menu")) {
       this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }));
     }
@@ -358,6 +388,8 @@ class AscSummaryPanel extends HTMLElement {
           <p class="updated">${t.updated}: ${this._time(this._data.time)}</p>
         </div>`;
     }
+    const editing = this._tab === "edit";
+    if (editing) body = "";
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; min-height: 100vh; background: var(--primary-background-color);
@@ -391,13 +423,22 @@ class AscSummaryPanel extends HTMLElement {
         .chip { font-size: 12px; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--divider-color);
           color: var(--secondary-text-color); }
         .chip.on { color: var(--primary-text-color); border-color: var(--primary-color); }
+        .tab { opacity: .75; border-bottom: 2px solid transparent; border-radius: 0; }
+        .tab.active { opacity: 1; border-bottom-color: currentColor; }
       </style>
       <header>
         <button id="menu" title="Menu">☰</button>
         <span class="grow">${t.title}</span>
+        <button class="tab ${editing ? "" : "active"}" data-tab="overview">${t.tab_overview}</button>
+        <button class="tab ${editing ? "active" : ""}" data-tab="edit">${t.tab_edit}</button>
         <button id="refresh">${t.refresh}</button>
       </header>
       <main>${body}</main>`;
+    if (editing && customElements.get("asc-editor")) {
+      if (!this._editor) this._editor = document.createElement("asc-editor");
+      this._editor.hass = this._hass;
+      this.shadowRoot.querySelector("main").appendChild(this._editor);
+    }
     this.shadowRoot.querySelectorAll(".scroll").forEach((el, i) => {
       el.scrollLeft = scroll[i] || 0;
     });

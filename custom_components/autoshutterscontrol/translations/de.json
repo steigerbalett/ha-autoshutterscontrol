@@ -88,6 +88,10 @@
           "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
           "up_time_entity": "Morgenzeit aus Entität",
           "down_time_entity": "Abendzeit aus Entität",
+          "close_entity": "Abends schließen, sobald an",
+          "close_entity_from": "Schließen per Entität frühestens ab",
+          "night_time": "Nachtposition ab",
+          "night_entity": "Nachtposition, sobald an",
           "time_source": "Früheste und späteste Zeiten aus",
           "calendar_open_title": "Kalender: Titel für Öffnen",
           "calendar_close_title": "Kalender: Titel für Schließen"
@@ -102,6 +106,10 @@
           "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.",
           "up_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors (z. B. nächster Wecker der Handy-App). Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die späteste Zeit.",
           "down_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors. Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die früheste Zeit.",
+          "close_entity": "Z. B. ein Licht im Raum: geht es an, fährt der Rollladen schon jetzt zu (nicht in der ersten Stunde nach dem Öffnen). Das zählt als Abendfahrt.",
+          "close_entity_from": "Vor dieser Uhrzeit schließt die Entität nicht. Leer = jederzeit am Tag.",
+          "night_time": "Ab dieser Uhrzeit fährt der Rollladen nachts auf die Nachtposition (Seite Positionen).",
+          "night_entity": "Z. B. ein Schlafmodus: Ist er an, gilt nachts die Nachtposition.",
           "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.",
           "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.",
           "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“."
@@ -153,6 +161,10 @@
           "pos_wind": "Position Wind",
           "pos_rain": "Position Regen",
           "pos_rain_window": "Position Wasserschutz",
+          "pos_night": "Nachtposition (2. Stufe)",
+          "pos_advent": "Position im Advent",
+          "pos_emergency": "Notfall-Position",
+          "pos_awning": "Markise ausgefahren",
           "tolerance": "Toleranz"
         },
         "data_description": {
@@ -165,6 +177,10 @@
           "pos_wind": "Jalousien und Markisen: meist 100 (oben).",
           "pos_rain": "Markisen: meist 100 (eingefahren).",
           "pos_rain_window": "Regen bei offenem Fenster. Mit Aussperrschutz höchstens bis zur Lüftungsposition.",
+          "pos_night": "Abends fährt der Rollladen zuerst auf Position geschlossen, später (Nachtposition ab oder Entität) auf diese Position. Leer = aus.",
+          "pos_advent": "Mit Advent schließt der Rollladen abends nur bis hierher, statt zu warten. Leer = warten wie bisher.",
+          "pos_emergency": "Position bei einem Notfall (Seite Sonderfunktionen). Standard 100 % = Fluchtweg frei. Markisen fahren ein.",
+          "pos_awning": "Nur für Markisen: so weit fährt sie bei Beschattung aus.",
           "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht."
         }
       },
@@ -186,7 +202,8 @@
           "quiet_end": "Ruhezeit bis",
           "quiet_start_entity": "Ruhezeit von (Entität)",
           "quiet_end_entity": "Ruhezeit bis (Entität)",
-          "quiet_window": "Lüften in der Ruhezeit"
+          "quiet_window": "Lüften in der Ruhezeit",
+          "command_gap": "Mindestabstand zwischen Fahrbefehlen"
         },
         "data_description": {
           "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.",
@@ -203,7 +220,8 @@
           "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).",
           "quiet_start_entity": "Beginn aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.",
           "quiet_end_entity": "Ende aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.",
-          "quiet_window": "Ein geöffnetes Fenster fährt den Rollladen auch in der Ruhezeit auf die Lüftungsposition."
+          "quiet_window": "Ein geöffnetes Fenster fährt den Rollladen auch in der Ruhezeit auf die Lüftungsposition.",
+          "command_gap": "Alle Befehle an Rollläden gehen mit diesem Abstand nacheinander raus, z. B. 1 s für den Duty-Cycle von Homematic IP. 0 = aus."
         }
       },
       "override": {
@@ -216,7 +234,8 @@
           "override_reset_time": "Uhrzeit",
           "override_return": "Danach den Zielzustand anfahren",
           "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
-          "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+          "manual_counts_close": "Schließen von Hand zählt als Abendfahrt",
+          "manual_known": "Handfahrt auf bekannte Position lässt Automatik an"
         },
         "data_description": {
           "override_blocks": "Diese Fahrten warten, bis die Übersteuerung endet.",
@@ -224,7 +243,8 @@
           "override_reset_time": "Bei „zu einer festen Uhrzeit“.",
           "override_return": "Wenn die Übersteuerung endet, fährt der Rollladen seinen aktuellen Zielzustand an.",
           "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.",
-          "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt."
+          "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.",
+          "manual_known": "Endet eine Handfahrt auf offen, geschlossen, Beschattung, Schlafen oder Nacht, gibt es keine Übersteuerung."
         }
       },
       "reset": {
@@ -487,6 +507,11 @@
           "advent_start_date": "Eigener Beginn (TT.MM.)",
           "advent_end": "Adventsmodus bis",
           "advent_end_date": "Eigenes Ende (TT.MM.)",
+          "summer_no_close": "Im Sommer nicht schließen",
+          "summer_start": "Sommer ab (TT.MM.)",
+          "summer_end": "Sommer bis (TT.MM.)",
+          "emergency_entities": "Notfall-Eingang",
+          "emergency_latch": "Notfall bleibt bis zum Zurücksetzen",
           "holiday_shift": "Urlaub: Zeiten verschieben bis",
           "wiggle_value": "Wackeln um",
           "wiggle_wait": "Wartezeit beim Wackeln"
@@ -498,6 +523,9 @@
           "advent_start": "1. Advent (jedes Jahr neu berechnet) oder ein fester Tag.",
           "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.",
           "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.",
+          "summer_no_close": "Im Sommer (Zeitraum unten) schließen Abendfahrt und Sichtschutz nicht. Schlafen, Selbstschutz und Schutzfunktionen schließen weiter.",
+          "emergency_entities": "Z. B. Rauchmelder. Ist einer an, fahren alle Rollläden auf die Notfall-Position, vor allem anderen, auch vor dem Aussperrschutz und bei Automatik aus.",
+          "emergency_latch": "An: Der Notfall endet erst mit der Taste Notfall zurücksetzen. Aus: Er endet, wenn der Eingang aus ist.",
           "holiday_shift": "Mit dem Schalter Urlaub verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten, für jeden Rollladen anders und nach einem Neustart gleich. 0: keine Verschiebung.",
           "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).",
           "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt."
@@ -628,6 +656,10 @@
             "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
             "up_time_entity": "Morgenzeit aus Entität",
             "down_time_entity": "Abendzeit aus Entität",
+            "close_entity": "Abends schließen, sobald an",
+            "close_entity_from": "Schließen per Entität frühestens ab",
+            "night_time": "Nachtposition ab",
+            "night_entity": "Nachtposition, sobald an",
             "time_source": "Früheste und späteste Zeiten aus",
             "calendar_open_title": "Kalender: Titel für Öffnen",
             "calendar_close_title": "Kalender: Titel für Schließen"
@@ -652,6 +684,10 @@
             "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}",
             "up_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors (z. B. nächster Wecker der Handy-App). Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die späteste Zeit.\n↳ {inh_up_time_entity}",
             "down_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors. Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die früheste Zeit.\n↳ {inh_down_time_entity}",
+            "close_entity": "Z. B. ein Licht im Raum: geht es an, fährt der Rollladen schon jetzt zu (nicht in der ersten Stunde nach dem Öffnen). Das zählt als Abendfahrt.\n↳ {inh_close_entity}",
+            "close_entity_from": "Vor dieser Uhrzeit schließt die Entität nicht. Leer = jederzeit am Tag.\n↳ {inh_close_entity_from}",
+            "night_time": "Ab dieser Uhrzeit fährt der Rollladen nachts auf die Nachtposition (Seite Positionen).\n↳ {inh_night_time}",
+            "night_entity": "Z. B. ein Schlafmodus: Ist er an, gilt nachts die Nachtposition.\n↳ {inh_night_entity}",
             "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.\n↳ {inh_time_source}",
             "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“.\n↳ {inh_calendar_close_title}"
@@ -703,6 +739,10 @@
             "pos_wind": "Position Wind",
             "pos_rain": "Position Regen",
             "pos_rain_window": "Position Wasserschutz",
+            "pos_night": "Nachtposition (2. Stufe)",
+            "pos_advent": "Position im Advent",
+            "pos_emergency": "Notfall-Position",
+            "pos_awning": "Markise ausgefahren",
             "tolerance": "Toleranz"
           },
           "data_description": {
@@ -720,6 +760,10 @@
             "pos_wind": "Jalousien und Markisen: meist 100 (oben).\n↳ {inh_pos_wind}",
             "pos_rain": "Markisen: meist 100 (eingefahren).\n↳ {inh_pos_rain}",
             "pos_rain_window": "Regen bei offenem Fenster. Mit Aussperrschutz höchstens bis zur Lüftungsposition.\n↳ {inh_pos_rain_window}",
+            "pos_night": "Abends fährt der Rollladen zuerst auf Position geschlossen, später (Nachtposition ab oder Entität) auf diese Position. Leer = aus.\n↳ {inh_pos_night}",
+            "pos_advent": "Mit Advent schließt der Rollladen abends nur bis hierher, statt zu warten. Leer = warten wie bisher.\n↳ {inh_pos_advent}",
+            "pos_emergency": "Position bei einem Notfall (Seite Sonderfunktionen). Standard 100 % = Fluchtweg frei. Markisen fahren ein.\n↳ {inh_pos_emergency}",
+            "pos_awning": "Nur für Markisen: so weit fährt sie bei Beschattung aus.\n↳ {inh_pos_awning}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}"
           }
         },
@@ -767,7 +811,8 @@
             "override_reset_time": "Uhrzeit",
             "override_return": "Danach den Zielzustand anfahren",
             "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
-            "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+            "manual_counts_close": "Schließen von Hand zählt als Abendfahrt",
+            "manual_known": "Handfahrt auf bekannte Position lässt Automatik an"
           },
           "data_description": {
             "override_blocks": "Diese Fahrten warten, bis die Übersteuerung endet.\n↳ {inh_override_blocks}",
@@ -776,7 +821,8 @@
             "override_reset_time": "Bei „zu einer festen Uhrzeit“.\n↳ {inh_override_reset_time}",
             "override_return": "Wenn die Übersteuerung endet, fährt der Rollladen seinen aktuellen Zielzustand an.\n↳ {inh_override_return}",
             "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.\n↳ {inh_manual_counts_open}",
-            "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}"
+            "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}",
+            "manual_known": "Endet eine Handfahrt auf offen, geschlossen, Beschattung, Schlafen oder Nacht, gibt es keine Übersteuerung.\n↳ {inh_manual_known}"
           }
         },
         "light": {
@@ -809,6 +855,7 @@
           "data": {
             "window_value_open": "Zustandstext „offen“",
             "window_value_tilted": "Zustandstext „gekippt“",
+            "window_preset": "Vorlage",
             "ventilate_enabled": "Lüften",
             "ventilate_only_up": "Lüften fährt nur nach oben",
             "window_open_delay": "Verzögerung beim Öffnen",
@@ -820,6 +867,7 @@
           "data_description": {
             "window_value_open": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_open}",
             "window_value_tilted": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_tilted}",
+            "window_preset": "Setzt passende Felder dieser Seite: Terrassentür (öffnet ganz, fährt bei offener Tür nicht herunter), Lüftungsfenster (Lüftungsposition, kein Aussperrschutz), Nur Schutz (keine Fahrt, nur nicht herunter). Selbst eingetragene Felder gehen vor.\n↳ {inh_window_preset}",
             "ventilate_enabled": "Bei gekipptem oder offenem Fenster in die Lüftungsposition fahren.\n↳ {inh_ventilate_enabled}",
             "ventilate_only_up": "Das Öffnen des Fensters senkt den Rollladen nie ab.\n↳ {inh_ventilate_only_up}",
             "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).\n↳ {inh_window_open_delay}",
@@ -1064,6 +1112,7 @@
             "advent_start_date": "Eigener Beginn (TT.MM.)",
             "advent_end": "Adventsmodus bis",
             "advent_end_date": "Eigenes Ende (TT.MM.)",
+            "summer_no_close": "Im Sommer nicht schließen",
             "holiday_shift": "Urlaub: Zeiten verschieben bis",
             "wiggle_value": "Wackeln um",
             "wiggle_wait": "Wartezeit beim Wackeln"
@@ -1076,6 +1125,7 @@
             "advent_start_date": "Nur bei „Adventsmodus ab“ = Eigener Tag, z. B. 1.12.\n↳ {inh_advent_start_date}",
             "advent_end": "↳ {inh_advent_end}",
             "advent_end_date": "Nur bei „Adventsmodus bis“ = Eigener Tag, z. B. 15.1. Darf im neuen Jahr liegen.\n↳ {inh_advent_end_date}",
+            "summer_no_close": "Im Sommer (Zeitraum unten) schließen Abendfahrt und Sichtschutz nicht. Schlafen, Selbstschutz und Schutzfunktionen schließen weiter.\n↳ {inh_summer_no_close}",
             "holiday_shift": "Mit dem Schalter Urlaub verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten, für jeden Rollladen anders und nach einem Neustart gleich. 0: keine Verschiebung.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}"
@@ -1195,6 +1245,10 @@
             "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
             "up_time_entity": "Morgenzeit aus Entität",
             "down_time_entity": "Abendzeit aus Entität",
+            "close_entity": "Abends schließen, sobald an",
+            "close_entity_from": "Schließen per Entität frühestens ab",
+            "night_time": "Nachtposition ab",
+            "night_entity": "Nachtposition, sobald an",
             "time_source": "Früheste und späteste Zeiten aus",
             "calendar_open_title": "Kalender: Titel für Öffnen",
             "calendar_close_title": "Kalender: Titel für Schließen"
@@ -1219,6 +1273,10 @@
             "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}",
             "up_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors (z. B. nächster Wecker der Handy-App). Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die späteste Zeit.\n↳ {inh_up_time_entity}",
             "down_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors. Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die früheste Zeit.\n↳ {inh_down_time_entity}",
+            "close_entity": "Z. B. ein Licht im Raum: geht es an, fährt der Rollladen schon jetzt zu (nicht in der ersten Stunde nach dem Öffnen). Das zählt als Abendfahrt.\n↳ {inh_close_entity}",
+            "close_entity_from": "Vor dieser Uhrzeit schließt die Entität nicht. Leer = jederzeit am Tag.\n↳ {inh_close_entity_from}",
+            "night_time": "Ab dieser Uhrzeit fährt der Rollladen nachts auf die Nachtposition (Seite Positionen).\n↳ {inh_night_time}",
+            "night_entity": "Z. B. ein Schlafmodus: Ist er an, gilt nachts die Nachtposition.\n↳ {inh_night_entity}",
             "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.\n↳ {inh_time_source}",
             "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“.\n↳ {inh_calendar_close_title}"
@@ -1240,6 +1298,11 @@
             "pos_wind": "Position Wind",
             "pos_rain": "Position Regen",
             "pos_rain_window": "Position Wasserschutz",
+            "pos_night": "Nachtposition (2. Stufe)",
+            "pos_advent": "Position im Advent",
+            "pos_emergency": "Notfall-Position",
+            "pos_awning": "Markise ausgefahren",
+            "cover_type": "Art",
             "tolerance": "Toleranz",
             "invert": "Richtung umkehren",
             "position_entity": "Position aus anderer Entität"
@@ -1259,6 +1322,11 @@
             "pos_wind": "Jalousien und Markisen: meist 100 (oben).\n↳ {inh_pos_wind}",
             "pos_rain": "Markisen: meist 100 (eingefahren).\n↳ {inh_pos_rain}",
             "pos_rain_window": "Regen bei offenem Fenster. Mit Aussperrschutz höchstens bis zur Lüftungsposition.\n↳ {inh_pos_rain_window}",
+            "pos_night": "Abends fährt der Rollladen zuerst auf Position geschlossen, später (Nachtposition ab oder Entität) auf diese Position. Leer = aus.\n↳ {inh_pos_night}",
+            "pos_advent": "Mit Advent schließt der Rollladen abends nur bis hierher, statt zu warten. Leer = warten wie bisher.\n↳ {inh_pos_advent}",
+            "pos_emergency": "Position bei einem Notfall (Seite Sonderfunktionen). Standard 100 % = Fluchtweg frei. Markisen fahren ein.\n↳ {inh_pos_emergency}",
+            "pos_awning": "Nur für Markisen: so weit fährt sie bei Beschattung aus.\n↳ {inh_pos_awning}",
+            "cover_type": "Rollladen oder Markise. Eine Markise fährt bei Beschattung aus und sonst, nachts, bei Wind, Regen und Frost ein. Sie gehört zu keiner Gruppe.\n↳ {inh_cover_type}",
             "tolerance": "Liegt der Rollladen so nah an einer Position, gilt sie als erreicht.\n↳ {inh_tolerance}",
             "invert": "Für Rollläden, die 0 % als offen melden.\n↳ {inh_invert}",
             "position_entity": "Sensor oder Zahl mit der Position, falls der Rollladen sie nicht selbst meldet.\n↳ {inh_position_entity}"
@@ -1345,7 +1413,8 @@
             "override_reset_time": "Uhrzeit",
             "override_return": "Danach den Zielzustand anfahren",
             "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
-            "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+            "manual_counts_close": "Schließen von Hand zählt als Abendfahrt",
+            "manual_known": "Handfahrt auf bekannte Position lässt Automatik an"
           },
           "data_description": {
             "override_blocks": "Diese Fahrten warten, bis die Übersteuerung endet.\n↳ {inh_override_blocks}",
@@ -1354,7 +1423,8 @@
             "override_reset_time": "Bei „zu einer festen Uhrzeit“.\n↳ {inh_override_reset_time}",
             "override_return": "Wenn die Übersteuerung endet, fährt der Rollladen seinen aktuellen Zielzustand an.\n↳ {inh_override_return}",
             "manual_counts_open": "Von Hand zwischen frühester Öffnung und geplanter Zeit geöffnet: an diesem Tag keine weitere Morgenfahrt.\n↳ {inh_manual_counts_open}",
-            "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}"
+            "manual_counts_close": "Von Hand zwischen frühestem Schließen und geplanter Zeit geschlossen: an diesem Tag keine weitere Abendfahrt.\n↳ {inh_manual_counts_close}",
+            "manual_known": "Endet eine Handfahrt auf offen, geschlossen, Beschattung, Schlafen oder Nacht, gibt es keine Übersteuerung.\n↳ {inh_manual_known}"
           }
         },
         "window": {
@@ -1364,6 +1434,7 @@
             "window_state_sensor": "Fenstersensor mit drei Zuständen",
             "window_value_open": "Zustandstext „offen“",
             "window_value_tilted": "Zustandstext „gekippt“",
+            "window_preset": "Vorlage",
             "ventilate_enabled": "Lüften",
             "ventilate_only_up": "Lüften fährt nur nach oben",
             "window_open_delay": "Verzögerung beim Öffnen",
@@ -1378,6 +1449,7 @@
             "window_state_sensor": "Sensor mit den Zuständen geschlossen / gekippt / offen (Texte unten).\n↳ {inh_window_state_sensor}",
             "window_value_open": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_open}",
             "window_value_tilted": "Für einen Fenstersensor mit drei Zuständen.\n↳ {inh_window_value_tilted}",
+            "window_preset": "Setzt passende Felder dieser Seite: Terrassentür (öffnet ganz, fährt bei offener Tür nicht herunter), Lüftungsfenster (Lüftungsposition, kein Aussperrschutz), Nur Schutz (keine Fahrt, nur nicht herunter). Selbst eingetragene Felder gehen vor.\n↳ {inh_window_preset}",
             "ventilate_enabled": "Bei gekipptem oder offenem Fenster in die Lüftungsposition fahren.\n↳ {inh_ventilate_enabled}",
             "ventilate_only_up": "Das Öffnen des Fensters senkt den Rollladen nie ab.\n↳ {inh_ventilate_only_up}",
             "window_open_delay": "Sekunden, die der Kontakt offen bleiben muss (gegen Flattern).\n↳ {inh_window_open_delay}",
@@ -1619,6 +1691,7 @@
             "trigger_value2": "Zweiter Trigger-Wert",
             "trigger_position2": "Zweite Trigger-Position",
             "trigger_return": "Nach dem Trigger zurückfahren",
+            "summer_no_close": "Im Sommer nicht schließen",
             "holiday_shift": "Urlaub: Zeiten verschieben bis",
             "wiggle_value": "Wackeln um",
             "wiggle_wait": "Wartezeit beim Wackeln",
@@ -1643,6 +1716,7 @@
             "trigger_value2": "Optional ein zweiter Zustand mit eigener Position.\n↳ {inh_trigger_value2}",
             "trigger_position2": "↳ {inh_trigger_position2}",
             "trigger_return": "Endet der Trigger-Zustand, fährt der Rollladen in den Zielzustand.\n↳ {inh_trigger_return}",
+            "summer_no_close": "Im Sommer (Zeitraum unten) schließen Abendfahrt und Sichtschutz nicht. Schlafen, Selbstschutz und Schutzfunktionen schließen weiter.\n↳ {inh_summer_no_close}",
             "holiday_shift": "Mit dem Schalter Urlaub verschieben sich Morgen- und Abendfahrt jeden Tag um zufällige Minuten, für jeden Rollladen anders und nach einem Neustart gleich. 0: keine Verschiebung.\n↳ {inh_holiday_shift}",
             "wiggle_value": "Prozent für die Funktionsprüfung (Taste Wackeln).\n↳ {inh_wiggle_value}",
             "wiggle_wait": "Sekunden, bevor der Rollladen zurückfährt.\n↳ {inh_wiggle_wait}",
@@ -1803,7 +1877,8 @@
         "nautical": "Nautische Dämmerung",
         "astronomical": "Astronomische Dämmerung",
         "horizon": "Eigene Sonnenhöhe",
-        "inherit": "Erben"
+        "inherit": "Erben",
+        "golden": "Golden Hour (Sonne 6°)"
       }
     },
     "twilight_down": {
@@ -1813,7 +1888,8 @@
         "nautical": "Nautische Dämmerung",
         "astronomical": "Astronomische Dämmerung",
         "horizon": "Eigene Sonnenhöhe",
-        "inherit": "Erben"
+        "inherit": "Erben",
+        "golden": "Golden Hour (Sonne 6°)"
       }
     },
     "override_blocks": {
@@ -1856,6 +1932,10 @@
         "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
         "up_time_entity": "Morgenzeit aus Entität",
         "down_time_entity": "Abendzeit aus Entität",
+        "close_entity": "Abends schließen, sobald an",
+        "close_entity_from": "Schließen per Entität frühestens ab",
+        "night_time": "Nachtposition ab",
+        "night_entity": "Nachtposition, sobald an",
         "time_source": "Früheste und späteste Zeiten aus",
         "calendar_open_title": "Kalender: Titel für Öffnen",
         "calendar_close_title": "Kalender: Titel für Schließen",
@@ -1907,6 +1987,11 @@
         "pos_wind": "Position Wind",
         "pos_rain": "Position Regen",
         "pos_rain_window": "Position Wasserschutz",
+        "pos_night": "Nachtposition (2. Stufe)",
+        "pos_advent": "Position im Advent",
+        "pos_emergency": "Notfall-Position",
+        "pos_awning": "Markise ausgefahren",
+        "cover_type": "Art",
         "tolerance": "Toleranz",
         "invert": "Richtung umkehren",
         "position_entity": "Position aus anderer Entität",
@@ -1915,6 +2000,7 @@
         "window_state_sensor": "Fenstersensor mit drei Zuständen",
         "window_value_open": "Zustandstext „offen“",
         "window_value_tilted": "Zustandstext „gekippt“",
+        "window_preset": "Vorlage",
         "ventilate_enabled": "Lüften",
         "ventilate_only_up": "Lüften fährt nur nach oben",
         "window_open_delay": "Verzögerung beim Öffnen",
@@ -2020,6 +2106,11 @@
         "trigger_value2": "Zweiter Trigger-Wert",
         "trigger_position2": "Zweite Trigger-Position",
         "trigger_return": "Nach dem Trigger zurückfahren",
+        "summer_no_close": "Im Sommer nicht schließen",
+        "summer_start": "Sommer ab (TT.MM.)",
+        "summer_end": "Sommer bis (TT.MM.)",
+        "emergency_entities": "Notfall-Eingang",
+        "emergency_latch": "Notfall bleibt bis zum Zurücksetzen",
         "holiday_shift": "Urlaub: Zeiten verschieben bis",
         "wiggle_value": "Wackeln um",
         "wiggle_wait": "Wartezeit beim Wackeln",
@@ -2051,13 +2142,15 @@
         "quiet_start_entity": "Ruhezeit von (Entität)",
         "quiet_end_entity": "Ruhezeit bis (Entität)",
         "quiet_window": "Lüften in der Ruhezeit",
+        "command_gap": "Mindestabstand zwischen Fahrbefehlen",
         "override_blocks": "Gesperrt während der Übersteuerung",
         "override_reset": "Die Übersteuerung endet",
         "override_minutes": "Dauer",
         "override_reset_time": "Uhrzeit",
         "override_return": "Danach den Zielzustand anfahren",
         "manual_counts_open": "Öffnen von Hand zählt als Morgenfahrt",
-        "manual_counts_close": "Schließen von Hand zählt als Abendfahrt"
+        "manual_counts_close": "Schließen von Hand zählt als Abendfahrt",
+        "manual_known": "Handfahrt auf bekannte Position lässt Automatik an"
       }
     },
     "light_logic": {
@@ -2269,6 +2362,22 @@
         "panel_open": "Große Übersicht in der Seitenleiste öffnen",
         "panel_hint": "Tipp: Mehr Platz hat die Übersicht in der Seitenleiste. Einschalten unter *Fahrverhalten* → *Übersicht in der Seitenleiste*."
       }
+    },
+    "window_preset": {
+      "options": {
+        "custom": "Eigene",
+        "terrace_door": "Terrassentür",
+        "vent_window": "Lüftungsfenster",
+        "protection_only": "Nur Schutz",
+        "inherit": "Erben"
+      }
+    },
+    "cover_type": {
+      "options": {
+        "shutter": "Rollladen",
+        "awning": "Markise",
+        "inherit": "Erben"
+      }
     }
   },
   "entity": {
@@ -2382,6 +2491,9 @@
       },
       "stuck": {
         "name": "Hängt"
+      },
+      "emergency": {
+        "name": "Notfall"
       }
     },
     "sensor": {
@@ -2418,7 +2530,12 @@
           "glare": "Blendschutz",
           "lock": "Sperre",
           "temp_high": "Über Temperaturgrenze",
-          "temp_low": "Unter Temperaturgrenze"
+          "temp_low": "Unter Temperaturgrenze",
+          "emergency": "Notfall",
+          "night": "Nachtposition",
+          "advent": "Advent",
+          "awning_out": "Markise aus",
+          "awning_in": "Markise ein"
         }
       },
       "target": {
@@ -2493,7 +2610,8 @@
           "condition": "Zusatzbedingung",
           "quiet": "Ruhezeit",
           "guest": "Gast",
-          "locked": "Sperre"
+          "locked": "Sperre",
+          "summer": "Sommer"
         }
       },
       "sun_azimuth": {
@@ -2533,6 +2651,9 @@
       },
       "sun_left": {
         "name": "Sonne hat das Fenster verlassen"
+      },
+      "global_clear_emergency": {
+        "name": "Notfall zurücksetzen"
       }
     },
     "select": {
@@ -2617,6 +2738,14 @@
       },
       "pos_shading": {
         "name": "Position Beschattung"
+      }
+    },
+    "cover": {
+      "group_all": {
+        "name": "Alle Rollläden"
+      },
+      "group_profile": {
+        "name": "{name}"
       }
     }
   },
@@ -2801,6 +2930,12 @@
     },
     "logbook_stuck": {
       "message": "hängt: sollte auf {position} % stehen, steht auf {current} %"
+    },
+    "logbook_manual_known": {
+      "message": "von Hand auf die bekannte Position {position} % gefahren, Automatik bleibt an"
+    },
+    "logbook_group_lockout": {
+      "message": "Gruppenbefehl auf {position} % nicht ausgeführt: Tür offen (Aussperrschutz)"
     }
   },
   "issues": {
@@ -2903,6 +3038,10 @@
     "check_temp_limits_order": {
       "title": "{name}: Temperaturgrenzen",
       "description": "Schließen unter {below} °C liegt nicht unter Schließen über {above} °C (Seite Wetterschutz)."
+    },
+    "contact_unavailable": {
+      "title": "{name}: Fensterkontakt meldet nichts",
+      "description": "Der Kontakt {entities} ist nicht erreichbar. Solange zählt das Fenster nicht als geschlossen, und mit Aussperrschutz fährt der Rollladen nicht herunter. Prüfe Batterie und Verbindung. Der Hinweis verschwindet, sobald der Kontakt wieder einen Zustand meldet."
     }
   }
 }

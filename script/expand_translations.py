@@ -1,7 +1,7 @@
 """Fill the repeated parts of the translation files.
 
 Every field text is written once per language, in ``options.step.<section>``
-(fields that exist only on the cover level in
+(fields that do not exist on the global level in
 ``config_subentries.cover.step.<section>``). This script copies the texts into
 the profile and cover steps, the reset lists and the config entities, and
 writes ``strings.json`` from ``translations/en.json``.
@@ -39,7 +39,8 @@ def expand(lang: dict) -> dict:
 
     labels: dict[str, str] = {}
     descriptions: dict[str, str] = {}
-    cover_only = {s.key for s in settings.SETTINGS if s.levels == settings.COVER_ONLY}
+    # Not on the global level: texts live in the cover steps
+    cover_only = {s.key for s in settings.SETTINGS if settings.LEVEL_GLOBAL not in s.levels}
     for section in settings.SECTIONS:
         source = options_steps.get(section, {})
         labels.update(source.get("data", {}))

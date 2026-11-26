@@ -13,14 +13,16 @@ from homeassistant.helpers import (
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
+from .editor import async_setup_editor
 from .entity import cover_device
-from .panel import async_remove_panel, async_setup_websocket, async_update_panel
+from .panel import async_remove_panel, async_setup_card, async_setup_websocket, async_update_panel
 from .runtime import AscManager
 from .services import async_setup_services
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.COVER,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
@@ -37,6 +39,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the services once."""
     async_setup_services(hass)
     async_setup_websocket(hass)
+    async_setup_editor(hass)
     return True
 
 
@@ -62,6 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: AscConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _remove_empty_cover_devices(hass, manager)
+    await async_setup_card(hass)
     await async_update_panel(hass, manager.global_cfg["panel"])
     return True
 
