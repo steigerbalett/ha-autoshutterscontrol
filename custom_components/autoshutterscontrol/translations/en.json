@@ -80,18 +80,22 @@
           "time_down_early_free": "Earliest closing on days off",
           "time_down_late_free": "Latest closing on days off",
           "down_tomorrow_workday": "Evening by tomorrow's day type",
+          "up_time_entity": "Morning time from entity",
+          "down_time_entity": "Evening time from entity",
           "time_source": "Earliest and latest times from",
           "calendar_open_title": "Calendar: title for opening",
           "calendar_close_title": "Calendar: title for closing"
         },
         "data_description": {
-          "up_mode": "Time: at the earliest opening time. Sun: at the sun event.",
-          "down_mode": "Time: at the earliest closing time. Sun: at the sun event.",
+          "up_mode": "Time: at the earliest opening time. Sun: at the sun event. Entity: at the time of the entity.",
+          "down_mode": "Time: at the earliest closing time. Sun: at the sun event. Entity: at the time of the entity.",
           "horizon_up": "Only used with \"Own sun elevation\".",
           "horizon_down": "Only used with \"Own sun elevation\".",
           "offset_up": "Minutes added to the sun event; negative is earlier.",
           "offset_down": "Minutes added to the sun event; negative is earlier.",
           "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.",
+          "up_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor (e.g. the next alarm of the phone app). Kept between the earliest and the latest time; without a usable value the latest time applies.",
+          "down_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor. Kept between the earliest and the latest time; without a usable value the earliest time applies.",
           "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.",
           "calendar_open_title": "Case does not matter, e.g. \"open\".",
           "calendar_close_title": "Case does not matter, e.g. \"close\"."
@@ -166,7 +170,13 @@
           "open_never_down": "Opening never drives down",
           "close_never_up": "Closing never drives up",
           "recovery": "Catch up missed drives",
-          "logbook": "Logbook entries"
+          "logbook": "Logbook entries",
+          "drive_stagger": "Staggered drives",
+          "quiet_start": "Quiet hours from",
+          "quiet_end": "Quiet hours until",
+          "quiet_start_entity": "Quiet hours from (entity)",
+          "quiet_end_entity": "Quiet hours until (entity)",
+          "quiet_window": "Ventilate in the quiet hours"
         },
         "data_description": {
           "delay_fixed": "Seconds to wait before a scheduled drive.",
@@ -175,7 +185,13 @@
           "open_never_down": "No morning drive if the cover is already further open.",
           "close_never_up": "No evening drive if the cover is already further closed.",
           "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.",
-          "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason."
+          "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.",
+          "drive_stagger": "Seconds between the start of covers that are due at the same time (radio, power). Not for force, rain, wind and water protection. 0 = all at once.",
+          "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.",
+          "quiet_end": "End of the quiet hours (may be after midnight).",
+          "quiet_start_entity": "Start from an input_datetime or time entity; wins over the fixed time.",
+          "quiet_end_entity": "End from an input_datetime or time entity; wins over the fixed time.",
+          "quiet_window": "An opened window still moves the cover to the ventilation position in the quiet hours."
         }
       },
       "override": {
@@ -325,6 +341,10 @@
           "shading_time_start": "Shading from",
           "shading_time_end": "Shading until",
           "heat_protection_temp": "Heat protection from",
+          "hot_day": "Hot day: shading position in the morning",
+          "hot_day_temp": "Hot day from (forecast maximum)",
+          "hot_day_sunny": "Hot day only with sunny forecast",
+          "window_azimuth": "Window direction",
           "shading_alt_entity": "Entity for the alternative position"
         },
         "data_description": {
@@ -342,6 +362,10 @@
           "shading_only_down": "A cover that is lower than the shading position stays where it is.",
           "shading_time_start": "Empty = the whole day.",
           "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.",
+          "hot_day": "On a hot day the morning drive goes straight to the shading position instead of opening, as long as the sun will still shine on the window today. Nothing happens at night, so the rooms can cool down. Off by default.",
+          "hot_day_temp": "Forecast maximum temperature of today (forecast sensor or weather entity) from which a day counts as hot.",
+          "hot_day_sunny": "The forecast condition of today must be one of the weather conditions for shading (only with a weather entity).",
+          "window_azimuth": "Direction the window faces (0 north, 90 east, 180 south, 270 west), for the automatic slat angle. Empty: middle of the sun direction range.",
           "shading_alt_entity": "While on, the alternative shading position is used."
         }
       },
@@ -357,6 +381,10 @@
           "tilt_shading": "Slats when shading",
           "tilt_privacy": "Slats for privacy",
           "tilt_shading_steps": "Shading steps by sun elevation",
+          "tilt_auto": "Slat angle from the sun",
+          "tilt_slat_ratio": "Slat distance / slat width",
+          "tilt_horizontal": "Slats horizontal at",
+          "tilt_vertical": "Slats vertical at",
           "tilt_mode": "Order",
           "tilt_delay": "Wait between position and slats",
           "tilt_timeout": "Time limit for standstill",
@@ -366,6 +394,10 @@
         "data_description": {
           "tilt_sleep": "Empty = slats when closed.",
           "tilt_shading_steps": "Up to 4 steps sun elevation:slats, e.g. 20:70, 35:50, 50:30. Below the first step the slats when shading are used.",
+          "tilt_auto": "While shading the slats are set from the sun position and the slat geometry so that the direct sun just stays out and as much light as possible comes in. Replaces the steps by sun elevation.",
+          "tilt_slat_ratio": "Distance between two slats divided by the width of one slat (e.g. 72 mm / 80 mm = 0.9).",
+          "tilt_horizontal": "Tilt position at which the slats are horizontal (fully open).",
+          "tilt_vertical": "Tilt position at which the slats are vertical (closed).",
           "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).",
           "tilt_timeout": "After this time the slats are set even if no standstill was reported."
         }
@@ -545,13 +577,15 @@
             "time_down_early_free": "Earliest closing on days off",
             "time_down_late_free": "Latest closing on days off",
             "down_tomorrow_workday": "Evening by tomorrow's day type",
+            "up_time_entity": "Morning time from entity",
+            "down_time_entity": "Evening time from entity",
             "time_source": "Earliest and latest times from",
             "calendar_open_title": "Calendar: title for opening",
             "calendar_close_title": "Calendar: title for closing"
           },
           "data_description": {
-            "up_mode": "Time: at the earliest opening time. Sun: at the sun event.\n↳ {inh_up_mode}",
-            "down_mode": "Time: at the earliest closing time. Sun: at the sun event.\n↳ {inh_down_mode}",
+            "up_mode": "Time: at the earliest opening time. Sun: at the sun event. Entity: at the time of the entity.\n↳ {inh_up_mode}",
+            "down_mode": "Time: at the earliest closing time. Sun: at the sun event. Entity: at the time of the entity.\n↳ {inh_down_mode}",
             "twilight_up": "↳ {inh_twilight_up}",
             "twilight_down": "↳ {inh_twilight_down}",
             "horizon_up": "Only used with \"Own sun elevation\".\n↳ {inh_horizon_up}",
@@ -567,6 +601,8 @@
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
             "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}",
+            "up_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor (e.g. the next alarm of the phone app). Kept between the earliest and the latest time; without a usable value the latest time applies.\n↳ {inh_up_time_entity}",
+            "down_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor. Kept between the earliest and the latest time; without a usable value the earliest time applies.\n↳ {inh_down_time_entity}",
             "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.\n↳ {inh_time_source}",
             "calendar_open_title": "Case does not matter, e.g. \"open\".\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Case does not matter, e.g. \"close\".\n↳ {inh_calendar_close_title}"
@@ -646,7 +682,12 @@
             "open_never_down": "Opening never drives down",
             "close_never_up": "Closing never drives up",
             "recovery": "Catch up missed drives",
-            "logbook": "Logbook entries"
+            "logbook": "Logbook entries",
+            "quiet_start": "Quiet hours from",
+            "quiet_end": "Quiet hours until",
+            "quiet_start_entity": "Quiet hours from (entity)",
+            "quiet_end_entity": "Quiet hours until (entity)",
+            "quiet_window": "Ventilate in the quiet hours"
           },
           "data_description": {
             "delay_fixed": "Seconds to wait before a scheduled drive.\n↳ {inh_delay_fixed}",
@@ -655,7 +696,12 @@
             "open_never_down": "No morning drive if the cover is already further open.\n↳ {inh_open_never_down}",
             "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}",
             "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.\n↳ {inh_recovery}",
-            "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}"
+            "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}",
+            "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.\n↳ {inh_quiet_start}",
+            "quiet_end": "End of the quiet hours (may be after midnight).\n↳ {inh_quiet_end}",
+            "quiet_start_entity": "Start from an input_datetime or time entity; wins over the fixed time.\n↳ {inh_quiet_start_entity}",
+            "quiet_end_entity": "End from an input_datetime or time entity; wins over the fixed time.\n↳ {inh_quiet_end_entity}",
+            "quiet_window": "An opened window still moves the cover to the ventilation position in the quiet hours.\n↳ {inh_quiet_window}"
           }
         },
         "override": {
@@ -807,6 +853,10 @@
             "shading_time_start": "Shading from",
             "shading_time_end": "Shading until",
             "heat_protection_temp": "Heat protection from",
+            "hot_day": "Hot day: shading position in the morning",
+            "hot_day_temp": "Hot day from (forecast maximum)",
+            "hot_day_sunny": "Hot day only with sunny forecast",
+            "window_azimuth": "Window direction",
             "shading_alt_entity": "Entity for the alternative position"
           },
           "data_description": {
@@ -835,6 +885,10 @@
             "shading_time_start": "Empty = the whole day.\n↳ {inh_shading_time_start}",
             "shading_time_end": "↳ {inh_shading_time_end}",
             "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.\n↳ {inh_heat_protection_temp}",
+            "hot_day": "On a hot day the morning drive goes straight to the shading position instead of opening, as long as the sun will still shine on the window today. Nothing happens at night, so the rooms can cool down. Off by default.\n↳ {inh_hot_day}",
+            "hot_day_temp": "Forecast maximum temperature of today (forecast sensor or weather entity) from which a day counts as hot.\n↳ {inh_hot_day_temp}",
+            "hot_day_sunny": "The forecast condition of today must be one of the weather conditions for shading (only with a weather entity).\n↳ {inh_hot_day_sunny}",
+            "window_azimuth": "Direction the window faces (0 north, 90 east, 180 south, 270 west), for the automatic slat angle. Empty: middle of the sun direction range.\n↳ {inh_window_azimuth}",
             "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -850,6 +904,10 @@
             "tilt_shading": "Slats when shading",
             "tilt_privacy": "Slats for privacy",
             "tilt_shading_steps": "Shading steps by sun elevation",
+            "tilt_auto": "Slat angle from the sun",
+            "tilt_slat_ratio": "Slat distance / slat width",
+            "tilt_horizontal": "Slats horizontal at",
+            "tilt_vertical": "Slats vertical at",
             "tilt_mode": "Order",
             "tilt_delay": "Wait between position and slats",
             "tilt_timeout": "Time limit for standstill",
@@ -865,6 +923,10 @@
             "tilt_shading": "↳ {inh_tilt_shading}",
             "tilt_privacy": "↳ {inh_tilt_privacy}",
             "tilt_shading_steps": "Up to 4 steps sun elevation:slats, e.g. 20:70, 35:50, 50:30. Below the first step the slats when shading are used.\n↳ {inh_tilt_shading_steps}",
+            "tilt_auto": "While shading the slats are set from the sun position and the slat geometry so that the direct sun just stays out and as much light as possible comes in. Replaces the steps by sun elevation.\n↳ {inh_tilt_auto}",
+            "tilt_slat_ratio": "Distance between two slats divided by the width of one slat (e.g. 72 mm / 80 mm = 0.9).\n↳ {inh_tilt_slat_ratio}",
+            "tilt_horizontal": "Tilt position at which the slats are horizontal (fully open).\n↳ {inh_tilt_horizontal}",
+            "tilt_vertical": "Tilt position at which the slats are vertical (closed).\n↳ {inh_tilt_vertical}",
             "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).\n↳ {inh_tilt_mode}",
             "tilt_delay": "↳ {inh_tilt_delay}",
             "tilt_timeout": "After this time the slats are set even if no standstill was reported.\n↳ {inh_tilt_timeout}",
@@ -1049,13 +1111,15 @@
             "time_down_early_free": "Earliest closing on days off",
             "time_down_late_free": "Latest closing on days off",
             "down_tomorrow_workday": "Evening by tomorrow's day type",
+            "up_time_entity": "Morning time from entity",
+            "down_time_entity": "Evening time from entity",
             "time_source": "Earliest and latest times from",
             "calendar_open_title": "Calendar: title for opening",
             "calendar_close_title": "Calendar: title for closing"
           },
           "data_description": {
-            "up_mode": "Time: at the earliest opening time. Sun: at the sun event.\n↳ {inh_up_mode}",
-            "down_mode": "Time: at the earliest closing time. Sun: at the sun event.\n↳ {inh_down_mode}",
+            "up_mode": "Time: at the earliest opening time. Sun: at the sun event. Entity: at the time of the entity.\n↳ {inh_up_mode}",
+            "down_mode": "Time: at the earliest closing time. Sun: at the sun event. Entity: at the time of the entity.\n↳ {inh_down_mode}",
             "twilight_up": "↳ {inh_twilight_up}",
             "twilight_down": "↳ {inh_twilight_down}",
             "horizon_up": "Only used with \"Own sun elevation\".\n↳ {inh_horizon_up}",
@@ -1071,6 +1135,8 @@
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
             "down_tomorrow_workday": "The evening uses the times of tomorrow, e.g. the day-off times on Friday evening.\n↳ {inh_down_tomorrow_workday}",
+            "up_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor (e.g. the next alarm of the phone app). Kept between the earliest and the latest time; without a usable value the latest time applies.\n↳ {inh_up_time_entity}",
+            "down_time_entity": "Mode Entity: time of an input_datetime, a time entity or a timestamp sensor. Kept between the earliest and the latest time; without a usable value the earliest time applies.\n↳ {inh_down_time_entity}",
             "time_source": "Calendar: an event whose title contains the text below sets the earliest (start) and latest (end) time of that day. Days without an event use the times.\n↳ {inh_time_source}",
             "calendar_open_title": "Case does not matter, e.g. \"open\".\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Case does not matter, e.g. \"close\".\n↳ {inh_calendar_close_title}"
@@ -1161,7 +1227,12 @@
             "open_never_down": "Opening never drives down",
             "close_never_up": "Closing never drives up",
             "recovery": "Catch up missed drives",
-            "logbook": "Logbook entries"
+            "logbook": "Logbook entries",
+            "quiet_start": "Quiet hours from",
+            "quiet_end": "Quiet hours until",
+            "quiet_start_entity": "Quiet hours from (entity)",
+            "quiet_end_entity": "Quiet hours until (entity)",
+            "quiet_window": "Ventilate in the quiet hours"
           },
           "data_description": {
             "delay_fixed": "Seconds to wait before a scheduled drive.\n↳ {inh_delay_fixed}",
@@ -1170,7 +1241,12 @@
             "open_never_down": "No morning drive if the cover is already further open.\n↳ {inh_open_never_down}",
             "close_never_up": "No evening drive if the cover is already further closed.\n↳ {inh_close_never_up}",
             "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.\n↳ {inh_recovery}",
-            "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}"
+            "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.\n↳ {inh_logbook}",
+            "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.\n↳ {inh_quiet_start}",
+            "quiet_end": "End of the quiet hours (may be after midnight).\n↳ {inh_quiet_end}",
+            "quiet_start_entity": "Start from an input_datetime or time entity; wins over the fixed time.\n↳ {inh_quiet_start_entity}",
+            "quiet_end_entity": "End from an input_datetime or time entity; wins over the fixed time.\n↳ {inh_quiet_end_entity}",
+            "quiet_window": "An opened window still moves the cover to the ventilation position in the quiet hours.\n↳ {inh_quiet_window}"
           }
         },
         "override": {
@@ -1312,6 +1388,10 @@
             "tilt_shading": "Slats when shading",
             "tilt_privacy": "Slats for privacy",
             "tilt_shading_steps": "Shading steps by sun elevation",
+            "tilt_auto": "Slat angle from the sun",
+            "tilt_slat_ratio": "Slat distance / slat width",
+            "tilt_horizontal": "Slats horizontal at",
+            "tilt_vertical": "Slats vertical at",
             "tilt_mode": "Order",
             "tilt_delay": "Wait between position and slats",
             "tilt_timeout": "Time limit for standstill",
@@ -1328,6 +1408,10 @@
             "tilt_shading": "↳ {inh_tilt_shading}",
             "tilt_privacy": "↳ {inh_tilt_privacy}",
             "tilt_shading_steps": "Up to 4 steps sun elevation:slats, e.g. 20:70, 35:50, 50:30. Below the first step the slats when shading are used.\n↳ {inh_tilt_shading_steps}",
+            "tilt_auto": "While shading the slats are set from the sun position and the slat geometry so that the direct sun just stays out and as much light as possible comes in. Replaces the steps by sun elevation.\n↳ {inh_tilt_auto}",
+            "tilt_slat_ratio": "Distance between two slats divided by the width of one slat (e.g. 72 mm / 80 mm = 0.9).\n↳ {inh_tilt_slat_ratio}",
+            "tilt_horizontal": "Tilt position at which the slats are horizontal (fully open).\n↳ {inh_tilt_horizontal}",
+            "tilt_vertical": "Tilt position at which the slats are vertical (closed).\n↳ {inh_tilt_vertical}",
             "tilt_mode": "Position then slats after the wait, when the cover stands still, or slats first (e.g. Z-Wave).\n↳ {inh_tilt_mode}",
             "tilt_delay": "↳ {inh_tilt_delay}",
             "tilt_timeout": "After this time the slats are set even if no standstill was reported.\n↳ {inh_tilt_timeout}",
@@ -1366,6 +1450,10 @@
             "shading_time_start": "Shading from",
             "shading_time_end": "Shading until",
             "heat_protection_temp": "Heat protection from",
+            "hot_day": "Hot day: shading position in the morning",
+            "hot_day_temp": "Hot day from (forecast maximum)",
+            "hot_day_sunny": "Hot day only with sunny forecast",
+            "window_azimuth": "Window direction",
             "shading_alt_entity": "Entity for the alternative position"
           },
           "data_description": {
@@ -1394,6 +1482,10 @@
             "shading_time_start": "Empty = the whole day.\n↳ {inh_shading_time_start}",
             "shading_time_end": "↳ {inh_shading_time_end}",
             "heat_protection_temp": "Shades from this outdoor temperature on, also without sun, and keeps it until the evening. Empty = off.\n↳ {inh_heat_protection_temp}",
+            "hot_day": "On a hot day the morning drive goes straight to the shading position instead of opening, as long as the sun will still shine on the window today. Nothing happens at night, so the rooms can cool down. Off by default.\n↳ {inh_hot_day}",
+            "hot_day_temp": "Forecast maximum temperature of today (forecast sensor or weather entity) from which a day counts as hot.\n↳ {inh_hot_day_temp}",
+            "hot_day_sunny": "The forecast condition of today must be one of the weather conditions for shading (only with a weather entity).\n↳ {inh_hot_day_sunny}",
+            "window_azimuth": "Direction the window faces (0 north, 90 east, 180 south, 270 west), for the automatic slat angle. Empty: middle of the sun direction range.\n↳ {inh_window_azimuth}",
             "shading_alt_entity": "While on, the alternative shading position is used.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -1541,7 +1633,8 @@
         "brightness": "Brightness",
         "elevation": "Sun elevation",
         "brightness_elevation": "Brightness and sun elevation",
-        "residents": "Residents (when awake)"
+        "residents": "Residents (when awake)",
+        "entity": "Entity"
       }
     },
     "down_mode": {
@@ -1552,7 +1645,8 @@
         "brightness": "Brightness",
         "elevation": "Sun elevation",
         "brightness_elevation": "Brightness and sun elevation",
-        "residents": "Residents (when asleep)"
+        "residents": "Residents (when asleep)",
+        "entity": "Entity"
       }
     },
     "twilight_up": {
@@ -1613,6 +1707,8 @@
         "time_down_early_free": "Earliest closing on days off",
         "time_down_late_free": "Latest closing on days off",
         "down_tomorrow_workday": "Evening by tomorrow's day type",
+        "up_time_entity": "Morning time from entity",
+        "down_time_entity": "Evening time from entity",
         "time_source": "Earliest and latest times from",
         "calendar_open_title": "Calendar: title for opening",
         "calendar_close_title": "Calendar: title for closing",
@@ -1701,6 +1797,10 @@
         "shading_time_start": "Shading from",
         "shading_time_end": "Shading until",
         "heat_protection_temp": "Heat protection from",
+        "hot_day": "Hot day: shading position in the morning",
+        "hot_day_temp": "Hot day from (forecast maximum)",
+        "hot_day_sunny": "Hot day only with sunny forecast",
+        "window_azimuth": "Window direction",
         "shading_alt_entity": "Entity for the alternative position",
         "tilt_entity": "Own slat entity",
         "tilt_open": "Slats when open",
@@ -1711,6 +1811,10 @@
         "tilt_shading": "Slats when shading",
         "tilt_privacy": "Slats for privacy",
         "tilt_shading_steps": "Shading steps by sun elevation",
+        "tilt_auto": "Slat angle from the sun",
+        "tilt_slat_ratio": "Slat distance / slat width",
+        "tilt_horizontal": "Slats horizontal at",
+        "tilt_vertical": "Slats vertical at",
         "tilt_mode": "Order",
         "tilt_delay": "Wait between position and slats",
         "tilt_timeout": "Time limit for standstill",
@@ -1774,6 +1878,12 @@
         "close_never_up": "Closing never drives up",
         "recovery": "Catch up missed drives",
         "logbook": "Logbook entries",
+        "drive_stagger": "Staggered drives",
+        "quiet_start": "Quiet hours from",
+        "quiet_end": "Quiet hours until",
+        "quiet_start_entity": "Quiet hours from (entity)",
+        "quiet_end_entity": "Quiet hours until (entity)",
+        "quiet_window": "Ventilate in the quiet hours",
         "override_blocks": "Blocked during the override",
         "override_reset": "The override ends",
         "override_minutes": "Duration",
@@ -1993,6 +2103,12 @@
       },
       "global_hardware_lock": {
         "name": "Hardware lock"
+      },
+      "global_simulation": {
+        "name": "Simulation"
+      },
+      "cover_simulation": {
+        "name": "Simulation"
       }
     },
     "binary_sensor": {
@@ -2028,6 +2144,18 @@
       },
       "force": {
         "name": "Force function"
+      },
+      "sunny": {
+        "name": "Sunny"
+      },
+      "hot": {
+        "name": "Hot day (forecast)"
+      },
+      "hot_day": {
+        "name": "Hot day"
+      },
+      "quiet": {
+        "name": "Quiet hours"
       }
     },
     "sensor": {
@@ -2059,7 +2187,8 @@
           "rain_window": "Water protection",
           "wind": "Wind protection",
           "trigger": "External trigger",
-          "wiggle": "Wiggle"
+          "wiggle": "Wiggle",
+          "hot_day": "Hot day"
         }
       },
       "target": {
@@ -2131,8 +2260,21 @@
           "frost": "Frost protection",
           "party": "Party",
           "advent": "Advent",
-          "condition": "Extra condition"
+          "condition": "Extra condition",
+          "quiet": "Quiet hours"
         }
+      },
+      "sun_azimuth": {
+        "name": "Sun azimuth"
+      },
+      "sun_elevation": {
+        "name": "Sun elevation"
+      },
+      "forecast_max_temperature": {
+        "name": "Forecast maximum today"
+      },
+      "simulated_drive": {
+        "name": "Simulated drive"
       }
     },
     "button": {
@@ -2168,7 +2310,8 @@
           "brightness": "Brightness",
           "elevation": "Sun elevation",
           "brightness_elevation": "Brightness and sun elevation",
-          "residents": "Residents (when awake)"
+          "residents": "Residents (when awake)",
+          "entity": "Entity"
         }
       },
       "down_mode": {
@@ -2180,7 +2323,8 @@
           "brightness": "Brightness",
           "elevation": "Sun elevation",
           "brightness_elevation": "Brightness and sun elevation",
-          "residents": "Residents (when asleep)"
+          "residents": "Residents (when asleep)",
+          "entity": "Entity"
         }
       },
       "shading_mode": {
@@ -2382,6 +2526,9 @@
     },
     "logbook_manual": {
       "message": "moved by hand to {position} %"
+    },
+    "logbook_simulated": {
+      "message": "would drive to {position} % ({reason}), simulation"
     }
   },
   "issues": {
@@ -2456,6 +2603,14 @@
     "check_entity_missing": {
       "title": "{name}: entities not found",
       "description": "These entities are set but do not exist: {entities}. The functions using them are inactive."
+    },
+    "check_missing_time_entity": {
+      "title": "{name}: time entity missing",
+      "description": "The morning or evening drive uses the time of an entity, but no entity is set (page Schedule)."
+    },
+    "check_quiet_incomplete": {
+      "title": "{name}: quiet hours incomplete",
+      "description": "Only the start or only the end of the quiet hours is set (page Drive behaviour)."
     }
   }
 }

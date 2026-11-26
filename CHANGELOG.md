@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.7.3
+
+- Simulation: switch at the central device (all covers) and per cover. Everything is decided and logged,
+  nothing is driven; logbook "would drive to …", event `autoshutterscontrol_drive` with `simulation: true`,
+  diagnostic sensor *Simulated drive*.
+- Staggered drives (global): covers due at the same time start the set seconds apart; not for force, rain,
+  wind and water protection. FHEM `ASC_shuttersDriveDelay` is imported.
+- Slat angle from the sun: while shading the slats follow the sun (profile angle and slat distance/width),
+  in steps of 5 %. New settings slat distance/width, tilt horizontal/vertical, window direction.
+- Quiet hours (fixed or from an `input_datetime`/time entity, across midnight): no automatic drives except
+  force and protection; ventilation optional (default on); at the end the cover goes to its target. New
+  block "Quiet hours", binary sensor per cover, repair issue for only start or only end.
+- Hot day (optional, default off): with a hot (and sunny) forecast the morning drive goes straight to the
+  shading position while the sun will still shine on the window today; nothing moves at night so the rooms
+  can cool down. Ends when the sun has passed the window or the normal shading ends. New drive reason
+  "Hot day", binary sensor per cover.
+- Morning/evening time from an entity (mode *Entity*): `input_datetime`, time entity or timestamp sensor
+  (e.g. next alarm of the phone), with offset, kept between earliest and latest time. Repair issue for a
+  missing entity.
+- Diagnostic entities at the central device: sun azimuth, sun elevation, forecast maximum today, sunny,
+  hot day.
+
 ## 0.7.2
 
 - Advent: own period. *Advent mode from* first Sunday of Advent or an own day, *Advent mode until* 6 January,

@@ -1,8 +1,8 @@
-"""Periods of the year given as day and month (e.g. 1.11. to 31.3.)."""
+"""Periods of the year (day and month, e.g. 1.11. to 31.3.) and of the day."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time
 import re
 
 _DAY = re.compile(r"^\s*(\d{1,2})\s*[./-]\s*(\d{1,2})\s*\.?\s*$")
@@ -33,3 +33,12 @@ def in_period(day: date, start: tuple[int, int], end: tuple[int, int]) -> bool:
     if start <= end:
         return start <= today <= end
     return today >= start or today <= end
+
+
+def in_quiet(start: time | None, end: time | None, now: time) -> bool:
+    """True between start and end (end not included); the range may span midnight."""
+    if start is None or end is None or start == end:
+        return False
+    if start < end:
+        return start <= now < end
+    return now >= start or now < end

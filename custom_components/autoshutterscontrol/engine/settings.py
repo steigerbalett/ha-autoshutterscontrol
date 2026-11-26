@@ -21,6 +21,7 @@ LEVEL_PROFILE = "profile"
 LEVEL_COVER = "cover"
 ALL_LEVELS = frozenset({LEVEL_GLOBAL, LEVEL_PROFILE, LEVEL_COVER})
 COVER_ONLY = frozenset({LEVEL_COVER})
+GLOBAL_ONLY = frozenset({LEVEL_GLOBAL})
 
 # Kinds
 BOOL = "bool"
@@ -74,6 +75,7 @@ MODE_BRIGHTNESS = "brightness"
 MODE_ELEVATION = "elevation"
 MODE_BRIGHTNESS_ELEVATION = "brightness_elevation"
 MODE_RESIDENTS = "residents"
+MODE_ENTITY = "entity"
 UP_DOWN_MODES = (
     MODE_TIME,
     MODE_ASTRO,
@@ -81,7 +83,10 @@ UP_DOWN_MODES = (
     MODE_ELEVATION,
     MODE_BRIGHTNESS_ELEVATION,
     MODE_RESIDENTS,
+    MODE_ENTITY,
 )
+# Entities that can give a time (input_datetime, time entity, timestamp sensor)
+TIME_DOMAINS = ("input_datetime", "time", "sensor")
 # Modes where the drive happens when a condition is met (between early and late)
 DYNAMIC_MODES = frozenset(
     {MODE_BRIGHTNESS, MODE_ELEVATION, MODE_BRIGHTNESS_ELEVATION, MODE_RESIDENTS}
@@ -294,6 +299,8 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("time_down_early_free", TIME, time(16, 0), SEC_SCHEDULE, entity="time"),
     Setting("time_down_late_free", TIME, time(22, 0), SEC_SCHEDULE, entity="time"),
     Setting("down_tomorrow_workday", BOOL, False, SEC_SCHEDULE),
+    Setting("up_time_entity", ENTITY, None, SEC_SCHEDULE, domains=TIME_DOMAINS),
+    Setting("down_time_entity", ENTITY, None, SEC_SCHEDULE, domains=TIME_DOMAINS),
     Setting("time_source", SELECT, WINDOWS_TIMES, SEC_SCHEDULE, stage=2, options=WINDOW_SOURCES),
     Setting("calendar_open_title", TEXT, "open", SEC_SCHEDULE, stage=2),
     Setting("calendar_close_title", TEXT, "close", SEC_SCHEDULE, stage=2),
@@ -630,6 +637,20 @@ SETTINGS: tuple[Setting, ...] = (
         step=0.5,
         unit="°C",
     ),
+    Setting("hot_day", BOOL, False, SEC_SHADING, stage=3),
+    Setting(
+        "hot_day_temp",
+        FLOAT,
+        26.0,
+        SEC_SHADING,
+        stage=3,
+        minimum=0,
+        maximum=50,
+        step=0.5,
+        unit="°C",
+    ),
+    Setting("hot_day_sunny", BOOL, True, SEC_SHADING, stage=3),
+    Setting("window_azimuth", INT, None, SEC_SHADING, stage=3, minimum=0, maximum=360, unit="°"),
     Setting(
         "shading_alt_entity",
         ENTITY,
@@ -645,6 +666,10 @@ SETTINGS: tuple[Setting, ...] = (
         for name in ("open", "closed", "sleep", "ventilate", "comfort", "shading", "privacy")
     ),
     Setting("tilt_shading_steps", TEXT, None, SEC_TILT, stage=3),
+    Setting("tilt_auto", BOOL, False, SEC_TILT, stage=3),
+    Setting("tilt_slat_ratio", FLOAT, 0.9, SEC_TILT, stage=3, minimum=0.3, maximum=2.0, step=0.05),
+    Setting("tilt_horizontal", INT, 100, SEC_TILT, stage=3, minimum=0, maximum=100, unit="%"),
+    Setting("tilt_vertical", INT, 0, SEC_TILT, stage=3, minimum=0, maximum=100, unit="%"),
     Setting("tilt_mode", SELECT, TILT_STANDSTILL, SEC_TILT, stage=3, options=TILT_MODES),
     Setting("tilt_delay", INT, 2, SEC_TILT, stage=3, minimum=0, maximum=120, unit="s"),
     Setting("tilt_timeout", INT, 120, SEC_TILT, stage=3, minimum=5, maximum=600, unit="s"),
@@ -848,6 +873,26 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("close_never_up", BOOL, True, SEC_DRIVE),
     Setting("recovery", SELECT, RECOVERY_FAILURE, SEC_DRIVE, stage=5, options=RECOVERY_MODES),
     Setting("logbook", BOOL, True, SEC_DRIVE, stage=5),
+    Setting(
+        "drive_stagger",
+        INT,
+        0,
+        SEC_DRIVE,
+        stage=5,
+        levels=GLOBAL_ONLY,
+        minimum=0,
+        maximum=120,
+        unit="s",
+    ),
+    Setting("quiet_start", TIME, None, SEC_DRIVE, stage=5),
+    Setting("quiet_end", TIME, None, SEC_DRIVE, stage=5),
+    Setting(
+        "quiet_start_entity", ENTITY, None, SEC_DRIVE, stage=5, domains=("input_datetime", "time")
+    ),
+    Setting(
+        "quiet_end_entity", ENTITY, None, SEC_DRIVE, stage=5, domains=("input_datetime", "time")
+    ),
+    Setting("quiet_window", BOOL, True, SEC_DRIVE, stage=5),
     # --- manual override ------------------------------------------------
     Setting(
         "override_blocks",

@@ -1,6 +1,7 @@
 """Morning and evening times of one cover.
 
-Modes: time, sun (astro), and the dynamic modes brightness / sun elevation,
+Modes: time, sun (astro), time of an entity (e.g. the next alarm of a phone,
+clamped to the early and late time), and the dynamic modes brightness / sun elevation,
 where the drive happens as soon as the condition is met between the early and
 the late time; the late time is the deadline. The early/late window comes from
 the configured times or from calendar events.
@@ -13,13 +14,15 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, tzinfo
 from typing import Any
 
-from .settings import DYNAMIC_MODES, MODE_ASTRO
+from .settings import DYNAMIC_MODES, MODE_ASTRO, MODE_ENTITY
 from .sun import SunCalculator
 
 # Returns True if the given day is a workday
 WorkdayFunc = Callable[[date], bool]
 # Returns calendar windows of a day: {"up": (start, end), "down": (start, end)}
 WindowsFunc = Callable[[date], Mapping[str, tuple[time, time]]]
+# Returns the time an entity gives for a direction ("up"/"down") on a day
+EntityTimeFunc = Callable[[str, date], datetime | None]
 
 
 @dataclass(frozen=True)
@@ -87,33 +90,36 @@ def _drive_time(
     late: datetime,
     sun: SunCalculator,
     tz: tzinfo,
+    entity_time: EntityTimeFunc | None = None,
 ) -> datetime:
     mode = cfg[f"{direction}_mode"]
     if mode in DYNAMIC_MODES:
         return late
-    if mode != MODE_ASTRO:
+    if mode == MODE_ENTITY:
+        event = entity_time(direction, day) if entity_time else None
+    elif mode != MODE_ASTRO:
         return early
-    if direction == "up":
+    elif direction == "up":
         event = sun.morning(day, cfg["twilight_up"], cfg["horizon_up"])
     else:
         event = sun.evening(day, cfg["twilight_down"], cfg["horizon_down"])
     if event is None:
-        # No sun event (polar night / midnight sun)
+        # No sun event (polar night / midnight sun) or no usable entity time
         return late if direction == "up" else early
     event = event.astimezone(tz) + timedelta(minutes=cfg[f"offset_{direction}"])
     return _clamp(event, early, late)
 
 
-def up_time(cfg, day, workday, sun, tz, windows=None) -> datetime:
+def up_time(cfg, day, workday, sun, tz, windows=None, entity_time=None) -> datetime:
     """Return the morning drive time (deadline in a dynamic mode)."""
     early, late = _window(cfg, "up", day, workday, tz, windows)
-    return _drive_time(cfg, "up", day, early, late, sun, tz)
+    return _drive_time(cfg, "up", day, early, late, sun, tz, entity_time)
 
 
-def down_time(cfg, day, workday, sun, tz, windows=None) -> datetime:
+def down_time(cfg, day, workday, sun, tz, windows=None, entity_time=None) -> datetime:
     """Return the evening drive time (deadline in a dynamic mode)."""
     early, late = _window(cfg, "down", day, workday, tz, windows)
-    return _drive_time(cfg, "down", day, early, late, sun, tz)
+    return _drive_time(cfg, "down", day, early, late, sun, tz, entity_time)
 
 
 def day_schedule(
@@ -124,6 +130,7 @@ def day_schedule(
     is_workday: WorkdayFunc,
     weekend_times: bool = True,
     windows: WindowsFunc | None = None,
+    entity_time: EntityTimeFunc | None = None,
 ) -> DaySchedule:
     """Return the schedule of one day.
 
@@ -138,8 +145,8 @@ def day_schedule(
     win = windows(day) if windows else None
     up_early, up_late = _window(cfg, "up", day, up_wd, tz, win)
     down_early, down_late = _window(cfg, "down", day, down_wd, tz, win)
-    up = _drive_time(cfg, "up", day, up_early, up_late, sun, tz)
-    down = _drive_time(cfg, "down", day, down_early, down_late, sun, tz)
+    up = _drive_time(cfg, "up", day, up_early, up_late, sun, tz, entity_time)
+    down = _drive_time(cfg, "down", day, down_early, down_late, sun, tz, entity_time)
     if down <= up:
         # Misconfiguration (evening before morning): keep the order
         down = up + timedelta(minutes=1)
@@ -166,6 +173,7 @@ def next_events(
     is_workday: WorkdayFunc,
     weekend_times: bool = True,
     windows: WindowsFunc | None = None,
+    entity_time: EntityTimeFunc | None = None,
 ) -> tuple[datetime, datetime]:
     """Return the next morning and the next evening drive after ``now``."""
     today = now.astimezone(tz).date()
@@ -173,7 +181,14 @@ def next_events(
     next_down: datetime | None = None
     for offset in range(0, 3):
         sched = day_schedule(
-            cfg, today + timedelta(days=offset), sun, tz, is_workday, weekend_times, windows
+            cfg,
+            today + timedelta(days=offset),
+            sun,
+            tz,
+            is_workday,
+            weekend_times,
+            windows,
+            entity_time,
         )
         if next_up is None and sched.up > now:
             next_up = sched.up

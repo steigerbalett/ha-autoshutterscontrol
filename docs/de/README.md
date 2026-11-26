@@ -48,7 +48,8 @@ eins von beiden zutrifft.
 
 | Einstellung | Bedeutung |
 |---|---|
-| Morgens/Abends fahren nach | *Sonne*: Sonnenereignis plus Versatz, begrenzt auf früheste und späteste Zeit. *Zeit*: zur frühesten Zeit (wie ASC). |
+| Morgens/Abends fahren nach | *Sonne*: Sonnenereignis plus Versatz, begrenzt auf früheste und späteste Zeit. *Zeit*: zur frühesten Zeit (wie ASC). *Entität*: zur Zeit einer Entität plus Versatz, begrenzt auf früheste und späteste Zeit. |
+| Morgen-/Abendzeit aus Entität | Für *Entität*: ein `input_datetime`, eine Zeit-Entität oder ein Zeitstempel-Sensor, z. B. *Nächster Wecker* der Home-Assistant-App, `sensor.sun_next_rising`/`_setting` oder eine eigene Template-Berechnung. Ein Zeitstempel zählt nur an seinem Tag; ohne brauchbaren Wert gilt morgens die späteste, abends die früheste Zeit. Ist die Fahrt gelaufen, ist der Tag erledigt, auch wenn der Wecker schon den nächsten Tag zeigt. |
 | Sonnenereignis | Sonnenauf-/-untergang, bürgerliche, nautische, astronomische Dämmerung oder eigene Sonnenhöhe. |
 | Früheste/späteste Öffnung und Schließen | Getrennt für Arbeitstage und freie Tage. |
 | Abends nach dem morgigen Tag richten | Freitagabend gelten schon die Zeiten des freien Tages. |
@@ -180,6 +181,15 @@ Fenster geht vor (Lüftungsposition).
 **Hitzeschutz**: ab *Hitzeschutz ab* (Außentemperatur) wird beschattet, auch ohne Sonne, und bis zum Abend
 gehalten.
 
+**Heißer Tag** (*Heißer Tag: morgens Beschattungsposition*, Standard aus): Sagt die Vorhersage für heute
+mindestens *Heißer Tag ab* (Standard 26 °C, Vorhersage-Sensor oder Tagesvorhersage der Wetter-Entität) und,
+mit *nur bei sonniger Vorhersage*, eine der Wetterlagen der Beschattung voraus, fährt die Morgenfahrt nicht
+ganz auf, sondern direkt auf die Beschattungsposition, sofern die Sonne das Fenster heute noch trifft
+(Sonnenrichtung und Sonnenhöhe der Beschattung). Nachts fährt nichts in die Beschattung, die Wohnung kann
+maximal auskühlen. Der Rollladen bleibt auf der Beschattungsposition, bis die Sonne am Fenster vorbei ist
+oder die normale Beschattung des Tages endet; dann fährt er wie nach der Beschattung zurück. Der Binärsensor
+*Heißer Tag* je Rollladen zeigt, ob das gerade gilt.
+
 Der Sensor *Beschattung* je Rollladen zeigt den Zustand und in den Attributen alle Eingangswerte
 (Sonnenrichtung, Sonnenhöhe, Helligkeit, Temperaturen, Vorhersage, Wetterlage).
 
@@ -193,6 +203,14 @@ leer = Lamellen bleiben. *Beschattungsstufen nach Sonnenhöhe*: bis zu 4 Stufen 
 *Reihenfolge*: Position, dann Lamellen bei Stillstand (Standard, mit Zeitlimit) oder nach der Wartezeit,
 oder erst Lamellen, dann Position (Z-Wave). *Lamellen vor neuer Einstellung erst schließen* und eine eigene
 *Toleranz der Lamellen* gibt es ebenfalls. Lamellen von Hand verstellen zählt als Handfahrt (nicht bei einer eigenen Lamellen-Entität).
+
+**Lamellenwinkel nach der Sonne** (Standard aus): beim Beschatten berechnet AutoShuttersControl aus
+Sonnenstand und Lamellengeometrie den Winkel, bei dem die direkte Sonne gerade draußen bleibt und möglichst
+viel Licht hereinkommt, und stellt die Lamellen jede Minute in 5-%-Schritten nach. Dazu gehören
+*Lamellenabstand / Lamellenbreite* (Standard 0,9), die Lamellenpositionen für *waagerecht* (100 %) und
+*senkrecht* (0 %) und auf der Seite *Beschattung* die *Fensterrichtung* (leer = Mitte von *Sonnenrichtung
+von/bis*). Steht die Sonne hoch oder seitlich, öffnen die Lamellen weiter, steht sie tief vor dem Fenster,
+schließen sie fast. Die Stufen nach Sonnenhöhe gelten dann nicht.
 
 ## Regen, Wind und Frost
 
@@ -321,17 +339,32 @@ Positionsmeldungen während der *Fahrzeit* nach dem eigenen Befehl zählen ebenf
 - *Öffnen fährt nie nach unten*, *Schließen fährt nie nach oben* (Richtungsregel von ASC).
 - Toleranz: so nah an einer Position gilt sie als erreicht; es wird nicht gefahren.
 - Verzögerung: feste plus zufällige Sekunden vor einer geplanten Fahrt.
+- *Gestaffelt fahren* (nur global, Standard 0): Rollläden, die zur gleichen Zeit fahren sollen, starten
+  nacheinander im eingestellten Abstand in Sekunden (Funk, Strom). Zwang, Regen-, Wind- und Wasserschutz
+  fahren immer sofort. Aus FHEM wird `ASC_shuttersDriveDelay` übernommen.
+- *Ruhezeit von/bis* (Seite *Fahrverhalten*, feste Zeit oder aus einem `input_datetime`/einer Zeit-Entität,
+  auch über Mitternacht): keine automatischen Fahrten, außer Zwang, Regen-, Wind-, Wasser-, Frostschutz und
+  Selbstschutz. *Lüften in der Ruhezeit* (Standard an) lässt ein geöffnetes Fenster weiter auf die
+  Lüftungsposition fahren. Am Ende der Ruhezeit fährt der Rollladen in seinen Zielzustand. Binärsensor
+  *Ruhezeit* je Rollladen.
+- *Simulation* (Schalter am zentralen Gerät für alle, am Rollladen für einen): AutoShuttersControl
+  entscheidet und protokolliert alles wie sonst, fährt aber nicht („würde auf 30 % fahren (Beschattung),
+  Simulation“ im Logbuch, Ereignis `autoshutterscontrol_drive` mit `simulation: true`). Der Diagnose-Sensor
+  *Simulierte Fahrt* zeigt die letzte. Aktionen von Hand (`autoshutterscontrol.drive`) fahren weiter.
 
 ## Entitäten
 
 **Zentrales Gerät**: Schalter Automatik, Wochenend- und Feiertagszeiten, Morgenfahrt, Abendfahrt, Pause,
-Komfort, Beschattung, Selbstschutz, Party, Advent, Hardware-Sperre; Sensor Haus-Status; Binärsensoren Regen,
-Wind, Frost; Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand, Alle wackeln, Aufgeschobene
+Komfort, Beschattung, Selbstschutz, Party, Advent, Hardware-Sperre, Simulation; Sensor Haus-Status; Binärsensoren Regen,
+Wind, Frost; Diagnose: Sensoren Sonnenrichtung, Sonnenhöhe (aus dem Standort von Home Assistant berechnet),
+Höchstwert Vorhersage heute (globaler Vorhersage-Sensor oder Tagesvorhersage der globalen Wetter-Entität),
+Binärsensoren Sonnig (Wetterlage jetzt in der Liste der Beschattung) und Heißer Tag (Vorhersage ab *Heißer Tag
+ab*); Knöpfe Zeiten neu berechnen, Alle Rollläden in den Zielzustand, Alle wackeln, Aufgeschobene
 Fahrten freigeben.
 
-**Je Rollladen**: Schalter Automatik und Pause; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
-Regenschutz, Wasserschutz, Windschutz, Frostschutz und Zwangsfunktion; Sensoren
-Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Nicht gefahren wegen, Fenster, Bewohner, Beschattung; Knöpfe Zielzustand anfahren,
+**Je Rollladen**: Schalter Automatik, Pause und Simulation; Binärsensoren Tag, Manuelle Übersteuerung, Selbstschutz,
+Regenschutz, Wasserschutz, Windschutz, Frostschutz, Zwangsfunktion, Heißer Tag und Ruhezeit; Sensoren
+Nächste Öffnung, Nächstes Schließen, Nächster Sichtschutz, Letzter Fahrgrund, Zielzustand, Nicht gefahren wegen, Fenster, Bewohner, Beschattung, Simulierte Fahrt; Knöpfe Zielzustand anfahren,
 Übersteuerung beenden und Wackeln; Auswahl Morgens/Abends fahren nach (mit *Erben*); ausgeblendete
 Konfigurations-Entitäten für Positionen und Zeiten.
 

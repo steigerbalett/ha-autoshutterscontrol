@@ -47,6 +47,7 @@ SWITCH_SELF_DEFENSE: Final = "self_defense"
 SWITCH_PARTY: Final = "party"
 SWITCH_ADVENT: Final = "advent"
 SWITCH_HARDWARE_LOCK: Final = "hardware_lock"
+SWITCH_SIMULATION: Final = "simulation"
 
 GLOBAL_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
@@ -60,12 +61,14 @@ GLOBAL_SWITCHES: Final = {
     SWITCH_PARTY: False,
     SWITCH_ADVENT: False,
     SWITCH_HARDWARE_LOCK: True,
+    SWITCH_SIMULATION: False,
 }
 
 # Per cover runtime switches
 COVER_SWITCHES: Final = {
     SWITCH_AUTOMATIC: True,
     SWITCH_PAUSE: False,
+    SWITCH_SIMULATION: False,
 }
 
 # Inherit marker for select fields in profile and cover forms

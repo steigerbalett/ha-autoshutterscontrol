@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EntityCategory
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from . import AscConfigEntry
 from .engine.daynight import PRIVACY_DOWN, PRIVACY_UP, effective_down, effective_up, privacy_times
+from .engine.hotday import is_hot
 from .engine.protection import FROST, RAIN, RAIN_WINDOW, WIND
 from .entity import AscCoverEntity, AscGlobalEntity
 from .runtime import AscManager, CoverController
@@ -22,7 +27,11 @@ async def async_setup_entry(
     """Set up binary sensors."""
     manager = entry.runtime_data
     async_add_entities(
-        [GlobalProtectionBinarySensor(manager, kind) for kind in (RAIN, WIND, FROST)]
+        [
+            *(GlobalProtectionBinarySensor(manager, kind) for kind in (RAIN, WIND, FROST)),
+            SunnyBinarySensor(manager),
+            GlobalHotBinarySensor(manager),
+        ]
     )
     for controller in manager.controllers.values():
         async_add_entities(
@@ -35,6 +44,8 @@ async def async_setup_entry(
                     for kind in (RAIN, RAIN_WINDOW, WIND, FROST)
                 ),
                 ForceBinarySensor(controller),
+                HotDayBinarySensor(controller),
+                QuietBinarySensor(controller),
             ],
             config_subentry_id=controller.subentry_id,
         )
@@ -134,3 +145,81 @@ class ForceBinarySensor(AscCoverEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict:
         return {"function": self.controller.force_kind()}
+
+
+class _Refreshed:
+    """Write the state every few minutes (values that change without an event)."""
+
+    _refresh_minutes = 10
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()  # type: ignore[misc]
+        self.async_on_remove(  # type: ignore[attr-defined]
+            async_track_time_interval(
+                self.hass,  # type: ignore[attr-defined]
+                self._refresh,
+                timedelta(minutes=self._refresh_minutes),
+            )
+        )
+
+    @callback
+    def _refresh(self, _now: datetime) -> None:
+        self.async_write_ha_state()  # type: ignore[attr-defined]
+
+
+class SunnyBinarySensor(_Refreshed, AscGlobalEntity, BinarySensorEntity):
+    """Weather now is one of the shading weather conditions (global weather entity)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _refresh_minutes = 1
+
+    def __init__(self, manager: AscManager) -> None:
+        super().__init__(manager, "sunny")
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.manager.sunny(self.manager.global_cfg)
+
+
+class GlobalHotBinarySensor(_Refreshed, AscGlobalEntity, BinarySensorEntity):
+    """Hot day by the global forecast (forecast maximum at or above the limit)."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, manager: AscManager) -> None:
+        super().__init__(manager, "hot")
+
+    @property
+    def is_on(self) -> bool:
+        cfg = self.manager.global_cfg
+        return is_hot({**cfg, "hot_day": True}, *self.manager.forecast_today(cfg))
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        cfg = self.manager.global_cfg
+        temp, condition = self.manager.forecast_today(cfg)
+        return {"forecast": temp, "condition": condition, "limit": cfg["hot_day_temp"]}
+
+
+class HotDayBinarySensor(_Refreshed, AscCoverEntity, BinarySensorEntity):
+    """Hot day holds this cover at the shading position (the sun still comes today)."""
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "hot_day")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.hot_day()
+
+
+class QuietBinarySensor(_Refreshed, AscCoverEntity, BinarySensorEntity):
+    """Quiet hours of this cover."""
+
+    _refresh_minutes = 1
+
+    def __init__(self, controller: CoverController) -> None:
+        super().__init__(controller, "quiet")
+
+    @property
+    def is_on(self) -> bool:
+        return self.controller.quiet_now()

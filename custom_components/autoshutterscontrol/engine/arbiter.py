@@ -4,7 +4,8 @@ Priorities follow section 5 of the concept (lower wins): blocks of priority 0
 (automatic, pause, extra condition, availability), force (1), rain with an
 open window (2), wind and rain (3), frost (4), self defense (5), party and
 advent (6), lock-out (7), manual override (8), external trigger (9), window
-(10), residents (11), shading (12), privacy (13) and schedule (14).
+(10), residents (11), shading (12), privacy (13) and schedule (14). In the
+quiet hours only priorities up to 5 drive (and ventilation, if allowed).
 """
 
 from __future__ import annotations
@@ -66,6 +67,7 @@ REASON_SLEEP = "sleep"
 REASON_SELF_DEFENSE = "self_defense"
 REASON_SHADING = "shading"
 REASON_HEAT = "heat"
+REASON_HOT_DAY = "hot_day"
 REASON_FORCE = "force"
 REASON_RAIN = "rain"
 REASON_RAIN_WINDOW = "rain_window"
@@ -93,6 +95,7 @@ BLOCK_FROST = "frost"
 BLOCK_PARTY = "party"
 BLOCK_ADVENT = "advent"
 BLOCK_CONDITION = "condition"
+BLOCK_QUIET = "quiet"
 # Blocks that mean "deliberately not driven" (logbook)
 LOGGED_BLOCKS = frozenset(
     {
@@ -108,6 +111,7 @@ LOGGED_BLOCKS = frozenset(
         BLOCK_PARTY,
         BLOCK_ADVENT,
         BLOCK_CONDITION,
+        BLOCK_QUIET,
     }
 )
 BLOCKS = (
@@ -126,6 +130,7 @@ BLOCKS = (
     BLOCK_PARTY,
     BLOCK_ADVENT,
     BLOCK_CONDITION,
+    BLOCK_QUIET,
 )
 
 
@@ -165,6 +170,8 @@ class Situation:
     # The last drive was temporary (force, rain, wind, trigger, wiggle): going back
     # to the target is not limited by the direction rules
     after_temporary: bool = False
+    # Quiet hours: only protections (and ventilation, if allowed) drive
+    quiet: bool = False
 
 
 @dataclass(frozen=True)
@@ -278,12 +285,21 @@ def shading_position(cfg: Mapping[str, Any], alternative: bool) -> int:
 
 
 def shading_wish(
-    cfg: Mapping[str, Any], shaded: bool, heat: bool = False, alternative: bool = False
+    cfg: Mapping[str, Any],
+    shaded: bool,
+    heat: bool = False,
+    alternative: bool = False,
+    hot_day: bool = False,
 ) -> Wish | None:
-    """Shading (sun conditions met, or heat protection)."""
-    if not (shaded or heat):
+    """Shading (sun conditions met, heat protection, or a hot day ahead)."""
+    if not (shaded or heat or hot_day):
         return None
-    reason = REASON_SHADING if shaded else REASON_HEAT
+    if shaded:
+        reason = REASON_SHADING
+    elif heat:
+        reason = REASON_HEAT
+    else:
+        reason = REASON_HOT_DAY
     return Wish(PRIO_SHADING, "shading", KIND_SHADING, shading_position(cfg, alternative), reason)
 
 
@@ -349,6 +365,7 @@ def build_wishes(
     shaded: bool = False,
     heat: bool = False,
     shading_alt: bool = False,
+    hot_day: bool = False,
     force: str | None = None,
     rain_window: bool = False,
     wind: bool = False,
@@ -373,7 +390,7 @@ def build_wishes(
     res = residents_wish(cfg, sleeping)
     shade = None
     if is_day and (not sleeping or cfg["sleep_allow_shading"]):
-        shade = shading_wish(cfg, shaded, heat, shading_alt)
+        shade = shading_wish(cfg, shaded, heat, shading_alt, hot_day)
     base = res or shade or priv or sched
     win = None
     if not sleeping or cfg["sleep_allow_ventilate"]:
@@ -447,6 +464,13 @@ def decide(cfg: Mapping[str, Any], situation: Situation, wishes: Iterable[Wish |
     if situation.trigger == TRIGGER_SHADING and wish.source != "shading":
         # The start of shading only ever starts a shading drive
         return _blocked(situation, wish, BLOCK_NO_WISH)
+    if (
+        situation.quiet
+        and not wish.bypass_rules
+        and not protective
+        and not (wish.source == "window" and cfg["quiet_window"])
+    ):
+        return _blocked(situation, wish, BLOCK_QUIET)
 
     if not wish.bypass_rules:
         if situation.frost_block and wish.priority > PRIO_FROST:

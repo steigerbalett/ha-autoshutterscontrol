@@ -80,18 +80,22 @@
           "time_down_early_free": "Frühestes Schließen an freien Tagen",
           "time_down_late_free": "Spätestes Schließen an freien Tagen",
           "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+          "up_time_entity": "Morgenzeit aus Entität",
+          "down_time_entity": "Abendzeit aus Entität",
           "time_source": "Früheste und späteste Zeiten aus",
           "calendar_open_title": "Kalender: Titel für Öffnen",
           "calendar_close_title": "Kalender: Titel für Schließen"
         },
         "data_description": {
-          "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.",
-          "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis.",
+          "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis. Entität: zur Zeit der Entität.",
+          "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis. Entität: zur Zeit der Entität.",
           "horizon_up": "Nur bei „Eigene Sonnenhöhe“.",
           "horizon_down": "Nur bei „Eigene Sonnenhöhe“.",
           "offset_up": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.",
           "offset_down": "Minuten, die zum Sonnenereignis addiert werden; negativ = früher.",
           "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.",
+          "up_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors (z. B. nächster Wecker der Handy-App). Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die späteste Zeit.",
+          "down_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors. Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die früheste Zeit.",
           "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.",
           "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.",
           "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“."
@@ -166,7 +170,13 @@
           "open_never_down": "Öffnen fährt nie nach unten",
           "close_never_up": "Schließen fährt nie nach oben",
           "recovery": "Verpasste Fahrten nachholen",
-          "logbook": "Logbuch-Einträge"
+          "logbook": "Logbuch-Einträge",
+          "drive_stagger": "Gestaffelt fahren",
+          "quiet_start": "Ruhezeit von",
+          "quiet_end": "Ruhezeit bis",
+          "quiet_start_entity": "Ruhezeit von (Entität)",
+          "quiet_end_entity": "Ruhezeit bis (Entität)",
+          "quiet_window": "Lüften in der Ruhezeit"
         },
         "data_description": {
           "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.",
@@ -175,7 +185,13 @@
           "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.",
           "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.",
           "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.",
-          "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund."
+          "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.",
+          "drive_stagger": "Sekunden zwischen dem Start von Rollläden, die zur gleichen Zeit fahren sollen (Funk, Strom). Nicht bei Zwang, Regen-, Wind- und Wasserschutz. 0 = alle gleichzeitig.",
+          "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.",
+          "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).",
+          "quiet_start_entity": "Beginn aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.",
+          "quiet_end_entity": "Ende aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.",
+          "quiet_window": "Ein geöffnetes Fenster fährt den Rollladen auch in der Ruhezeit auf die Lüftungsposition."
         }
       },
       "override": {
@@ -325,6 +341,10 @@
           "shading_time_start": "Beschattung ab",
           "shading_time_end": "Beschattung bis",
           "heat_protection_temp": "Hitzeschutz ab",
+          "hot_day": "Heißer Tag: morgens Beschattungsposition",
+          "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
+          "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
+          "window_azimuth": "Fensterrichtung",
           "shading_alt_entity": "Entität für die alternative Position"
         },
         "data_description": {
@@ -342,6 +362,10 @@
           "shading_only_down": "Ein Rollladen, der tiefer steht als die Beschattungsposition, bleibt stehen.",
           "shading_time_start": "Leer = den ganzen Tag.",
           "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.",
+          "hot_day": "An einem heißen Tag fährt die Morgenfahrt direkt auf die Beschattungsposition statt ganz auf, solange die Sonne das Fenster heute noch trifft. Nachts passiert nichts, die Wohnung kann auskühlen. Standard aus.",
+          "hot_day_temp": "Vorhergesagte Höchsttemperatur von heute (Vorhersage-Sensor oder Wetter-Entität), ab der ein Tag als heiß gilt.",
+          "hot_day_sunny": "Die vorhergesagte Wetterlage von heute muss eine der Wetterlagen für die Beschattung sein (nur mit Wetter-Entität).",
+          "window_azimuth": "Richtung, in die das Fenster zeigt (0 Nord, 90 Ost, 180 Süd, 270 West), für den automatischen Lamellenwinkel. Leer: Mitte des Sonnenrichtungs-Bereichs.",
           "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition."
         }
       },
@@ -357,6 +381,10 @@
           "tilt_shading": "Lamellen Beschattung",
           "tilt_privacy": "Lamellen Sichtschutz",
           "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+          "tilt_auto": "Lamellenwinkel nach der Sonne",
+          "tilt_slat_ratio": "Lamellenabstand / Lamellenbreite",
+          "tilt_horizontal": "Lamellen waagerecht bei",
+          "tilt_vertical": "Lamellen senkrecht bei",
           "tilt_mode": "Reihenfolge",
           "tilt_delay": "Wartezeit zwischen Position und Lamellen",
           "tilt_timeout": "Zeitlimit für den Stillstand",
@@ -366,6 +394,10 @@
         "data_description": {
           "tilt_sleep": "Leer = Lamellen geschlossen.",
           "tilt_shading_steps": "Bis zu 4 Stufen Sonnenhöhe:Lamelle, z. B. 20:70, 35:50, 50:30. Unter der ersten Stufe gilt Lamellen Beschattung.",
+          "tilt_auto": "Beim Beschatten werden die Lamellen aus Sonnenstand und Lamellengeometrie so gestellt, dass die direkte Sonne gerade draußen bleibt und möglichst viel Licht hereinkommt. Ersetzt die Stufen nach Sonnenhöhe.",
+          "tilt_slat_ratio": "Abstand zweier Lamellen geteilt durch die Breite einer Lamelle (z. B. 72 mm / 80 mm = 0,9).",
+          "tilt_horizontal": "Lamellenposition, bei der die Lamellen waagerecht stehen (ganz offen).",
+          "tilt_vertical": "Lamellenposition, bei der die Lamellen senkrecht stehen (zu).",
           "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).",
           "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde."
         }
@@ -545,13 +577,15 @@
             "time_down_early_free": "Frühestes Schließen an freien Tagen",
             "time_down_late_free": "Spätestes Schließen an freien Tagen",
             "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+            "up_time_entity": "Morgenzeit aus Entität",
+            "down_time_entity": "Abendzeit aus Entität",
             "time_source": "Früheste und späteste Zeiten aus",
             "calendar_open_title": "Kalender: Titel für Öffnen",
             "calendar_close_title": "Kalender: Titel für Schließen"
           },
           "data_description": {
-            "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.\n↳ {inh_up_mode}",
-            "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis.\n↳ {inh_down_mode}",
+            "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis. Entität: zur Zeit der Entität.\n↳ {inh_up_mode}",
+            "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis. Entität: zur Zeit der Entität.\n↳ {inh_down_mode}",
             "twilight_up": "↳ {inh_twilight_up}",
             "twilight_down": "↳ {inh_twilight_down}",
             "horizon_up": "Nur bei „Eigene Sonnenhöhe“.\n↳ {inh_horizon_up}",
@@ -567,6 +601,8 @@
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
             "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}",
+            "up_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors (z. B. nächster Wecker der Handy-App). Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die späteste Zeit.\n↳ {inh_up_time_entity}",
+            "down_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors. Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die früheste Zeit.\n↳ {inh_down_time_entity}",
             "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.\n↳ {inh_time_source}",
             "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“.\n↳ {inh_calendar_close_title}"
@@ -646,7 +682,12 @@
             "open_never_down": "Öffnen fährt nie nach unten",
             "close_never_up": "Schließen fährt nie nach oben",
             "recovery": "Verpasste Fahrten nachholen",
-            "logbook": "Logbuch-Einträge"
+            "logbook": "Logbuch-Einträge",
+            "quiet_start": "Ruhezeit von",
+            "quiet_end": "Ruhezeit bis",
+            "quiet_start_entity": "Ruhezeit von (Entität)",
+            "quiet_end_entity": "Ruhezeit bis (Entität)",
+            "quiet_window": "Lüften in der Ruhezeit"
           },
           "data_description": {
             "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.\n↳ {inh_delay_fixed}",
@@ -655,7 +696,12 @@
             "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.\n↳ {inh_open_never_down}",
             "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}",
             "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.\n↳ {inh_recovery}",
-            "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}"
+            "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}",
+            "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.\n↳ {inh_quiet_start}",
+            "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).\n↳ {inh_quiet_end}",
+            "quiet_start_entity": "Beginn aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.\n↳ {inh_quiet_start_entity}",
+            "quiet_end_entity": "Ende aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.\n↳ {inh_quiet_end_entity}",
+            "quiet_window": "Ein geöffnetes Fenster fährt den Rollladen auch in der Ruhezeit auf die Lüftungsposition.\n↳ {inh_quiet_window}"
           }
         },
         "override": {
@@ -807,6 +853,10 @@
             "shading_time_start": "Beschattung ab",
             "shading_time_end": "Beschattung bis",
             "heat_protection_temp": "Hitzeschutz ab",
+            "hot_day": "Heißer Tag: morgens Beschattungsposition",
+            "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
+            "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
+            "window_azimuth": "Fensterrichtung",
             "shading_alt_entity": "Entität für die alternative Position"
           },
           "data_description": {
@@ -835,6 +885,10 @@
             "shading_time_start": "Leer = den ganzen Tag.\n↳ {inh_shading_time_start}",
             "shading_time_end": "↳ {inh_shading_time_end}",
             "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.\n↳ {inh_heat_protection_temp}",
+            "hot_day": "An einem heißen Tag fährt die Morgenfahrt direkt auf die Beschattungsposition statt ganz auf, solange die Sonne das Fenster heute noch trifft. Nachts passiert nichts, die Wohnung kann auskühlen. Standard aus.\n↳ {inh_hot_day}",
+            "hot_day_temp": "Vorhergesagte Höchsttemperatur von heute (Vorhersage-Sensor oder Wetter-Entität), ab der ein Tag als heiß gilt.\n↳ {inh_hot_day_temp}",
+            "hot_day_sunny": "Die vorhergesagte Wetterlage von heute muss eine der Wetterlagen für die Beschattung sein (nur mit Wetter-Entität).\n↳ {inh_hot_day_sunny}",
+            "window_azimuth": "Richtung, in die das Fenster zeigt (0 Nord, 90 Ost, 180 Süd, 270 West), für den automatischen Lamellenwinkel. Leer: Mitte des Sonnenrichtungs-Bereichs.\n↳ {inh_window_azimuth}",
             "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -850,6 +904,10 @@
             "tilt_shading": "Lamellen Beschattung",
             "tilt_privacy": "Lamellen Sichtschutz",
             "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+            "tilt_auto": "Lamellenwinkel nach der Sonne",
+            "tilt_slat_ratio": "Lamellenabstand / Lamellenbreite",
+            "tilt_horizontal": "Lamellen waagerecht bei",
+            "tilt_vertical": "Lamellen senkrecht bei",
             "tilt_mode": "Reihenfolge",
             "tilt_delay": "Wartezeit zwischen Position und Lamellen",
             "tilt_timeout": "Zeitlimit für den Stillstand",
@@ -865,6 +923,10 @@
             "tilt_shading": "↳ {inh_tilt_shading}",
             "tilt_privacy": "↳ {inh_tilt_privacy}",
             "tilt_shading_steps": "Bis zu 4 Stufen Sonnenhöhe:Lamelle, z. B. 20:70, 35:50, 50:30. Unter der ersten Stufe gilt Lamellen Beschattung.\n↳ {inh_tilt_shading_steps}",
+            "tilt_auto": "Beim Beschatten werden die Lamellen aus Sonnenstand und Lamellengeometrie so gestellt, dass die direkte Sonne gerade draußen bleibt und möglichst viel Licht hereinkommt. Ersetzt die Stufen nach Sonnenhöhe.\n↳ {inh_tilt_auto}",
+            "tilt_slat_ratio": "Abstand zweier Lamellen geteilt durch die Breite einer Lamelle (z. B. 72 mm / 80 mm = 0,9).\n↳ {inh_tilt_slat_ratio}",
+            "tilt_horizontal": "Lamellenposition, bei der die Lamellen waagerecht stehen (ganz offen).\n↳ {inh_tilt_horizontal}",
+            "tilt_vertical": "Lamellenposition, bei der die Lamellen senkrecht stehen (zu).\n↳ {inh_tilt_vertical}",
             "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).\n↳ {inh_tilt_mode}",
             "tilt_delay": "↳ {inh_tilt_delay}",
             "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde.\n↳ {inh_tilt_timeout}",
@@ -1049,13 +1111,15 @@
             "time_down_early_free": "Frühestes Schließen an freien Tagen",
             "time_down_late_free": "Spätestes Schließen an freien Tagen",
             "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+            "up_time_entity": "Morgenzeit aus Entität",
+            "down_time_entity": "Abendzeit aus Entität",
             "time_source": "Früheste und späteste Zeiten aus",
             "calendar_open_title": "Kalender: Titel für Öffnen",
             "calendar_close_title": "Kalender: Titel für Schließen"
           },
           "data_description": {
-            "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis.\n↳ {inh_up_mode}",
-            "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis.\n↳ {inh_down_mode}",
+            "up_mode": "Zeit: zur frühesten Öffnungszeit. Sonne: zum Sonnenereignis. Entität: zur Zeit der Entität.\n↳ {inh_up_mode}",
+            "down_mode": "Zeit: zur frühesten Schließzeit. Sonne: zum Sonnenereignis. Entität: zur Zeit der Entität.\n↳ {inh_down_mode}",
             "twilight_up": "↳ {inh_twilight_up}",
             "twilight_down": "↳ {inh_twilight_down}",
             "horizon_up": "Nur bei „Eigene Sonnenhöhe“.\n↳ {inh_horizon_up}",
@@ -1071,6 +1135,8 @@
             "time_down_early_free": "↳ {inh_time_down_early_free}",
             "time_down_late_free": "↳ {inh_time_down_late_free}",
             "down_tomorrow_workday": "Abends gelten die Zeiten von morgen, z. B. freitags schon die Zeiten des freien Tages.\n↳ {inh_down_tomorrow_workday}",
+            "up_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors (z. B. nächster Wecker der Handy-App). Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die späteste Zeit.\n↳ {inh_up_time_entity}",
+            "down_time_entity": "Modus Entität: Zeit eines input_datetime, einer Zeit-Entität oder eines Zeitstempel-Sensors. Bleibt zwischen frühester und spätester Zeit; ohne brauchbaren Wert gilt die früheste Zeit.\n↳ {inh_down_time_entity}",
             "time_source": "Kalender: Ein Termin, dessen Titel den Text unten enthält, legt früheste (Beginn) und späteste (Ende) Zeit dieses Tages fest. Tage ohne Termin nehmen die Zeiten.\n↳ {inh_time_source}",
             "calendar_open_title": "Groß-/Kleinschreibung egal, z. B. „auf“.\n↳ {inh_calendar_open_title}",
             "calendar_close_title": "Groß-/Kleinschreibung egal, z. B. „zu“.\n↳ {inh_calendar_close_title}"
@@ -1161,7 +1227,12 @@
             "open_never_down": "Öffnen fährt nie nach unten",
             "close_never_up": "Schließen fährt nie nach oben",
             "recovery": "Verpasste Fahrten nachholen",
-            "logbook": "Logbuch-Einträge"
+            "logbook": "Logbuch-Einträge",
+            "quiet_start": "Ruhezeit von",
+            "quiet_end": "Ruhezeit bis",
+            "quiet_start_entity": "Ruhezeit von (Entität)",
+            "quiet_end_entity": "Ruhezeit bis (Entität)",
+            "quiet_window": "Lüften in der Ruhezeit"
           },
           "data_description": {
             "delay_fixed": "Sekunden Wartezeit vor einer geplanten Fahrt.\n↳ {inh_delay_fixed}",
@@ -1170,7 +1241,12 @@
             "open_never_down": "Keine Morgenfahrt, wenn der Rollladen schon weiter offen ist.\n↳ {inh_open_never_down}",
             "close_never_up": "Keine Abendfahrt, wenn der Rollladen schon weiter geschlossen ist.\n↳ {inh_close_never_up}",
             "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.\n↳ {inh_recovery}",
-            "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}"
+            "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.\n↳ {inh_logbook}",
+            "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.\n↳ {inh_quiet_start}",
+            "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).\n↳ {inh_quiet_end}",
+            "quiet_start_entity": "Beginn aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.\n↳ {inh_quiet_start_entity}",
+            "quiet_end_entity": "Ende aus einem input_datetime oder einer Zeit-Entität; gilt vor der festen Zeit.\n↳ {inh_quiet_end_entity}",
+            "quiet_window": "Ein geöffnetes Fenster fährt den Rollladen auch in der Ruhezeit auf die Lüftungsposition.\n↳ {inh_quiet_window}"
           }
         },
         "override": {
@@ -1312,6 +1388,10 @@
             "tilt_shading": "Lamellen Beschattung",
             "tilt_privacy": "Lamellen Sichtschutz",
             "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+            "tilt_auto": "Lamellenwinkel nach der Sonne",
+            "tilt_slat_ratio": "Lamellenabstand / Lamellenbreite",
+            "tilt_horizontal": "Lamellen waagerecht bei",
+            "tilt_vertical": "Lamellen senkrecht bei",
             "tilt_mode": "Reihenfolge",
             "tilt_delay": "Wartezeit zwischen Position und Lamellen",
             "tilt_timeout": "Zeitlimit für den Stillstand",
@@ -1328,6 +1408,10 @@
             "tilt_shading": "↳ {inh_tilt_shading}",
             "tilt_privacy": "↳ {inh_tilt_privacy}",
             "tilt_shading_steps": "Bis zu 4 Stufen Sonnenhöhe:Lamelle, z. B. 20:70, 35:50, 50:30. Unter der ersten Stufe gilt Lamellen Beschattung.\n↳ {inh_tilt_shading_steps}",
+            "tilt_auto": "Beim Beschatten werden die Lamellen aus Sonnenstand und Lamellengeometrie so gestellt, dass die direkte Sonne gerade draußen bleibt und möglichst viel Licht hereinkommt. Ersetzt die Stufen nach Sonnenhöhe.\n↳ {inh_tilt_auto}",
+            "tilt_slat_ratio": "Abstand zweier Lamellen geteilt durch die Breite einer Lamelle (z. B. 72 mm / 80 mm = 0,9).\n↳ {inh_tilt_slat_ratio}",
+            "tilt_horizontal": "Lamellenposition, bei der die Lamellen waagerecht stehen (ganz offen).\n↳ {inh_tilt_horizontal}",
+            "tilt_vertical": "Lamellenposition, bei der die Lamellen senkrecht stehen (zu).\n↳ {inh_tilt_vertical}",
             "tilt_mode": "Position, dann Lamellen nach der Wartezeit oder bei Stillstand, oder erst Lamellen (z. B. Z-Wave).\n↳ {inh_tilt_mode}",
             "tilt_delay": "↳ {inh_tilt_delay}",
             "tilt_timeout": "Nach dieser Zeit werden die Lamellen gesetzt, auch wenn kein Stillstand gemeldet wurde.\n↳ {inh_tilt_timeout}",
@@ -1366,6 +1450,10 @@
             "shading_time_start": "Beschattung ab",
             "shading_time_end": "Beschattung bis",
             "heat_protection_temp": "Hitzeschutz ab",
+            "hot_day": "Heißer Tag: morgens Beschattungsposition",
+            "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
+            "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
+            "window_azimuth": "Fensterrichtung",
             "shading_alt_entity": "Entität für die alternative Position"
           },
           "data_description": {
@@ -1394,6 +1482,10 @@
             "shading_time_start": "Leer = den ganzen Tag.\n↳ {inh_shading_time_start}",
             "shading_time_end": "↳ {inh_shading_time_end}",
             "heat_protection_temp": "Beschattet ab dieser Außentemperatur, auch ohne Sonne, und hält sie bis zum Abend. Leer = aus.\n↳ {inh_heat_protection_temp}",
+            "hot_day": "An einem heißen Tag fährt die Morgenfahrt direkt auf die Beschattungsposition statt ganz auf, solange die Sonne das Fenster heute noch trifft. Nachts passiert nichts, die Wohnung kann auskühlen. Standard aus.\n↳ {inh_hot_day}",
+            "hot_day_temp": "Vorhergesagte Höchsttemperatur von heute (Vorhersage-Sensor oder Wetter-Entität), ab der ein Tag als heiß gilt.\n↳ {inh_hot_day_temp}",
+            "hot_day_sunny": "Die vorhergesagte Wetterlage von heute muss eine der Wetterlagen für die Beschattung sein (nur mit Wetter-Entität).\n↳ {inh_hot_day_sunny}",
+            "window_azimuth": "Richtung, in die das Fenster zeigt (0 Nord, 90 Ost, 180 Süd, 270 West), für den automatischen Lamellenwinkel. Leer: Mitte des Sonnenrichtungs-Bereichs.\n↳ {inh_window_azimuth}",
             "shading_alt_entity": "Solange an, gilt die alternative Beschattungsposition.\n↳ {inh_shading_alt_entity}"
           }
         },
@@ -1541,7 +1633,8 @@
         "brightness": "Helligkeit",
         "elevation": "Sonnenhöhe",
         "brightness_elevation": "Helligkeit und Sonnenhöhe",
-        "residents": "Bewohner (wenn wach)"
+        "residents": "Bewohner (wenn wach)",
+        "entity": "Entität"
       }
     },
     "down_mode": {
@@ -1552,7 +1645,8 @@
         "brightness": "Helligkeit",
         "elevation": "Sonnenhöhe",
         "brightness_elevation": "Helligkeit und Sonnenhöhe",
-        "residents": "Bewohner (wenn sie schlafen)"
+        "residents": "Bewohner (wenn sie schlafen)",
+        "entity": "Entität"
       }
     },
     "twilight_up": {
@@ -1613,6 +1707,8 @@
         "time_down_early_free": "Frühestes Schließen an freien Tagen",
         "time_down_late_free": "Spätestes Schließen an freien Tagen",
         "down_tomorrow_workday": "Abends nach dem morgigen Tag richten",
+        "up_time_entity": "Morgenzeit aus Entität",
+        "down_time_entity": "Abendzeit aus Entität",
         "time_source": "Früheste und späteste Zeiten aus",
         "calendar_open_title": "Kalender: Titel für Öffnen",
         "calendar_close_title": "Kalender: Titel für Schließen",
@@ -1701,6 +1797,10 @@
         "shading_time_start": "Beschattung ab",
         "shading_time_end": "Beschattung bis",
         "heat_protection_temp": "Hitzeschutz ab",
+        "hot_day": "Heißer Tag: morgens Beschattungsposition",
+        "hot_day_temp": "Heißer Tag ab (Höchstwert Vorhersage)",
+        "hot_day_sunny": "Heißer Tag nur bei sonniger Vorhersage",
+        "window_azimuth": "Fensterrichtung",
         "shading_alt_entity": "Entität für die alternative Position",
         "tilt_entity": "Eigene Lamellen-Entität",
         "tilt_open": "Lamellen offen",
@@ -1711,6 +1811,10 @@
         "tilt_shading": "Lamellen Beschattung",
         "tilt_privacy": "Lamellen Sichtschutz",
         "tilt_shading_steps": "Beschattungsstufen nach Sonnenhöhe",
+        "tilt_auto": "Lamellenwinkel nach der Sonne",
+        "tilt_slat_ratio": "Lamellenabstand / Lamellenbreite",
+        "tilt_horizontal": "Lamellen waagerecht bei",
+        "tilt_vertical": "Lamellen senkrecht bei",
         "tilt_mode": "Reihenfolge",
         "tilt_delay": "Wartezeit zwischen Position und Lamellen",
         "tilt_timeout": "Zeitlimit für den Stillstand",
@@ -1774,6 +1878,12 @@
         "close_never_up": "Schließen fährt nie nach oben",
         "recovery": "Verpasste Fahrten nachholen",
         "logbook": "Logbuch-Einträge",
+        "drive_stagger": "Gestaffelt fahren",
+        "quiet_start": "Ruhezeit von",
+        "quiet_end": "Ruhezeit bis",
+        "quiet_start_entity": "Ruhezeit von (Entität)",
+        "quiet_end_entity": "Ruhezeit bis (Entität)",
+        "quiet_window": "Lüften in der Ruhezeit",
         "override_blocks": "Gesperrt während der Übersteuerung",
         "override_reset": "Die Übersteuerung endet",
         "override_minutes": "Dauer",
@@ -1993,6 +2103,12 @@
       },
       "global_hardware_lock": {
         "name": "Hardware-Sperre"
+      },
+      "global_simulation": {
+        "name": "Simulation"
+      },
+      "cover_simulation": {
+        "name": "Simulation"
       }
     },
     "binary_sensor": {
@@ -2028,6 +2144,18 @@
       },
       "force": {
         "name": "Zwangsfunktion"
+      },
+      "sunny": {
+        "name": "Sonnig"
+      },
+      "hot": {
+        "name": "Heißer Tag (Vorhersage)"
+      },
+      "hot_day": {
+        "name": "Heißer Tag"
+      },
+      "quiet": {
+        "name": "Ruhezeit"
       }
     },
     "sensor": {
@@ -2059,7 +2187,8 @@
           "rain_window": "Wasserschutz",
           "wind": "Windschutz",
           "trigger": "Externer Trigger",
-          "wiggle": "Wackeln"
+          "wiggle": "Wackeln",
+          "hot_day": "Heißer Tag"
         }
       },
       "target": {
@@ -2131,8 +2260,21 @@
           "frost": "Frostschutz",
           "party": "Party",
           "advent": "Advent",
-          "condition": "Zusatzbedingung"
+          "condition": "Zusatzbedingung",
+          "quiet": "Ruhezeit"
         }
+      },
+      "sun_azimuth": {
+        "name": "Sonnenrichtung"
+      },
+      "sun_elevation": {
+        "name": "Sonnenhöhe"
+      },
+      "forecast_max_temperature": {
+        "name": "Höchstwert Vorhersage heute"
+      },
+      "simulated_drive": {
+        "name": "Simulierte Fahrt"
       }
     },
     "button": {
@@ -2168,7 +2310,8 @@
           "brightness": "Helligkeit",
           "elevation": "Sonnenhöhe",
           "brightness_elevation": "Helligkeit und Sonnenhöhe",
-          "residents": "Bewohner (wenn wach)"
+          "residents": "Bewohner (wenn wach)",
+          "entity": "Entität"
         }
       },
       "down_mode": {
@@ -2180,7 +2323,8 @@
           "brightness": "Helligkeit",
           "elevation": "Sonnenhöhe",
           "brightness_elevation": "Helligkeit und Sonnenhöhe",
-          "residents": "Bewohner (wenn sie schlafen)"
+          "residents": "Bewohner (wenn sie schlafen)",
+          "entity": "Entität"
         }
       },
       "shading_mode": {
@@ -2382,6 +2526,9 @@
     },
     "logbook_manual": {
       "message": "von Hand auf {position} % gefahren"
+    },
+    "logbook_simulated": {
+      "message": "würde auf {position} % fahren ({reason}), Simulation"
     }
   },
   "issues": {
@@ -2456,6 +2603,14 @@
     "check_entity_missing": {
       "title": "{name}: Entitäten nicht gefunden",
       "description": "Diese Entitäten sind eingetragen, existieren aber nicht: {entities}. Die Funktionen, die sie nutzen, ruhen."
+    },
+    "check_missing_time_entity": {
+      "title": "{name}: Zeit-Entität fehlt",
+      "description": "Die Morgen- oder Abendfahrt nutzt die Zeit einer Entität, aber keine Entität ist gesetzt (Seite Zeitplan)."
+    },
+    "check_quiet_incomplete": {
+      "title": "{name}: Ruhezeit unvollständig",
+      "description": "Nur Beginn oder nur Ende der Ruhezeit ist gesetzt (Seite Fahrverhalten)."
     }
   }
 }

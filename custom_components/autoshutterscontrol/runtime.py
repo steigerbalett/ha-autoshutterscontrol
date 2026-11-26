@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import asdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time as dt_time, timedelta
 from functools import partial
 import logging
 import random
@@ -96,6 +96,7 @@ from .const import (
     SWITCH_PAUSE,
     SWITCH_SELF_DEFENSE,
     SWITCH_SHADING,
+    SWITCH_SIMULATION,
     SWITCH_WEEKEND_TIMES,
     TICK_SECONDS,
 )
@@ -107,9 +108,11 @@ from .engine.arbiter import (
     BLOCK_NO_WISH,
     BLOCK_NOT_SHADED,
     BLOCK_OVERRIDE,
+    BLOCK_QUIET,
     BLOCK_UNAVAILABLE,
     LOGGED_BLOCKS,
     REASON_HEAT,
+    REASON_HOT_DAY,
     REASON_MANUAL,
     REASON_RAIN_RETURN,
     REASON_RAIN_WINDOW,
@@ -148,6 +151,7 @@ from .engine.daynight import (
     UP,
     DayMarks,
     condition_held,
+    effective_down,
     in_dynamic_window,
     is_day as daynight_is_day,
     light_condition,
@@ -155,8 +159,9 @@ from .engine.daynight import (
     privacy_phase,
     privacy_times,
 )
+from .engine.hotday import is_hot, sun_on_window
 from .engine.override import manual_counts_as_scheduled, override_until
-from .engine.period import in_period, parse_day
+from .engine.period import in_period, in_quiet, parse_day
 from .engine.protection import (
     FROST,
     PROTECTIONS,
@@ -190,6 +195,7 @@ from .engine.settings import (
     KIND_SHADING,
     KIND_VENTILATE,
     LOCKOUT_HARD,
+    MODE_ENTITY,
     MODE_RESIDENTS,
     PRESENCE_OFF,
     RECOVERY_ALWAYS,
@@ -233,6 +239,10 @@ ATTR_MESSAGE = "message"
 RECOVERY_WAIT = 45  # seconds after start before missed drives are caught up
 # Triggers whose blocked decision is not worth a logbook entry
 _QUIET_TRIGGERS = frozenset({TRIGGER_APPLY_TARGET})
+# Drives that are never staggered (protection must be fast)
+_URGENT_SOURCES = frozenset({"force", "rain_window", "wind", "rain"})
+# Shading drives (slat position by the sun)
+_SHADING_REASONS = frozenset({REASON_SHADING, REASON_HEAT, REASON_HOT_DAY})
 
 
 def _never(*_args: Any, **_kwargs: Any) -> bool:
@@ -300,6 +310,46 @@ def _number(hass: HomeAssistant, entity_id: str | None) -> float | None:
         return None
 
 
+def entity_time(hass: HomeAssistant, entity_id: str | None, day: date, tz: Any) -> datetime | None:
+    """Time an entity gives for a day.
+
+    A timestamp (sensor, input_datetime with date) counts only on its own day;
+    a time of day (time entity, input_datetime without date) on every day.
+    """
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id)
+    if state is None or state.state in _UNUSABLE:
+        return None
+    if state.domain == "input_datetime" and not state.attributes.get("has_time", True):
+        return None
+    when = dt_util.parse_datetime(state.state)
+    if when is not None:
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=tz)
+        when = when.astimezone(tz)
+        return when if when.date() == day else None
+    clock = dt_util.parse_time(state.state)
+    if clock is None:
+        return None
+    return datetime.combine(day, clock, tzinfo=tz)
+
+
+def entity_clock(hass: HomeAssistant, entity_id: str | None, tz: Any) -> dt_time | None:
+    """Time of day an entity gives (time entity, input_datetime, timestamp)."""
+    if not entity_id:
+        return None
+    state = hass.states.get(entity_id)
+    if state is None or state.state in _UNUSABLE:
+        return None
+    when = dt_util.parse_datetime(state.state)
+    if when is not None:
+        if when.tzinfo is not None:
+            when = when.astimezone(tz)
+        return when.time().replace(tzinfo=None)
+    return dt_util.parse_time(state.state)
+
+
 # The target is not driven only for these reasons, so the return after the rain may drive
 RAIN_RETURN_BLOCKS = frozenset(
     {
@@ -331,8 +381,11 @@ class AscManager:
         self.central_device_id: str | None = None
         # Last usable state of every resident source ("last known counts")
         self.resident_sources: dict[str, Source] = {}
-        # Weather forecast per entity: (monotonic time of fetch, max temperature today)
-        self.forecasts: dict[str, tuple[float, float | None]] = {}
+        # Weather forecast per entity:
+        # (monotonic time of fetch, max temperature today, condition today)
+        self.forecasts: dict[str, tuple[float, float | None, str | None]] = {}
+        # Planned drive times (monotonic) for staggered drives
+        self._slots: list[float] = []
         self._forecast_pending: set[str] = set()
         # Rain / wind / frost of the global sensors (central device)
         self.global_protect: dict[str, Protection] = {k: Protection() for k in PROTECTIONS}
@@ -436,6 +489,43 @@ class AscManager:
             self._refresh_forecast(entity_id)
         return entry[1] if entry else None
 
+    def forecast_condition(self, entity_id: str) -> str | None:
+        """Forecast condition of today (e.g. sunny)."""
+        self.forecast(entity_id)
+        entry = self.forecasts.get(entity_id)
+        return entry[2] if entry else None
+
+    def forecast_today(self, cfg: Mapping[str, Any]) -> tuple[float | None, str | None]:
+        """Maximum temperature and condition of today (forecast sensor, weather entity)."""
+        temp = _number(self.hass, cfg["forecast_sensor"])
+        condition = None
+        if cfg["weather_entity"]:
+            if temp is None:
+                temp = self.forecast(cfg["weather_entity"])
+            condition = self.forecast_condition(cfg["weather_entity"])
+        return temp, condition
+
+    def sunny(self, cfg: Mapping[str, Any]) -> bool | None:
+        """Weather now is one of the shading weather conditions (None without weather)."""
+        weather = _state_value(self.hass, cfg["weather_entity"])
+        if weather is None:
+            return None
+        return weather in cfg["shading_weather_conditions"]
+
+    def stagger(self, delay: float) -> float:
+        """Extra wait so that drives start at least ``drive_stagger`` seconds apart."""
+        gap = self.global_cfg["drive_stagger"]
+        if gap <= 0:
+            return 0.0
+        now = monotonic_time.monotonic()
+        self._slots = [slot for slot in self._slots if slot > now - gap]
+        at = now + delay
+        for slot in sorted(self._slots):
+            if abs(at - slot) < gap:
+                at = slot + gap
+        self._slots.append(at)
+        return at - now - delay
+
     def _refresh_forecast(self, entity_id: str) -> None:
         if entity_id in self._forecast_pending:
             return
@@ -446,6 +536,7 @@ class AscManager:
 
     async def _async_fetch_forecast(self, entity_id: str) -> None:
         value: float | None = None
+        condition: str | None = None
         try:
             response = await self.hass.services.async_call(
                 "weather",
@@ -460,15 +551,17 @@ class AscManager:
                 when = dt_util.parse_datetime(str(item.get("datetime", "")))
                 if when is None or dt_util.as_local(when).date() == today:
                     value = item.get("temperature")
+                    condition = item.get("condition")
                     break
             if value is None and forecasts:
                 value = forecasts[0].get("temperature")
+                condition = forecasts[0].get("condition")
             value = float(value) if value is not None else None
         except Exception as err:  # noqa: BLE001 - weather may be unavailable
             _LOGGER.warning("Forecast of %s not readable: %s", entity_id, err)
         finally:
             self._forecast_pending.discard(entity_id)
-        self.forecasts[entity_id] = (monotonic_time.monotonic(), value)
+        self.forecasts[entity_id] = (monotonic_time.monotonic(), value, condition)
 
     def structure(self) -> set[str]:
         """Return the subentry ids; a change needs a reload."""
@@ -740,6 +833,9 @@ class CoverController:
         self._inputs: dict[str, Any] = {}
         self._last_logged: tuple | None = None
         self._issues: set[str] = set()
+        self._hot = False
+        self._quiet: bool | None = None
+        self._sun_cache: tuple[Any, bool] | None = None
 
     # --- life cycle ---------------------------------------------------------
 
@@ -908,12 +1004,31 @@ class CoverController:
                     self.hass, [self.cfg["shading_alt_entity"]], self._on_shading_alt_change
                 )
             )
+        times = [
+            e
+            for e in (
+                self.cfg["up_time_entity"],
+                self.cfg["down_time_entity"],
+                self.cfg["quiet_start_entity"],
+                self.cfg["quiet_end_entity"],
+            )
+            if e
+        ]
+        if times:
+            self._unsub_listeners.append(
+                async_track_state_change_event(self.hass, times, self._on_time_entity_change)
+            )
         if self.cfg["calendar"] and self.cfg["time_source"] == WINDOWS_CALENDAR:
             self._unsub_listeners.append(
                 async_track_state_change_event(
                     self.hass, [self.cfg["calendar"]], self._on_calendar_change
                 )
             )
+
+    @callback
+    def _on_time_entity_change(self, _event: Event) -> None:
+        self.recalculate(fetch=False)
+        self._check_quiet(dt_util.now(self.tz))
 
     def _unsubscribe(self) -> None:
         for unsub in self._unsub_listeners:
@@ -1051,7 +1166,12 @@ class CoverController:
             self.is_workday,
             self.manager.switches[SWITCH_WEEKEND_TIMES],
             self._windows,
+            self._entity_time,
         )
+
+    def _entity_time(self, direction: str, day: date) -> datetime | None:
+        """Morning or evening time from an entity (mode "entity")."""
+        return entity_time(self.hass, self.cfg[f"{direction}_time_entity"], day, self.tz)
 
     def marks_for(self, day: date) -> DayMarks:
         """What already happened on a day (dynamic drives, privacy by brightness)."""
@@ -1287,6 +1407,7 @@ class CoverController:
             self.is_workday,
             self.manager.switches[SWITCH_WEEKEND_TIMES],
             self._windows,
+            self._entity_time,
         )
 
     @callback
@@ -1340,6 +1461,9 @@ class CoverController:
             # Already opened earlier by brightness / sun elevation
             self.recalculate(fetch=False)
             return
+        if self.cfg["up_mode"] == MODE_ENTITY:
+            # The entity may move on to the next day (next alarm): done for today
+            self._set_mark(now, UP)
         self._schedule_event(TRIGGER_SCHEDULE_UP)
 
     @callback
@@ -1348,6 +1472,8 @@ class CoverController:
         if self.marks_for(now.astimezone(self.tz).date()).down is not None:
             self.recalculate(fetch=False)
             return
+        if self.cfg["down_mode"] == MODE_ENTITY:
+            self._set_mark(now, DOWN)
         self._schedule_event(TRIGGER_SCHEDULE_DOWN)
 
     # --- brightness, sun elevation, privacy by brightness ---------------------
@@ -1374,6 +1500,7 @@ class CoverController:
         self._protection_tick(now)
         self._check_residents(now)
         self._shading_tick(now)
+        self._check_quiet(now)
         today = now.astimezone(self.tz).date()
         sched = self.schedule_for(today)
         marks = self.marks_for(today)
@@ -1723,6 +1850,73 @@ class CoverController:
 
     # --- shading ----------------------------------------------------------------
 
+    def quiet_now(self, now: datetime | None = None) -> bool:
+        """Quiet hours: no automatic drives except protection."""
+        now = now or dt_util.now(self.tz)
+        start = entity_clock(self.hass, self.cfg["quiet_start_entity"], self.tz)
+        end = entity_clock(self.hass, self.cfg["quiet_end_entity"], self.tz)
+        return in_quiet(
+            start or self.cfg["quiet_start"],
+            end or self.cfg["quiet_end"],
+            now.astimezone(self.tz).time().replace(tzinfo=None),
+        )
+
+    @callback
+    def _check_quiet(self, now: datetime) -> None:
+        """At the end of the quiet hours the cover goes to its target."""
+        quiet = self.quiet_now(now)
+        if self._quiet is None:
+            self._quiet = quiet
+            return
+        if quiet != self._quiet:
+            self._quiet = quiet
+            self.notify()
+            if not quiet:
+                self.evaluate(TRIGGER_RESUME)
+
+    @property
+    def simulation(self) -> bool:
+        """Simulation: everything is decided and logged, nothing is driven."""
+        return self.manager.switches[SWITCH_SIMULATION] or self.switches[SWITCH_SIMULATION]
+
+    def _sun_ahead(self, now: datetime) -> bool:
+        """The sun will still shine on the window today (until the evening drive)."""
+        cfg = self.cfg
+        local = now.astimezone(self.tz)
+        key = (
+            local.replace(minute=local.minute // 10 * 10, second=0, microsecond=0),
+            cfg["shading_azimuth_start"],
+            cfg["shading_azimuth_end"],
+            cfg["shading_elevation_min"],
+            cfg["shading_elevation_max"],
+        )
+        if self._sun_cache is not None and self._sun_cache[0] == key:
+            return self._sun_cache[1]
+        day = local.date()
+        end = effective_down(self.schedule_for(day), self.marks_for(day))
+        value = sun_on_window(cfg, self.manager.sun, local, end)
+        self._sun_cache = (key, value)
+        return value
+
+    def hot_day(self, now: datetime | None = None) -> bool:
+        """Hot day: shading position instead of open until the sun has passed the window.
+
+        Only by day (no closing at night, the flat may cool down), only while
+        the sun will still shine on the window today, and not again after the
+        normal shading of today has ended.
+        """
+        cfg = self.cfg
+        if not cfg["hot_day"] or not self.manager.switches[SWITCH_SHADING]:
+            return False
+        now = now or dt_util.now(self.tz)
+        if self.state.get("hot_day_done") == now.astimezone(self.tz).date().isoformat():
+            return False
+        if not self.is_day(now):
+            return False
+        if not is_hot(cfg, *self.manager.forecast_today(cfg)):
+            return False
+        return self._sun_ahead(now)
+
     @property
     def shading_state(self) -> str:
         """State of the shading state machine."""
@@ -1793,7 +1987,9 @@ class CoverController:
         if (
             cfg["shading_mode"] == PRESENCE_OFF
             and cfg["heat_protection_temp"] is None
+            and not cfg["hot_day"]
             and old == SHADING_OUT
+            and not self._hot
         ):
             return
         inputs, configured = self.shading_inputs(now, sample=True)
@@ -1825,20 +2021,31 @@ class CoverController:
             self.state["shading"] = {"state": new, "since": _iso(new_since)}
             self._save()
             self.notify()
+        if old in SHADED and new not in SHADED:
+            # Shading of today ended: a hot day does not hold the cover any longer
+            self.state["hot_day_done"] = local.date().isoformat()
+            self._save()
+        hot_before = self._hot
+        hot = self.hot_day(now)
+        if hot != hot_before:
+            self._hot = hot
+            self.notify()
         heat_allowed = switch_on and day
         latched = self.heat_latched(now)
         heat = heat_allowed and heat_active(cfg, inputs.temp_out, latched)
         if heat and not latched:
             self.state["heat"] = local.date().isoformat()
             self._save()
-        before = old in SHADED or (latched and heat_allowed)
-        after = new in SHADED or heat
+        before = old in SHADED or (latched and heat_allowed) or hot_before
+        after = new in SHADED or heat or hot
         if after and not before:
             self.evaluate(TRIGGER_SHADING)
         elif before and not after:
             self.evaluate(TRIGGER_SHADING_END)
-        elif after and shading_tilt(cfg, inputs.elevation) != self.state.get("shading_tilt"):
-            # Next slat step by sun elevation
+        elif after and shading_tilt(cfg, inputs.elevation, inputs.azimuth) != self.state.get(
+            "shading_tilt"
+        ):
+            # Next slat step by sun elevation (or the slat angle by the sun)
             self.evaluate(TRIGGER_SHADING)
 
     @callback
@@ -1874,7 +2081,13 @@ class CoverController:
 
     def tilt_for_reason(self, reason: str | None) -> int | None:
         """Tilt for a drive reason, None if no tilt is configured or supported."""
-        tilt = tilt_for(self.cfg, reason, self.manager.sun.elevation(dt_util.utcnow()))
+        now = dt_util.utcnow()
+        tilt = tilt_for(
+            self.cfg,
+            reason,
+            self.manager.sun.elevation(now),
+            azimuth=self.manager.sun.azimuth(now),
+        )
         if tilt is None or not self.tilt_supported():
             return None
         return tilt
@@ -1942,6 +2155,8 @@ class CoverController:
 
     def _tilt_only(self, tilt: int, reason: str | None) -> None:
         """Position reached, only the slats differ."""
+        if self.simulation:
+            return
         current = self.current_tilt()
         if current is not None and abs(current - tilt) <= self.cfg["tilt_tolerance"]:
             return
@@ -1949,7 +2164,7 @@ class CoverController:
         context = Context()
         self._own_contexts.append(context.id)
         self._active_drive = (int(self.current_position() or 0), monotonic_time.monotonic())
-        if reason in (REASON_SHADING, REASON_HEAT):
+        if reason in _SHADING_REASONS:
             self.state["shading_tilt"] = tilt
         self._send_tilt(tilt, context)
         _LOGGER.debug("%s: slats to %s (%s)", self.cover_entity, tilt, reason)
@@ -1995,6 +2210,7 @@ class CoverController:
                 if not self.condition_ok(name, variables)
             ),
             after_temporary=(self.state.get("last") or {}).get("reason") in TEMPORARY_REASONS,
+            quiet=self.quiet_now(now),
         )
 
     def target(self, trigger: str = TRIGGER_APPLY_TARGET) -> Decision:
@@ -2021,6 +2237,7 @@ class CoverController:
             shaded=shaded and self.manager.switches[SWITCH_SHADING],
             heat=heat and self.manager.switches[SWITCH_SHADING],
             shading_alt=bool(self._is_on(self.cfg["shading_alt_entity"])),
+            hot_day=self.hot_day(now),
             force=self.force_kind(),
             lockout=situation.lockout,
             trigger_pos=self.trigger_pos(),
@@ -2041,6 +2258,9 @@ class CoverController:
             "shading_state": self.shading_state,
             "shaded": shaded,
             "heat": heat,
+            "hot_day": self._hot,
+            "quiet": situation.quiet,
+            "simulation": self.simulation,
             "protections": self.protections(),
             "force": self.force_kind(),
             "trigger_position": self.trigger_pos(),
@@ -2048,7 +2268,7 @@ class CoverController:
         return decide(self.cfg, situation, wishes)
 
     @callback
-    def evaluate(self, trigger: str, *, delayed: bool = False) -> Decision:
+    def evaluate(self, trigger: str, *, delayed: bool = False, stagger: bool = True) -> Decision:
         """Ask the arbiter and drive if it says so."""
         decision = self._rain_return(self.target(trigger))
         self._record(decision)
@@ -2087,6 +2307,9 @@ class CoverController:
         delay = 0.0
         if delayed:
             delay = self.cfg["delay_fixed"] + random.uniform(0, self.cfg["delay_random"])
+        if stagger and decision.source not in _URGENT_SOURCES:
+            # Covers due at the same time start one after the other
+            delay += self.manager.stagger(delay)
         if delay > 0:
             self._cancel_delay()
             self._unsub_delay = async_track_point_in_time(
@@ -2106,7 +2329,8 @@ class CoverController:
         function, same position, same manual override); otherwise the current
         target wins.
         """
-        if decision.source == "rain_window":
+        if decision.source == "rain_window" or decision.blocked_by == BLOCK_QUIET:
+            # In the quiet hours the return waits for their end
             return decision
         stored = self.state.pop("rain_return", None)
         if stored is None:
@@ -2151,7 +2375,7 @@ class CoverController:
     def _delayed(self, trigger: str, _now: datetime) -> None:
         self._unsub_delay = None
         # Check again: something may have changed while waiting
-        self.evaluate(trigger, delayed=False)
+        self.evaluate(trigger, delayed=False, stagger=False)
 
     def _record(self, decision: Decision) -> None:
         self.last_decision = decision
@@ -2176,6 +2400,9 @@ class CoverController:
         """Send the drive command."""
         state = self.cover_state
         if state is None:
+            return
+        if self.simulation and reason != REASON_SERVICE:
+            self._simulate(position, reason, trigger)
             return
         if source != "rain_window":
             self.state.pop("rain_return", None)
@@ -2209,7 +2436,7 @@ class CoverController:
             data = {ATTR_ENTITY_ID: self.cover_entity}
         self._cancel_tilt()
         tilt = self.tilt_for_reason(reason) if reason != REASON_SERVICE else None
-        if reason in (REASON_SHADING, REASON_HEAT):
+        if reason in _SHADING_REASONS:
             self.state["shading_tilt"] = tilt
         mode = self.cfg["tilt_mode"]
         if tilt is not None and mode == TILT_FIRST:
@@ -2264,6 +2491,38 @@ class CoverController:
             "drive",
             {"position": position, "tilt": tilt, "reason": reason, "trigger": trigger},
             context,
+        )
+        self.notify()
+
+    @callback
+    def _simulate(self, position: int, reason: str, trigger: str | None) -> None:
+        """Simulation: record and log the drive instead of doing it."""
+        tilt = self.tilt_for_reason(reason)
+        self.state["simulated"] = {
+            "reason": reason,
+            "trigger": trigger,
+            "position": position,
+            "tilt": tilt,
+            "time": _iso(dt_util.utcnow()),
+        }
+        self._save()
+        self.hass.bus.async_fire(
+            EVENT_DRIVE,
+            {
+                "entity_id": self.cover_entity,
+                "name": self.name,
+                "position": position,
+                "reason": reason,
+                "trigger": trigger,
+                "simulation": True,
+            },
+        )
+        _LOGGER.debug("%s: simulated drive to %s (%s)", self.cover_entity, position, reason)
+        self._last_logged = None
+        self._logbook(
+            "logbook_simulated",
+            position=position,
+            reason=self.manager.text(f"entity.sensor.last_reason.state.{reason}"),
         )
         self.notify()
 
@@ -2475,6 +2734,9 @@ class CoverController:
             "self_defense": self.self_defense_active(),
             "shading_state": self.shading_state,
             "heat_protection": self.heat_latched(),
+            "hot_day": self.hot_day(),
+            "quiet": self.quiet_now(),
+            "simulation": self.simulation,
             "tilt": self.current_tilt(),
             "is_day": self.is_day(),
             "position": self.current_position(),

@@ -48,7 +48,8 @@ either one applies.
 
 | Setting | Meaning |
 |---|---|
-| Morning/Evening drive by | *Sun*: sun event plus offset, kept between earliest and latest time. *Time*: at the earliest time (as in ASC). |
+| Morning/Evening drive by | *Sun*: sun event plus offset, kept between earliest and latest time. *Time*: at the earliest time (as in ASC). *Entity*: at the time of an entity plus offset, kept between earliest and latest time. |
+| Morning/Evening time from entity | For *Entity*: an `input_datetime`, a time entity or a timestamp sensor, e.g. *Next alarm* of the Home Assistant app, `sensor.sun_next_rising`/`_setting` or an own template. A timestamp counts only on its own day; without a usable value the latest time applies in the morning, the earliest in the evening. Once the drive ran the day is done, even when the alarm already shows the next day. |
 | Sun event | Sunrise/sunset, civil, nautical, astronomical twilight or an own sun elevation. |
 | Earliest/latest opening and closing | Separate for workdays and days off. |
 | Evening by tomorrow's day type | On Friday evening the day-off times apply. |
@@ -177,6 +178,15 @@ shading* off keeps it there until the evening. An open window wins (ventilation 
 **Heat protection**: from *Heat protection from* (outdoor temperature) the cover shades, also without sun,
 and keeps it until the evening.
 
+**Hot day** (*Hot day: shading position in the morning*, default off): when the forecast of today reaches
+*Hot day from* (default 26 °C, forecast sensor or daily forecast of the weather entity) and, with *only with
+sunny forecast*, one of the weather conditions for shading, the morning drive does not open completely but
+goes straight to the shading position, as long as the sun will still shine on the window today (sun
+direction and elevation of the shading). Nothing moves to shading at night, so the rooms can cool down as
+much as possible. The cover stays at the shading position until the sun has passed the window or the normal
+shading of the day ends; then it returns as after shading. The binary sensor *Hot day* per cover shows
+whether it applies now.
+
 The sensor *Shading* per cover shows the state and all inputs in its attributes (sun direction, elevation,
 brightness, temperatures, forecast, weather condition).
 
@@ -190,6 +200,14 @@ shading only the slats are adjusted.
 *Order*: position, then slats when the cover stands still (default, with a time limit) or after the wait, or
 slats first, then position (Z-Wave). *Close the slats before a new setting* and an own *Tolerance of the
 slats* are available too. Moving the slats by hand counts as a manual drive (not with an own slat entity).
+
+**Slat angle from the sun** (default off): while shading AutoShuttersControl calculates from the sun
+position and the slat geometry the angle that just keeps the direct sun out and lets in as much light as
+possible, and adjusts the slats every minute in steps of 5 %. Settings: *Slat distance / slat width*
+(default 0.9), the tilt positions for *horizontal* (100 %) and *vertical* (0 %), and on the page *Shading*
+the *Window direction* (empty = middle of *Sun direction from/until*). With a high or sideways sun the slats
+open further, with a low sun in front of the window they nearly close. The steps by sun elevation do not
+apply then.
 
 ## Rain, wind and frost
 
@@ -316,16 +334,31 @@ context; position reports during the *drive time* after its own command also cou
 - *Opening never drives down*, *Closing never drives up* (ASC direction rule).
 - Tolerance: within this distance a position counts as reached; nothing is driven.
 - Delay: fixed plus random seconds before a scheduled drive.
+- *Staggered drives* (global only, default 0): covers that are due at the same time start one after the
+  other, the set number of seconds apart (radio, power). Force, rain, wind and water protection always drive
+  at once. The FHEM import takes `ASC_shuttersDriveDelay`.
+- *Quiet hours from/until* (page *Drive behaviour*, a fixed time or from an `input_datetime`/time entity,
+  also across midnight): no automatic drives, except force, rain, wind, water and frost protection and self
+  defense. *Ventilate in the quiet hours* (default on) still moves the cover to the ventilation position for
+  an opened window. At the end of the quiet hours the cover goes to its target. Binary sensor *Quiet hours*
+  per cover.
+- *Simulation* (switch at the central device for all, at the cover for one): AutoShuttersControl decides and
+  logs everything as usual but does not drive ("would drive to 30 % (Shading), simulation" in the logbook,
+  event `autoshutterscontrol_drive` with `simulation: true`). The diagnostic sensor *Simulated drive* shows
+  the last one. Drives by action (`autoshutterscontrol.drive`) still happen.
 
 ## Entities
 
 **Central device**: switches Automatic, Weekend and holiday times, Morning drive, Evening drive,
-Pause, Comfort, Shading, Self defense, Party, Advent, Hardware lock; sensor House status; binary sensors Rain,
-Wind, Frost; buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives.
+Pause, Comfort, Shading, Self defense, Party, Advent, Hardware lock, Simulation; sensor House status; binary sensors Rain,
+Wind, Frost; diagnostics: sensors Sun azimuth, Sun elevation (calculated from the location of Home
+Assistant), Forecast maximum today (global forecast sensor or daily forecast of the global weather entity),
+binary sensors Sunny (weather now in the list of the shading) and Hot day (forecast from *Hot day from*);
+buttons Recalculate times, All covers to target, Wiggle all, Release deferred drives.
 
-**Per cover**: switches Automatic and Pause; binary sensors Day, Manual override, Self defense, Rain
-protection, Water protection, Wind protection, Frost protection and Force function; sensors Next
-opening, Next closing, Next privacy, Last drive reason, Target, Not driven because, Window, Residents, Shading; buttons Drive to target, End manual override and Wiggle;
+**Per cover**: switches Automatic, Pause and Simulation; binary sensors Day, Manual override, Self defense, Rain
+protection, Water protection, Wind protection, Frost protection, Force function, Hot day and Quiet hours; sensors Next
+opening, Next closing, Next privacy, Last drive reason, Target, Not driven because, Window, Residents, Shading, Simulated drive; buttons Drive to target, End manual override and Wiggle;
 selects Morning/Evening drive by (with *Inherit*); disabled config entities for positions and times.
 
 Pause: nothing is driven, the target is still tracked; when the pause ends the cover drives to its

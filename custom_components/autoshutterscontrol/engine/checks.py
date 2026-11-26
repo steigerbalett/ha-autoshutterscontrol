@@ -17,6 +17,7 @@ from .settings import (
     LOCKOUT_OFF,
     MODE_BRIGHTNESS,
     MODE_BRIGHTNESS_ELEVATION,
+    MODE_ENTITY,
     MODE_RESIDENTS,
     WINDOWS_CALENDAR,
 )
@@ -107,6 +108,12 @@ def check(cfg: Mapping[str, Any]) -> list[tuple[str, dict[str, str]]]:
         "residents_house",
         "residents_room",
     )
+    needs("missing_time_entity", cfg["up_mode"] == MODE_ENTITY, "up_time_entity")
+    needs("missing_time_entity", cfg["down_mode"] == MODE_ENTITY, "down_time_entity")
+    if bool(cfg["quiet_start"] or cfg["quiet_start_entity"]) != bool(
+        cfg["quiet_end"] or cfg["quiet_end_entity"]
+    ):
+        add("quiet_incomplete")
     needs(
         "missing_trigger_position",
         bool(cfg["trigger_entity"]),
