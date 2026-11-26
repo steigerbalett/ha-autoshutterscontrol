@@ -9,6 +9,9 @@
 - Repository: the HACS action now runs all checks (brand icon from `brand/`), weekly as well; the release
   draft waits until Tests and Validate succeeded; Dependabot once a month; new tests for the requirements of
   HACS/Marketplace default and hassfest (manifest, hacs.json, brand icons, translations, services).
+- README and documentation: thanks to CoolTux, author of FHEM AutoShuttersControl, and to everyone thanked in
+  the FHEM module. README split into an English part on top and a German part below. Internal notes
+  (stage overview, pre-release note in the README) removed.
 
 ## 0.7.1
 

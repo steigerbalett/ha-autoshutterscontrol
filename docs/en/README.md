@@ -349,16 +349,6 @@ Events: `autoshutterscontrol_drive` (every drive, with `reason` and `trigger`) a
 `autoshutterscontrol_manual` (manual drive detected) and `autoshutterscontrol_rain_window` (rain with an open
 window, with `window`, `position`, `driven`, `blocked_by`).
 
-## Roadmap
-
-| Stage | Content |
-|---|---|
-| 1 | Base, inheritance, arbiter, schedule (time/sun/workday), positions, manual override, delay, EN/DE |
-| 2 | Window contacts (ventilation, comfort, lock-out), brightness, sun elevation, privacy, calendar |
-| 3 | Residents, self defence, shading with all conditions, slats |
-| 4 | Rain (also with open window), wind, frost, force, pause entity, party, advent, trigger, wiggle, hardware lock, extra conditions and actions |
-| 5 (this version) | Catching up, plausibility check, logbook, diagnostics, FHEM import, HACS preparation |
-
 ## FAQ
 
 **Why does a cover not move?** The sensor *Not driven because* and the logbook of the cover show the reason.
@@ -382,3 +372,23 @@ Each language is one file in `custom_components/autoshutterscontrol/translations
 written once in `options.step.<section>`; run `python script/expand_translations.py` to copy them
 into the profile and cover pages. Pull requests with new languages are welcome; see
 [translating.md](translating.md).
+
+## Thanks
+
+AutoShuttersControl for HA rebuilds the functions of the FHEM module AutoShuttersControl. Many thanks to its author **CoolTux**:
+
+> AutoShuttersControl for FHEM
+>
+> (c) 2018-2026 Copyright: Marko Oldenburg (fhemdevelopment at cooltux dot net)
+
+From the FHEM module, special thanks goes to:
+
+- Bernd (Cluni): this module is based on the logic of his script "Rollladensteuerung für HM/ROLLO inkl. Abschattung und Komfortfunktionen in Perl" ([FHEM forum](https://forum.fhem.de/index.php/topic,73964.0.html))
+- Beta-User for many tests, many suggestions and good discussions
+- pc1246 write english commandref
+- FunkOdyssey commandref style
+- sledge fix many typo in commandref
+- many User that use with modul and report bugs
+- Christoph (christoph.kaiser.in) Patch that expand RegEx for Window Events
+- Julian (Loredo) expand Residents Events for new Residents functions
+- Christoph (Christoph Morrison) for fix Commandref, many suggestions and good discussions

@@ -4,7 +4,7 @@
 
 1. *Einstellungen → Marketplace* (ab Home Assistant 2026.11, vorher HACS) → drei Punkte → *Benutzerdefinierte
    Repositories* → `https://github.com/steigerbalett/ha-autoshutterscontrol`, Typ *Integration*. Oder den Button
-   in der [README](../../README.md#installation) drücken.
+   in der [README](../../README.md#installation-1) drücken.
 2. Versionen 0.x sind Pre-Releases: beim Repository *Beta-Versionen anzeigen* einschalten.
 3. *AutoShuttersControl for HA* installieren und Home Assistant neu starten.
 4. *Einstellungen → Geräte & Dienste → Integration hinzufügen → AutoShuttersControl for HA*.
@@ -356,16 +356,6 @@ Ereignisse: `autoshutterscontrol_drive` (jede Fahrt, mit `reason` und `trigger`)
 `autoshutterscontrol_manual` (Handfahrt erkannt) und `autoshutterscontrol_rain_window` (Regen bei offenem
 Fenster, mit `window`, `position`, `driven`, `blocked_by`).
 
-## Fahrplan
-
-| Stufe | Inhalt |
-|---|---|
-| 1 | Grundgerüst, Erben, Entscheider, Zeitplan (Zeit/Sonne/Arbeitstag), Positionen, Übersteuerung, Verzögerung, EN/DE |
-| 2 | Fensterkontakte (Lüften, Komfort, Aussperrschutz), Helligkeit, Sonnenhöhe, Sichtschutz, Kalender |
-| 3 | Bewohner, Selbstschutz, Beschattung mit allen Bedingungen, Lamellen |
-| 4 | Regen (auch bei offenem Fenster), Wind, Frost, Zwang, Pause-Entität, Party, Advent, Trigger, Wackeln, Hardware-Sperre, Zusatzbedingungen und -aktionen |
-| 5 (diese Version) | Nachholen, Plausibilitätsprüfung, Logbuch, Diagnose, FHEM-Import, Vorbereitung HACS |
-
 ## Häufige Fragen
 
 **Warum fährt ein Rollladen nicht?** Sensor *Nicht gefahren wegen* und das Logbuch am Rollladen zeigen den
@@ -388,3 +378,23 @@ erkennt jede Seite die Fahrten der anderen als Handfahrt.
 Jede Sprache ist eine Datei in `custom_components/autoshutterscontrol/translations/`. Feldtexte stehen einmal
 in `options.step.<Bereich>`; `python script/expand_translations.py` kopiert sie in die Seiten von Profil und
 Rollladen. Pull Requests mit neuen Sprachen sind willkommen; Anleitung: [translating.md](../en/translating.md).
+
+## Dank
+
+AutoShuttersControl for HA baut die Funktionen des FHEM-Moduls AutoShuttersControl nach. Großer Dank an seinen Autor **CoolTux**:
+
+> AutoShuttersControl für FHEM
+>
+> (c) 2018-2026 Copyright: Marko Oldenburg (fhemdevelopment at cooltux dot net)
+
+Aus dem FHEM-Modul übernommen, besonderer Dank geht an:
+
+- Bernd (Cluni): this module is based on the logic of his script "Rollladensteuerung für HM/ROLLO inkl. Abschattung und Komfortfunktionen in Perl" ([FHEM forum](https://forum.fhem.de/index.php/topic,73964.0.html))
+- Beta-User for many tests, many suggestions and good discussions
+- pc1246 write english commandref
+- FunkOdyssey commandref style
+- sledge fix many typo in commandref
+- many User that use with modul and report bugs
+- Christoph (christoph.kaiser.in) Patch that expand RegEx for Window Events
+- Julian (Loredo) expand Residents Events for new Residents functions
+- Christoph (Christoph Morrison) for fix Commandref, many suggestions and good discussions
