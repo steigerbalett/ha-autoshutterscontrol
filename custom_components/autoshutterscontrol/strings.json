@@ -196,7 +196,6 @@
           "recovery": "Catch up missed drives",
           "logbook": "Logbook entries",
           "drive_check": "Check every drive",
-          "panel": "Overview in the sidebar",
           "drive_stagger": "Staggered drives",
           "quiet_start": "Quiet hours from",
           "quiet_end": "Quiet hours until",
@@ -214,7 +213,6 @@
           "recovery": "After a restart or when the cover is available again, the target is calculated again and driven to if a drive was missed.",
           "logbook": "An entry at the cover for every drive and every drive deliberately not done, with the reason.",
           "drive_check": "After the drive time the cover must be at its position (± tolerance). If not, the command is sent once more; if that does not arrive either, the sensor Stuck turns on and a repair issue appears.",
-          "panel": "Page AutoShuttersControl in the sidebar with all covers (times, modes, target, last drive, shading) and all linked sensors with their values, as the ASC Configuration and Information Summary in FHEM.",
           "drive_stagger": "Seconds between the start of covers that are due at the same time (radio, power). Not for force, rain, wind and water protection. 0 = all at once.",
           "quiet_start": "No automatic drives in the quiet hours, except force and protection (rain, wind, frost, self defense). At their end the cover goes to its target.",
           "quiet_end": "End of the quiet hours (may be after midnight).",
@@ -554,7 +552,7 @@
       },
       "fhem_import": {
         "title": "Import from FHEM",
-        "description": "Paste the settings from FHEM. To get them:\n\n1. In FHEM, enter in the command line at the top: `list -r TYPE=AutoShuttersControl` and then `list -r ASC=[12]`\n2. Select the output of both commands, copy it and paste it here.\n\nThe whole fhem.cfg works as well. Only define and attr lines are read, nothing is sent anywhere. A single shutter is easier to take over at the cover itself: open the cover → *Import from FHEM*.",
+        "description": "Paste the settings from FHEM. To get them:\n\n1. In FHEM, enter in the command line at the top: `list -r TYPE=AutoShuttersControl` and then `list -r ASC=[12]`\n2. Select the output of both commands, copy it and paste it here.\n\nThe *Raw definition* from the detail view of the devices works as well (lines with `defmod` and `attr`), several devices one below the other, or the whole fhem.cfg. Only the ASC settings are taken over, everything else (room, icon, userattr …) is skipped. Nothing is sent anywhere. A single shutter is easier to take over at the cover itself: open the cover → *Import from FHEM*.",
         "data": {
           "fhem_cfg": "fhem.cfg"
         }
@@ -579,7 +577,13 @@
       },
       "summary": {
         "title": "Overview",
-        "description": "Sun {azimuth}° / {elevation}° · forecast today {forecast} °C · house status {house} · as of {time} (open again to refresh)\n\n{panel}\n\n### Covers\n\n{covers}\n\n### Linked sensors\n\n{entities}"
+        "description": "**{panel}**\n\nSun {azimuth}° / {elevation}° · forecast today {forecast} °C · house status {house} · as of {time} (open again to refresh)\n\n### Covers\n\n{covers}\n\n### Linked sensors\n\n{entities}",
+        "data": {
+          "panel": "Overview in the sidebar"
+        },
+        "data_description": {
+          "panel": "Page AutoShuttersControl in the sidebar with all covers and sensors, more room than here, and the tab *Edit covers*. Taken over with *Submit* and then **💾 Save and close**."
+        }
       }
     },
     "error": {
@@ -1803,7 +1807,7 @@
         },
         "fhem_import": {
           "title": "Import from FHEM",
-          "description": "Takes over the settings of one FHEM shutter for **{name}**. The name in FHEM may be different.\n\n1. In FHEM, enter `list -r` followed by the name of the shutter in FHEM in the command line at the top, e.g. `list -r EG_Wohnzimmer_Rollo`.\n2. Copy the whole output and paste it here.\n\nOnly the attr lines with ASC settings are read. If the text contains several shutters, you pick the right one in the next step.",
+          "description": "Takes over the settings of one FHEM shutter for **{name}**. The name in FHEM may be different.\n\n1. In FHEM, enter `list -r` followed by the name of the shutter in FHEM in the command line at the top, e.g. `list -r EG_Wohnzimmer_Rollo`.\n2. Copy the whole output and paste it here.\n\nThe *Raw definition* from the detail view of the device works as well (lines with `defmod` and `attr`). Only the ASC settings are taken over, everything else (room, icon, userattr …) is skipped. If the text contains several shutters, you pick the right one in the next step.",
           "data": {
             "fhem_cfg": "Output of list -r"
           }
@@ -1877,8 +1881,9 @@
         "nautical": "Nautical twilight",
         "astronomical": "Astronomical twilight",
         "horizon": "Own sun elevation",
-        "inherit": "Inherit",
-        "golden": "Golden hour (sun 6°)"
+        "golden": "Golden hour (sun 6°)",
+        "blue": "Blue hour (sun −4°)",
+        "inherit": "Inherit"
       }
     },
     "twilight_down": {
@@ -1888,8 +1893,9 @@
         "nautical": "Nautical twilight",
         "astronomical": "Astronomical twilight",
         "horizon": "Own sun elevation",
-        "inherit": "Inherit",
-        "golden": "Golden hour (sun 6°)"
+        "golden": "Golden hour (sun 6°)",
+        "blue": "Blue hour (sun −4°)",
+        "inherit": "Inherit"
       }
     },
     "override_blocks": {
@@ -2305,6 +2311,7 @@
       "options": {
         "first_advent": "First Sunday of Advent",
         "date": "Own day",
+        "dead_sunday": "Sunday before Advent (one week before the first Sunday of Advent)",
         "inherit": "Inherit"
       }
     },
@@ -2359,8 +2366,8 @@
         "window": "Window",
         "notes": "Notes",
         "global": "Global",
-        "panel_open": "Open the large overview in the sidebar",
-        "panel_hint": "Tip: the overview in the sidebar has more room. Turn it on under *Drive behaviour* → *Overview in the sidebar*."
+        "panel_on": "Overview in the sidebar: on · [Open the large overview](/autoshutterscontrol)",
+        "panel_off": "Overview in the sidebar: off · switch it on with the switch at the end of this page"
       }
     },
     "window_preset": {

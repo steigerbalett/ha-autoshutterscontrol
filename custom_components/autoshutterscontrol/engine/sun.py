@@ -22,6 +22,7 @@ from astral.sun import (
 
 from .settings import (
     TWILIGHT_ASTRONOMICAL,
+    TWILIGHT_BLUE,
     TWILIGHT_CIVIL,
     TWILIGHT_GOLDEN,
     TWILIGHT_HORIZON,
@@ -31,6 +32,10 @@ from .settings import (
 
 # Golden hour: the sun below 6 degrees (morning: its end, evening: its start)
 GOLDEN_ELEVATION = 6.0
+# Blue hour: the sun between 4 and 6 degrees below the horizon (morning: its
+# end, evening: its start, the brighter edge as for the golden hour)
+BLUE_ELEVATION = -4.0
+_FIXED = {TWILIGHT_GOLDEN: GOLDEN_ELEVATION, TWILIGHT_BLUE: BLUE_ELEVATION}
 
 _DEPRESSION = {
     TWILIGHT_CIVIL: 6.0,
@@ -62,10 +67,10 @@ class SunCalculator:
         try:
             if twilight == TWILIGHT_REAL:
                 return sunrise(self._observer, day, tzinfo=tz)
-            if twilight in (TWILIGHT_HORIZON, TWILIGHT_GOLDEN):
+            if twilight == TWILIGHT_HORIZON or twilight in _FIXED:
                 return time_at_elevation(
                     self._observer,
-                    GOLDEN_ELEVATION if twilight == TWILIGHT_GOLDEN else horizon,
+                    _FIXED.get(twilight, horizon),
                     day,
                     SunDirection.RISING,
                     tzinfo=tz,
@@ -80,10 +85,10 @@ class SunCalculator:
         try:
             if twilight == TWILIGHT_REAL:
                 return sunset(self._observer, day, tzinfo=tz)
-            if twilight in (TWILIGHT_HORIZON, TWILIGHT_GOLDEN):
+            if twilight == TWILIGHT_HORIZON or twilight in _FIXED:
                 return time_at_elevation(
                     self._observer,
-                    GOLDEN_ELEVATION if twilight == TWILIGHT_GOLDEN else horizon,
+                    _FIXED.get(twilight, horizon),
                     day,
                     SunDirection.SETTING,
                     tzinfo=tz,

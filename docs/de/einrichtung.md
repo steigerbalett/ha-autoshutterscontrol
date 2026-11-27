@@ -215,7 +215,9 @@ aufgelistet.
 1. In FHEM oben in die Befehlszeile eingeben:
    - `list -r TYPE=AutoShuttersControl` (das ASC-Gerät mit den globalen Einstellungen)
    - `list -r ASC=[12]` (alle Rollläden mit dem Attribut ASC 1 oder 2)
-2. Die Ausgaben beider Befehle markieren und kopieren. Statt dessen geht auch die ganze `fhem.cfg`.
+2. Die Ausgaben beider Befehle markieren und kopieren. Statt dessen geht auch die *Raw definition* aus der
+   Detailansicht der Geräte (die Zeilen mit `defmod` und `attr`, mehrere Geräte untereinander) oder die ganze
+   `fhem.cfg`. Übernommen werden nur die ASC-Einstellungen.
 3. In Home Assistant: AutoShuttersControl → **Konfigurieren** → **Aus FHEM übernehmen** → Text einfügen.
 4. Jedem FHEM-Rollladen den Rollladen in Home Assistant zuordnen. Vorschläge kommen aus ähnlichen Namen. Leer
    lassen heißt „nicht übernehmen“.
@@ -233,7 +235,7 @@ So übernimmst du die Einstellungen eines FHEM-Rollladens für einen Rollladen, 
 gibt:
 
 1. In FHEM: `list -r` und den Namen des Rollladens in FHEM, z. B. `list -r EG_Wohnzimmer_Rollo`. Die ganze
-   Ausgabe kopieren.
+   Ausgabe kopieren. Oder in der Detailansicht des Geräts *Raw definition* öffnen und alles kopieren.
 2. In Home Assistant beim Rollladen die drei Punkte → *Neu konfigurieren* → **Aus FHEM übernehmen** → Text
    einfügen.
 3. Stehen mehrere Rollläden im Text, wählst du den richtigen aus.
@@ -252,8 +254,9 @@ Assistant läuft.
 Beschattung und Fenster, darunter alle verknüpften Sensoren mit ihrem aktuellen Wert. Ein ❗ zeigt eine Entität,
 die es nicht gibt.
 
-Der Dialog von Home Assistant ist schmal. Mehr Platz hat die Seite in der Seitenleiste: *Konfigurieren* →
-*Fahrverhalten* → **Übersicht in der Seitenleiste** einschalten und speichern. Dann gibt es links den Eintrag
+Der Dialog von Home Assistant ist schmal. Mehr Platz hat die Seite in der Seitenleiste: Die erste Zeile der
+Übersicht zeigt, ob sie an ist. Einschalten mit dem Schalter **Übersicht in der Seitenleiste** am Ende der
+Übersicht, *Absenden* und dann **💾 Speichern und schließen**. Dann gibt es links den Eintrag
 *AutoShuttersControl* mit einer großen Tabelle, die sich alle 10 Sekunden aktualisiert.
 
 Auf derselben Seite gibt es den Reiter **Rollläden bearbeiten**. Dort siehst du alle Rollläden in einer Tabelle,

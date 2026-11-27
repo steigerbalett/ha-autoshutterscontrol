@@ -55,7 +55,7 @@ eins von beiden zutrifft.
 |---|---|
 | Morgens/Abends fahren nach | *Sonne*: Sonnenereignis plus Versatz, begrenzt auf früheste und späteste Zeit. *Zeit*: zur frühesten Zeit (wie ASC). *Entität*: zur Zeit einer Entität plus Versatz, begrenzt auf früheste und späteste Zeit. |
 | Morgen-/Abendzeit aus Entität | Für *Entität*: ein `input_datetime`, eine Zeit-Entität oder ein Zeitstempel-Sensor, z. B. *Nächster Wecker* der Home-Assistant-App, `sensor.sun_next_rising`/`_setting` oder eine eigene Template-Berechnung. Ein Zeitstempel zählt nur an seinem Tag; ohne brauchbaren Wert gilt morgens die späteste, abends die früheste Zeit. Ist die Fahrt gelaufen, ist der Tag erledigt, auch wenn der Wecker schon den nächsten Tag zeigt. |
-| Sonnenereignis | Sonnenauf-/-untergang, bürgerliche, nautische, astronomische Dämmerung, *Golden Hour* (Sonne 6° über dem Horizont, morgens etwas später als der Sonnenaufgang, abends etwas früher als der Sonnenuntergang) oder eigene Sonnenhöhe. |
+| Sonnenereignis | Sonnenauf-/-untergang, bürgerliche, nautische, astronomische Dämmerung, *Golden Hour* (Sonne 6° über dem Horizont, morgens etwas später als der Sonnenaufgang, abends etwas früher als der Sonnenuntergang), *Blue Hour* (Sonne 4° unter dem Horizont, zwischen bürgerlicher Dämmerung und Sonnenauf- bzw. -untergang) oder eigene Sonnenhöhe. |
 | Früheste/späteste Öffnung und Schließen | Getrennt für Arbeitstage und freie Tage. |
 | Abends nach dem morgigen Tag richten | Freitagabend gelten schon die Zeiten des freien Tages. |
 
@@ -337,7 +337,7 @@ Seite *Sonderfunktionen*; Felder mit Entitäten gibt es nur am Rollladen.
 - **Advent**: Schalter *Advent* am zentralen Gerät (Standard aus). Vom 1. Advent bis 6. Januar (oder 2. Februar)
   wartet das abendliche Schließen, bis die Taste *Aufgeschobene Fahrten freigeben* oder die Aktion
   `autoshutterscontrol.release_deferred` es freigibt; die Freigabe gilt bis zum Ende des Tages.
-  - Zeitraum: *Adventsmodus ab* = 1. Advent (Standard) oder *Eigener Tag* mit *Eigener Beginn*, z. B. `1.12.`.
+  - Zeitraum: *Adventsmodus ab* = 1. Advent (Standard), Totensonntag (eine Woche früher) oder *Eigener Tag* mit *Eigener Beginn*, z. B. `1.12.`.
     *Adventsmodus bis* = 6. Januar (Standard), 2. Februar oder *Eigener Tag* mit *Eigenes Ende*, z. B. `24.12.`
     oder `15.1.`. Tage als TT.MM., der Zeitraum darf über den Jahreswechsel gehen.
   - Fehlt ein eigener Tag oder ist er ungültig, gilt der Standard, und unter *Reparaturen* erscheint ein Hinweis.
@@ -442,8 +442,8 @@ Stellen:
 
 - direkt in der Integration: *Konfigurieren* → **Übersicht** (Stand beim Öffnen, zum Aktualisieren neu
   öffnen), je Rollladen ein Block, damit sie im schmalen Dialog lesbar ist;
-- optional als Seite **AutoShuttersControl** in der Seitenleiste (*Übersicht in der Seitenleiste*, Seite
-  *Fahrverhalten*, Standard aus), als große Tabelle mit allen Spalten, aktualisiert alle 10 Sekunden. Die
+- optional als Seite **AutoShuttersControl** in der Seitenleiste (Schalter *Übersicht in der Seitenleiste* auf
+  der Seite **Übersicht**, Standard aus), als große Tabelle mit allen Spalten, aktualisiert alle 10 Sekunden. Die
   Übersicht im Dialog verlinkt dorthin.
 
 Gezeigt werden:
@@ -463,7 +463,7 @@ Auf der Seite in der Seitenleiste öffnet ein Klick auf einen Rollladen oder ein
 
 ### Rollläden bearbeiten
 
-Die Seite in der Seitenleiste (einschalten mit *Übersicht in der Seitenleiste*, Seite *Fahrverhalten*) hat
+Die Seite in der Seitenleiste (einschalten mit *Übersicht in der Seitenleiste* auf der Seite *Übersicht*) hat
 oben zwei Reiter: **Übersicht** und **Rollläden bearbeiten**. Der zweite zeigt
 alle Rollläden als Tabelle mit Profil und der Zahl eigener Werte.
 
@@ -522,7 +522,9 @@ Schritt mit den Befehlen: [Einrichtungsanleitung](einrichtung.md#10-umstieg-von-
 **Alles auf einmal**: Optionen → *Aus FHEM übernehmen*:
 
 1. Die Ausgabe von `list -r TYPE=AutoShuttersControl` und `list -r ASC=[12]` aus der FHEM-Befehlszeile
-   einfügen (oder die ganze `fhem.cfg`). Gelesen werden nur `define`- und `attr`-Zeilen.
+   einfügen, die *Raw definition* der Geräte (`defmod` und `attr`, mehrere untereinander) oder die ganze
+   `fhem.cfg`. Gelesen werden nur `define`-, `defmod`- und `attr`-Zeilen und davon nur die ASC-Attribute. Andere
+   Attribute wie `room`, `icon`, `userattr` oder `webCmd` werden ohne Meldung übergangen.
 2. Jedem FHEM-Rollladen einen Rollladen in Home Assistant zuordnen. Vorschläge kommen aus ähnlichen Namen.
 3. Den FHEM-Geräten in den Attributen (Sensoren, Fensterkontakte, Bewohner) Entitäten zuordnen.
 4. Die Übersicht zeigt, was übernommen wird und was nicht übertragbar ist (Perl-Code, unbekannte Attribute).
@@ -530,11 +532,14 @@ Schritt mit den Befehlen: [Einrichtungsanleitung](einrichtung.md#10-umstieg-von-
    aktualisieren* ist an. Absenden legt die Rollläden an und speichert die globalen Einstellungen.
 
 Übernommen werden die Attribute des ASC-Geräts als globale Einstellungen und die der Rollläden je Rollladen.
+`ASC_autoShuttersControlMorning`, `…Evening` und `…Comfort` schalten die Schalter *Morgenfahrt*, *Abendfahrt* und
+*Komfort* am zentralen Gerät. `ASC_ShuttersPlace terrace` setzt die Vorlage *Terrassentür*, `awning` die Art
+*Markise*.
 Werte, die alle Rollläden gleich haben, wandern in die globalen Einstellungen; Werte, die nur den Standard
 wiederholen, entfallen.
 
 **Ein Rollladen**: am Rollladen *Neu konfigurieren* → *Aus FHEM übernehmen*. Die Ausgabe von
-`list -r <Name in FHEM>` einfügen. Stehen mehrere Rollläden im Text, wählst du einen aus. Danach seine Geräte
+`list -r <Name in FHEM>` oder die *Raw definition* des Geräts einfügen. Stehen mehrere Rollläden im Text, wählst du einen aus. Danach seine Geräte
 zuordnen; die Liste zeigt jeden Wert, der übernommen wird. Werte, die der Rollladen ohnehin erbt, bleiben
 geerbt. *Bisherige eigene Werte dieses Rollladens vorher löschen* fängt neu an. Zurück im Menü übernimmt
 **💾 Speichern und schließen**.

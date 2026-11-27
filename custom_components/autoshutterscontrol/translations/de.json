@@ -196,7 +196,6 @@
           "recovery": "Verpasste Fahrten nachholen",
           "logbook": "Logbuch-Einträge",
           "drive_check": "Jede Fahrt prüfen",
-          "panel": "Übersicht in der Seitenleiste",
           "drive_stagger": "Gestaffelt fahren",
           "quiet_start": "Ruhezeit von",
           "quiet_end": "Ruhezeit bis",
@@ -214,7 +213,6 @@
           "recovery": "Nach einem Neustart oder wenn der Rollladen wieder erreichbar ist, wird der Zielzustand neu berechnet und angefahren, falls eine Fahrt verpasst wurde.",
           "logbook": "Ein Eintrag am Rollladen für jede Fahrt und jede bewusst unterlassene Fahrt, mit Grund.",
           "drive_check": "Nach der Fahrzeit muss der Rollladen auf seiner Position stehen (± Toleranz). Sonst wird der Befehl einmal neu gesendet; kommt er auch dann nicht an, geht der Sensor Hängt an und ein Reparatur-Hinweis erscheint.",
-          "panel": "Seite AutoShuttersControl in der Seitenleiste mit allen Rollläden (Zeiten, Modi, Ziel, letzte Fahrt, Beschattung) und allen verknüpften Sensoren mit ihren Werten, wie die ASC Configuration and Information Summary in FHEM.",
           "drive_stagger": "Sekunden zwischen dem Start von Rollläden, die zur gleichen Zeit fahren sollen (Funk, Strom). Nicht bei Zwang, Regen-, Wind- und Wasserschutz. 0 = alle gleichzeitig.",
           "quiet_start": "In der Ruhezeit keine automatischen Fahrten, außer Zwang und Schutz (Regen, Wind, Frost, Selbstschutz). An ihrem Ende fährt der Rollladen auf sein Ziel.",
           "quiet_end": "Ende der Ruhezeit (darf nach Mitternacht liegen).",
@@ -554,7 +552,7 @@
       },
       "fhem_import": {
         "title": "Aus FHEM übernehmen",
-        "description": "Füge die Einstellungen aus FHEM ein. So bekommst du sie:\n\n1. In FHEM oben in die Befehlszeile eingeben: `list -r TYPE=AutoShuttersControl` und danach `list -r ASC=[12]`\n2. Die Ausgabe beider Befehle markieren, kopieren und hier einfügen.\n\nAlternativ geht die ganze fhem.cfg. Gelesen werden nur define- und attr-Zeilen, nichts wird verschickt. Einen einzelnen Rollladen übernimmst du einfacher am Rollladen selbst: Rollladen öffnen → *Aus FHEM übernehmen*.",
+        "description": "Füge die Einstellungen aus FHEM ein. So bekommst du sie:\n\n1. In FHEM oben in die Befehlszeile eingeben: `list -r TYPE=AutoShuttersControl` und danach `list -r ASC=[12]`\n2. Die Ausgabe beider Befehle markieren, kopieren und hier einfügen.\n\nEs geht auch die *Raw definition* aus der Detailansicht der Geräte (Zeilen mit `defmod` und `attr`), mehrere Geräte untereinander, oder die ganze fhem.cfg. Übernommen werden nur die ASC-Einstellungen, alles andere (room, icon, userattr …) wird übergangen. Nichts wird verschickt. Einen einzelnen Rollladen übernimmst du einfacher am Rollladen selbst: Rollladen öffnen → *Aus FHEM übernehmen*.",
         "data": {
           "fhem_cfg": "fhem.cfg"
         }
@@ -579,7 +577,13 @@
       },
       "summary": {
         "title": "Übersicht",
-        "description": "Sonne {azimuth}° / {elevation}° · Vorhersage heute {forecast} °C · Haus-Status {house} · Stand {time} (zum Aktualisieren neu öffnen)\n\n{panel}\n\n### Rollläden\n\n{covers}\n\n### Verknüpfte Sensoren\n\n{entities}"
+        "description": "**{panel}**\n\nSonne {azimuth}° / {elevation}° · Vorhersage heute {forecast} °C · Haus-Status {house} · Stand {time} (zum Aktualisieren neu öffnen)\n\n### Rollläden\n\n{covers}\n\n### Verknüpfte Sensoren\n\n{entities}",
+        "data": {
+          "panel": "Übersicht in der Seitenleiste"
+        },
+        "data_description": {
+          "panel": "Seite AutoShuttersControl in der Seitenleiste mit allen Rollläden und Sensoren, mehr Platz als hier, und dem Reiter *Rollläden bearbeiten*. Übernommen mit *Absenden* und dann **💾 Speichern und schließen**."
+        }
       }
     },
     "error": {
@@ -1803,7 +1807,7 @@
         },
         "fhem_import": {
           "title": "Aus FHEM übernehmen",
-          "description": "Übernimmt die Einstellungen eines FHEM-Rollladens für **{name}**. Der Name in FHEM darf anders sein.\n\n1. In FHEM oben in die Befehlszeile `list -r` und dahinter den Namen des Rollladens in FHEM eingeben, z. B. `list -r EG_Wohnzimmer_Rollo`.\n2. Die ganze Ausgabe kopieren und hier einfügen.\n\nGelesen werden nur die attr-Zeilen mit ASC-Einstellungen. Enthält der Text mehrere Rollläden, wählst du im nächsten Schritt den richtigen aus.",
+          "description": "Übernimmt die Einstellungen eines FHEM-Rollladens für **{name}**. Der Name in FHEM darf anders sein.\n\n1. In FHEM oben in die Befehlszeile `list -r` und dahinter den Namen des Rollladens in FHEM eingeben, z. B. `list -r EG_Wohnzimmer_Rollo`.\n2. Die ganze Ausgabe kopieren und hier einfügen.\n\nEs geht auch die *Raw definition* aus der Detailansicht des Geräts (Zeilen mit `defmod` und `attr`). Übernommen werden nur die ASC-Einstellungen, alles andere (room, icon, userattr …) wird übergangen. Enthält der Text mehrere Rollläden, wählst du im nächsten Schritt den richtigen aus.",
           "data": {
             "fhem_cfg": "Ausgabe von list -r"
           }
@@ -1877,8 +1881,9 @@
         "nautical": "Nautische Dämmerung",
         "astronomical": "Astronomische Dämmerung",
         "horizon": "Eigene Sonnenhöhe",
-        "inherit": "Erben",
-        "golden": "Golden Hour (Sonne 6°)"
+        "golden": "Golden Hour (Sonne 6°)",
+        "blue": "Blue Hour (Sonne −4°)",
+        "inherit": "Erben"
       }
     },
     "twilight_down": {
@@ -1888,8 +1893,9 @@
         "nautical": "Nautische Dämmerung",
         "astronomical": "Astronomische Dämmerung",
         "horizon": "Eigene Sonnenhöhe",
-        "inherit": "Erben",
-        "golden": "Golden Hour (Sonne 6°)"
+        "golden": "Golden Hour (Sonne 6°)",
+        "blue": "Blue Hour (Sonne −4°)",
+        "inherit": "Erben"
       }
     },
     "override_blocks": {
@@ -2305,6 +2311,7 @@
       "options": {
         "first_advent": "1. Advent",
         "date": "Eigener Tag",
+        "dead_sunday": "Totensonntag (eine Woche vor dem 1. Advent)",
         "inherit": "Erben"
       }
     },
@@ -2359,8 +2366,8 @@
         "window": "Fenster",
         "notes": "Hinweise",
         "global": "Global",
-        "panel_open": "Große Übersicht in der Seitenleiste öffnen",
-        "panel_hint": "Tipp: Mehr Platz hat die Übersicht in der Seitenleiste. Einschalten unter *Fahrverhalten* → *Übersicht in der Seitenleiste*."
+        "panel_on": "Übersicht in der Seitenleiste: an · [Große Übersicht öffnen](/autoshutterscontrol)",
+        "panel_off": "Übersicht in der Seitenleiste: aus · einschalten mit dem Schalter am Ende dieser Seite"
       }
     },
     "window_preset": {

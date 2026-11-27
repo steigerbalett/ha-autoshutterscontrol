@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.10.1
+
+- Import from FHEM also reads the *Raw definition* of devices (`defmod` and `attr` lines), globally and on the
+  cover. Only the ASC attributes count; `room`, `icon`, `userattr`, `webCmd` and the like are skipped without a
+  message.
+- Import of more ASC attributes: `ASC_autoShuttersControlMorning`/`Evening`/`Comfort` (switches of the
+  central device), `ASC_advStartDate`, `ASC_advEndDate`, `ASC_PrivacyUp_Pos`, `ASC_Shading_InOutAzimuth`,
+  `ASC_ShuttersPlace` (terrace → preset *Patio door*, awning → type *Awning*), the spelling
+  `ASC_AutoAstroMode…` of newer ASC versions and `ASC_rainSensor` with a text instead of a threshold. The list of
+  a single shutter shows options in the language of Home Assistant.
+- *Advent mode from*: new option *Sunday before Advent* (Totensonntag).
+- Sun event *Blue hour* (sun 4° below the horizon).
+- The switch *Overview in the sidebar* moved from *Drive behaviour* to the page *Overview*; its first line shows
+  whether the page is on.
+
 ## 0.10.0
 
 - Sidebar page, tab *Edit covers*: all covers as a table; edit one or several at once (only the changed fields

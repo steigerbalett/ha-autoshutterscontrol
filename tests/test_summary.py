@@ -119,5 +119,11 @@ async def test_summary_in_options(hass: HomeAssistant) -> None:
     assert "Position: 100 %" in placeholders["covers"]
     assert "Seitenleiste" in placeholders["panel"]
     assert "23000 lx" in placeholders["entities"]
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+    # The switch for the sidebar page is on this page now
+    assert "panel" in result["data_schema"].schema
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"panel": True})
     assert result["step_id"] == "init"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "save"}
+    )
+    assert entry.options["settings"]["panel"] is True

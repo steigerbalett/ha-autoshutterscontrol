@@ -51,6 +51,8 @@ SEC_TILT = "tilt"
 SEC_PROTECTION = "protection"
 SEC_SPECIAL = "special"
 SEC_EXTRA = "extra"
+# Shown on the overview page of the options only (not one of SECTIONS)
+SEC_SUMMARY = "summary"
 SECTIONS = (
     SEC_SCHEDULE,
     SEC_LIGHT,
@@ -124,6 +126,7 @@ TWILIGHT_NAUTICAL = "nautical"
 TWILIGHT_ASTRONOMICAL = "astronomical"
 TWILIGHT_HORIZON = "horizon"
 TWILIGHT_GOLDEN = "golden"
+TWILIGHT_BLUE = "blue"
 TWILIGHTS = (
     TWILIGHT_REAL,
     TWILIGHT_CIVIL,
@@ -131,6 +134,7 @@ TWILIGHTS = (
     TWILIGHT_ASTRONOMICAL,
     TWILIGHT_HORIZON,
     TWILIGHT_GOLDEN,
+    TWILIGHT_BLUE,
 )
 
 KIND_OPEN = "open"
@@ -149,7 +153,9 @@ FROST_MODES = (FROST_OFF, FROST_SOFT, FROST_AM, FROST_PM, FROST_HARD)
 
 ADVENT_FIRST_SUNDAY = "first_advent"
 ADVENT_DATE = "date"
-ADVENT_STARTS = (ADVENT_FIRST_SUNDAY, ADVENT_DATE)
+# Sunday before the first Sunday of Advent (Totensonntag)
+ADVENT_DEAD_SUNDAY = "dead_sunday"
+ADVENT_STARTS = (ADVENT_FIRST_SUNDAY, ADVENT_DEAD_SUNDAY, ADVENT_DATE)
 ADVENT_EPIPHANY = "epiphany"
 ADVENT_CANDLEMAS = "candlemas"
 ADVENT_ENDS = (ADVENT_EPIPHANY, ADVENT_CANDLEMAS, ADVENT_DATE)
@@ -1092,7 +1098,7 @@ SETTINGS: tuple[Setting, ...] = (
     Setting("recovery", SELECT, RECOVERY_FAILURE, SEC_DRIVE, stage=5, options=RECOVERY_MODES),
     Setting("logbook", BOOL, True, SEC_DRIVE, stage=5),
     Setting("drive_check", BOOL, True, SEC_DRIVE, stage=5),
-    Setting("panel", BOOL, False, SEC_DRIVE, stage=5, levels=GLOBAL_ONLY),
+    Setting("panel", BOOL, False, SEC_SUMMARY, stage=5, levels=GLOBAL_ONLY),
     Setting(
         "drive_stagger",
         INT,

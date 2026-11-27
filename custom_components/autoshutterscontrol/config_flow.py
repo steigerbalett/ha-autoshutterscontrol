@@ -344,8 +344,12 @@ class AscOptionsFlow(OptionsFlow):
         )
 
     async def async_step_summary(self, user_input=None) -> ConfigFlowResult:
-        """Overview of all covers and linked sensors (read only)."""
+        """Overview of all covers and linked sensors, and the switch for the sidebar page."""
         if user_input is not None:
+            if user_input.get("panel"):
+                self.settings["panel"] = True
+            else:
+                self.settings.pop("panel", None)
             return await self.async_step_init()
         manager = getattr(self.config_entry, "runtime_data", None)
         if manager is None:
@@ -364,8 +368,11 @@ class AscOptionsFlow(OptionsFlow):
             )
         else:
             placeholders = manager.summary_markdown()
+        panel = bool(self.settings.get("panel", BY_KEY["panel"].default))
         return self.async_show_form(
-            step_id=STEP_SUMMARY, data_schema=vol.Schema({}), description_placeholders=placeholders
+            step_id=STEP_SUMMARY,
+            data_schema=vol.Schema({vol.Optional("panel", default=panel): bool}),
+            description_placeholders=placeholders,
         )
 
     async def _section(self, section: str, user_input: dict[str, Any] | None) -> ConfigFlowResult:
@@ -461,7 +468,7 @@ class AscOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
         if user_input is not None:
             self._fhem = fhem.convert(user_input.get(CONF_FHEM_CFG, ""))
-            if not self._fhem.shutters and not self._fhem.global_settings:
+            if not (self._fhem.shutters or self._fhem.global_settings or self._fhem.switches):
                 errors[CONF_FHEM_CFG] = "fhem_nothing_found"
             else:
                 return await self.async_step_fhem_covers()
@@ -535,9 +542,14 @@ class AscOptionsFlow(OptionsFlow):
             if sub.subentry_type == SUBENTRY_COVER
         }
         new = [c for c in plan.covers if c[0] not in existing]
+        manager = getattr(entry, "runtime_data", None)
         if user_input is not None:
             for key, value in plan.global_settings.items():
                 self.settings[key] = to_storage(BY_KEY[key], value)
+            if manager is not None:
+                # Morning drive, evening drive and comfort of the ASC device
+                for key, value in self._fhem.switches.items():
+                    manager.set_switch(key, value)
             if user_input.get("update_existing"):
                 by_cover = {
                     sub.data.get(CONF_COVER_ENTITY): sub
@@ -578,6 +590,19 @@ class AscOptionsFlow(OptionsFlow):
             section = BY_KEY[key].section
             return texts.get(f"component.{DOMAIN}.options.step.{section}.data.{key}", key)
 
+        def switch(key: str, value: bool) -> str:
+            name = manager.text(f"entity.switch.global_{key}.name") if manager else key
+            state = (
+                manager.text(f"selector.tristate.options.{'on' if value else 'off'}")
+                if manager
+                else value
+            )
+            return f"{name}: {state}"
+
+        global_items = sorted(label(k) for k in plan.global_settings) + [
+            switch(k, v) for k, v in self._fhem.switches.items()
+        ]
+
         schema = (
             vol.Schema({vol.Optional("update_existing", default=False): bool})
             if any(c in existing for c, _n, _v in plan.covers)
@@ -587,7 +612,7 @@ class AscOptionsFlow(OptionsFlow):
             step_id="fhem_done",
             data_schema=schema,
             description_placeholders={
-                "global": ", ".join(sorted(label(k) for k in plan.global_settings)) or dash,
+                "global": ", ".join(global_items) or dash,
                 "covers": ", ".join(f"{name} → {cover}" for cover, name, _v in new) or dash,
                 "existing": ", ".join(c for c, _n, _v in plan.covers if c in existing) or dash,
                 "skipped": ", ".join(plan.skipped_shutters) or dash,
@@ -1012,8 +1037,14 @@ class CoverSubentryFlow(_SettingsSubentryFlow):
         def label(key: str) -> str:
             return texts.get(f"component.{DOMAIN}.selector.setting_key.options.{key}", key)
 
+        def shown(key: str, value: Any) -> str:
+            # Options in the language of Home Assistant
+            if BY_KEY[key].kind == SELECT:
+                return texts.get(f"component.{DOMAIN}.selector.{key}.options.{value}", str(value))
+            return _display(BY_KEY[key], value)
+
         lines = [
-            f"- {label(key)}: {_display(BY_KEY[key], value)}"
+            f"- {label(key)}: {shown(key, value)}"
             for key, value in sorted(self._fhem_values.items(), key=lambda kv: label(kv[0]))
         ]
         prefix = f"{self._fhem_name}: "

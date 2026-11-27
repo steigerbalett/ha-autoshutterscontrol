@@ -207,7 +207,6 @@ async def test_summary_is_a_list_per_cover(hass: HomeAssistant) -> None:
     placeholders = entry.runtime_data.summary_markdown()
     assert placeholders["covers"].startswith("**living_room**\n- Position: 100 %")
     assert "| " not in placeholders["covers"]
-    assert (
-        placeholders["panel"]
-        == "[Große Übersicht in der Seitenleiste öffnen](/autoshutterscontrol)"
+    assert placeholders["panel"] == (
+        "Übersicht in der Seitenleiste: an · [Große Übersicht öffnen](/autoshutterscontrol)"
     )

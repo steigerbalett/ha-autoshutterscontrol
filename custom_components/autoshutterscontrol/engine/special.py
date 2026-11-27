@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from .period import in_period, parse_day
-from .settings import ADVENT_CANDLEMAS, ADVENT_DATE
+from .settings import ADVENT_CANDLEMAS, ADVENT_DATE, ADVENT_DEAD_SUNDAY
 
 
 def first_advent(year: int) -> date:
@@ -26,6 +26,8 @@ def advent_start(cfg: Mapping[str, Any], year: int) -> tuple[int, int]:
         if fixed is not None:
             return fixed
     first = first_advent(year)
+    if cfg.get("advent_start") == ADVENT_DEAD_SUNDAY:
+        first -= timedelta(weeks=1)
     return first.month, first.day
 
 

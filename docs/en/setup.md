@@ -208,7 +208,9 @@ FHEM-only attributes cannot be transferred. They are listed at the end.
 1. In FHEM, enter in the command line at the top:
    - `list -r TYPE=AutoShuttersControl` (the ASC device with the global settings)
    - `list -r ASC=[12]` (all shutters with the attribute ASC 1 or 2)
-2. Select and copy the output of both commands. The whole `fhem.cfg` works as well.
+2. Select and copy the output of both commands. The *Raw definition* from the detail view of the devices (the
+   lines with `defmod` and `attr`, several devices one below the other) or the whole `fhem.cfg` work as well.
+   Only the ASC settings are taken over.
 3. In Home Assistant: AutoShuttersControl → **Configure** → **Import from FHEM** → paste the text.
 4. Map each FHEM shutter to a cover in Home Assistant. Suggestions come from similar names. Empty means "do not
    take over".
@@ -224,7 +226,7 @@ the cover keeps only what is really different.
 This is how you take over the settings of one FHEM shutter for a cover that already exists in Home Assistant:
 
 1. In FHEM: `list -r` followed by the name of the shutter in FHEM, e.g. `list -r EG_Wohnzimmer_Rollo`. Copy the
-   whole output.
+   whole output. Or open *Raw definition* in the detail view of the device and copy everything.
 2. In Home Assistant, on the cover click the three dots → *Reconfigure* → **Import from FHEM** → paste the
    text.
 3. If the text contains several shutters, choose the right one.
@@ -241,8 +243,9 @@ Assistant.
 **Configure** → **Overview** shows all covers with position, target, next drives, last drive, shading and
 window, and below that all linked sensors with their current value. A ❗ marks an entity that does not exist.
 
-The Home Assistant dialog is narrow. The page in the sidebar has more room: *Configure* → *Drive behaviour* →
-switch on **Overview in the sidebar** and save. Then the sidebar has the item *AutoShuttersControl* with a
+The Home Assistant dialog is narrow. The page in the sidebar has more room: the first line of the overview
+shows whether it is on. Switch it on with the switch **Overview in the sidebar** at the end of the overview,
+*Submit* and then **💾 Save and close**. Then the sidebar has the item *AutoShuttersControl* with a
 large table that refreshes every 10 seconds.
 
 The same page has the tab **Edit covers**. It lists all covers in a table. You can add, duplicate and remove

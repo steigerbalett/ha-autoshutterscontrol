@@ -54,7 +54,7 @@ either one applies.
 |---|---|
 | Morning/Evening drive by | *Sun*: sun event plus offset, kept between earliest and latest time. *Time*: at the earliest time (as in ASC). *Entity*: at the time of an entity plus offset, kept between earliest and latest time. |
 | Morning/Evening time from entity | For *Entity*: an `input_datetime`, a time entity or a timestamp sensor, e.g. *Next alarm* of the Home Assistant app, `sensor.sun_next_rising`/`_setting` or an own template. A timestamp counts only on its own day; without a usable value the latest time applies in the morning, the earliest in the evening. Once the drive ran the day is done, even when the alarm already shows the next day. |
-| Sun event | Sunrise/sunset, civil, nautical, astronomical twilight, *Golden hour* (sun 6° above the horizon, a little later than sunrise in the morning and a little earlier than sunset in the evening) or an own sun elevation. |
+| Sun event | Sunrise/sunset, civil, nautical, astronomical twilight, *Golden hour* (sun 6° above the horizon, a little later than sunrise in the morning and a little earlier than sunset in the evening), *Blue hour* (sun 4° below the horizon, between civil twilight and sunrise or sunset) or an own sun elevation. |
 | Earliest/latest opening and closing | Separate for workdays and days off. |
 | Evening by tomorrow's day type | On Friday evening the day-off times apply. |
 
@@ -331,7 +331,7 @@ Page *Special functions*; fields with entities exist only on the cover.
 - **Advent**: switch *Advent* of the central device (off by default). From the 1st Sunday of Advent until
   6 January (or 2 February) the evening closing waits until the button *Release deferred drives* or the action
   `autoshutterscontrol.release_deferred` releases it; the release lasts until the end of the day.
-  - Period: *Advent mode from* = first Sunday of Advent (default) or *Own day* with *Own start*, e.g. `1.12.`.
+  - Period: *Advent mode from* = first Sunday of Advent (default), the Sunday before Advent (one week earlier) or *Own day* with *Own start*, e.g. `1.12.`.
     *Advent mode until* = 6 January (default), 2 February or *Own day* with *Own end*, e.g. `24.12.` or
     `15.1.`. Days as DD.MM., the period may span the new year.
   - If an own day is missing or invalid, the default applies and a repair issue appears.
@@ -432,8 +432,8 @@ The overview matches the *ASC Configuration and Information Summary* of FHEM. It
 
 - right in the integration: *Configure* → **Overview** (state when opened, open again to refresh), one block
   per cover so that it is readable in the narrow dialog;
-- optionally as the page **AutoShuttersControl** in the sidebar (*Overview in the sidebar*, page *Drive
-  behaviour*, default off), as a large table with all columns, refreshed every 10 seconds. The overview in
+- optionally as the page **AutoShuttersControl** in the sidebar (switch *Overview in the sidebar* on the page
+  **Overview**, default off), as a large table with all columns, refreshed every 10 seconds. The overview in
   the dialog links to it.
 
 It shows:
@@ -453,7 +453,7 @@ On the sidebar page a click on a cover or an entity opens its dialog.
 
 ### Edit covers
 
-The page in the sidebar (switch it on with *Overview in the sidebar*, page *Drive behaviour*) has two tabs at
+The page in the sidebar (switch it on with *Overview in the sidebar* on the page *Overview*) has two tabs at
 the top: **Overview** and **Edit covers**. The second shows all covers as a table with profile and the number
 of own values.
 
@@ -511,19 +511,24 @@ the commands: [setup guide](setup.md#10-moving-from-fhem).
 
 **Everything at once**: Options → *Import from FHEM*:
 
-1. Paste the output of `list -r TYPE=AutoShuttersControl` and `list -r ASC=[12]` from the FHEM command line
-   (or the whole `fhem.cfg`). Only `define` and `attr` lines are read.
+1. Paste the output of `list -r TYPE=AutoShuttersControl` and `list -r ASC=[12]` from the FHEM command line,
+   the *Raw definition* of the devices (`defmod` and `attr`, several one below the other) or the whole
+   `fhem.cfg`. Only `define`, `defmod` and `attr` lines are read, and of those only the ASC attributes. Other
+   attributes such as `room`, `icon`, `userattr` or `webCmd` are skipped without a message.
 2. Choose a Home Assistant cover for each FHEM shutter. Suggestions come from similar names.
 3. Choose entities for the FHEM devices in the attributes (sensors, window contacts, residents).
 4. The summary shows what is imported and what cannot be transferred (Perl code, unknown attributes).
    Covers that are already set up stay unchanged unless *Update covers that are already set up* is on.
    Submit creates the covers and saves the global settings.
 
-The attributes of the ASC device become global settings, those of the shutters cover settings. Values all
+The attributes of the ASC device become global settings, those of the shutters cover settings.
+`ASC_autoShuttersControlMorning`, `…Evening` and `…Comfort` set the switches *Morning drive*, *Evening drive*
+and *Comfort* of the central device. `ASC_ShuttersPlace terrace` sets the preset *Patio door*, `awning` the
+type *Awning*. Values all
 shutters share move to the global settings; values that only repeat the default are dropped.
 
 **One shutter**: on the cover *Reconfigure* → *Import from FHEM*. Paste the output of
-`list -r <name in FHEM>`. With several shutters in the text you choose one. Then map its devices; the list shows every value
+`list -r <name in FHEM>` or the *Raw definition* of the device. With several shutters in the text you choose one. Then map its devices; the list shows every value
 that is taken over. Values that equal what the cover inherits stay inherited. *Delete the own values of this
 cover first* starts from scratch. Back in the menu, **💾 Save and close** keeps it.
 

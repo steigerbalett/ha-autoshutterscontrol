@@ -41,7 +41,7 @@ def expand(lang: dict) -> dict:
     descriptions: dict[str, str] = {}
     # Not on the global level: texts live in the cover steps
     cover_only = {s.key for s in settings.SETTINGS if settings.LEVEL_GLOBAL not in s.levels}
-    for section in settings.SECTIONS:
+    for section in (*settings.SECTIONS, settings.SEC_SUMMARY):
         source = options_steps.get(section, {})
         labels.update(source.get("data", {}))
         descriptions.update(source.get("data_description", {}))

@@ -1092,9 +1092,7 @@ class AscManager:
                 f"- **{cell(e['name'] or e['entity_id'])}**: {value}  \n"
                 f"  {cell(e['setting_name'])} · {cell(users)}"
             )
-        panel = (
-            f"[{row('panel_open')}](/{DOMAIN})" if self.global_cfg["panel"] else row("panel_hint")
-        )
+        panel = row("panel_on") if self.global_cfg["panel"] else row("panel_off")
         g = data["global"]
         return {
             "covers": "\n\n".join(covers) or "–",

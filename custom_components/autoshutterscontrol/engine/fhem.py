@@ -1,6 +1,7 @@
 """Import from FHEM: read the ASC device and the shutters with ``ASC 1/2`` from fhem.cfg.
 
-Only the ``define`` and ``attr`` lines are used. FHEM device names in the
+Only the ``define`` (or ``defmod``, the raw export of a device) and ``attr``
+lines are used. FHEM device names in the
 attributes (sensors, window contacts, residents) become references that the
 user maps to Home Assistant entities; each shutter is mapped to a cover.
 Attributes with Perl code or without a counterpart are listed as not
@@ -34,6 +35,8 @@ class FhemImport:
     global_settings: dict[str, Any] = field(default_factory=dict)
     shutters: dict[str, dict[str, Any]] = field(default_factory=dict)
     not_transferred: list[str] = field(default_factory=list)
+    # Global switches of the ASC device (automatic morning/evening drive, comfort)
+    switches: dict[str, bool] = field(default_factory=dict)
 
     def references(self) -> list[str]:
         """FHEM devices used in the attributes (not the shutters), sorted."""
@@ -56,7 +59,7 @@ def references_in(values: Mapping[str, Any]) -> list[str]:
 # --- reading fhem.cfg ---------------------------------------------------------
 
 _ATTR = re.compile(r"^\s*attr\s+(\S+)\s+(\S+)(?:\s+(.*))?$")
-_DEFINE = re.compile(r"^\s*define\s+(\S+)\s+(\S+)(?:\s+(.*))?$")
+_DEFINE = re.compile(r"^\s*(?:define|defmod)\s+(\S+)\s+(\S+)(?:\s+(.*))?$")
 
 
 def _lines(text: str) -> Iterable[str]:
@@ -124,6 +127,22 @@ def _numbers(text: str) -> list[float]:
     return [float(p) for p in re.split(r"[:,]", text) if p.strip()]
 
 
+def _is_numbers(text: str) -> bool:
+    try:
+        return bool(_numbers(text))
+    except ValueError:
+        return False
+
+
+# Spellings of newer and older ASC versions
+_ALIASES = {
+    "ASC_AutoAstroModeMorning": "ASC_autoAstroModeMorning",
+    "ASC_AutoAstroModeEvening": "ASC_autoAstroModeEvening",
+    "ASC_AutoAstroModeMorningHorizon": "ASC_autoAstroModeMorningHorizon",
+    "ASC_AutoAstroModeEveningHorizon": "ASC_autoAstroModeEveningHorizon",
+}
+
+
 _UP_DOWN = {"time": "time", "astro": "astro", "brightness": "brightness", "roommate": "residents"}
 _PRESENCE = {"always": "always", "home": "home", "absent": "absent", "off": "off"}
 _TWILIGHT = {
@@ -133,6 +152,16 @@ _TWILIGHT = {
     "astronomic": "astronomical",
     "horizon": "horizon",
 }
+_ADVENT_START = {"firstadvent": "first_advent", "deadsunday": "dead_sunday"}
+_ADVENT_END = {"epiphanyday": "epiphany", "candlemasday": "candlemas"}
+# ASC device attributes that are switches of the central device
+_SWITCHES = {
+    "ASC_autoShuttersControlMorning": "morning",
+    "ASC_autoShuttersControlEvening": "evening",
+    "ASC_autoShuttersControlComfort": "comfort",
+}
+# Place of the shutter: only these change something
+_PLACE = {"terrace": ("window_preset", "terrace_door"), "awning": ("cover_type", "awning")}
 
 # Simple attributes: ASC attribute -> (setting, converter)
 _SIMPLE: dict[str, tuple[str, Any]] = {
@@ -144,6 +173,7 @@ _SIMPLE: dict[str, tuple[str, Any]] = {
     "ASC_Sleep_Pos": ("pos_sleep", _int),
     "ASC_Antifreeze_Pos": ("pos_frost", _int),
     "ASC_PrivacyDown_Pos": ("pos_privacy", _int),
+    "ASC_PrivacyUp_Pos": ("pos_privacy_up", _int),
     "ASC_WindProtection": ("wind_protection", _onoff),
     "ASC_RainProtection": ("rain_protection", _onoff),
     "ASC_Ventilate_Window_Open": ("ventilate_enabled", _onoff),
@@ -186,10 +216,27 @@ _IGNORED = frozenset(
 )
 
 
-def _convert(attrs: Mapping[str, str], out: dict[str, Any], skipped: list[str], who: str) -> None:
-    """Convert the ASC attributes of one device into settings."""
-    for key, value in attrs.items():
+def _convert(
+    attrs: Mapping[str, str],
+    out: dict[str, Any],
+    skipped: list[str],
+    who: str,
+    switches: dict[str, bool] | None = None,
+) -> None:
+    """Convert the ASC attributes of one device into settings.
+
+    Other attributes of the device (room, icon, userattr, webCmd …) are not
+    relevant and are left out without a message.
+    """
+    for name, value in attrs.items():
+        key = _ALIASES.get(name, name)
         if not key.startswith("ASC") or key in _IGNORED:
+            continue
+        if key in _SWITCHES and switches is not None:
+            if value.strip().lower() in ("on", "off"):
+                switches[_SWITCHES[key]] = _onoff(value)
+            else:
+                skipped.append(f"{who}: {key} = {value}")
             continue
         if "{" in value:
             skipped.append(f"{who}: {key} (Perl)")
@@ -226,6 +273,30 @@ def _convert_one(key: str, value: str, out: dict[str, Any]) -> bool:  # noqa: C9
         if lower not in _TWILIGHT:
             return False
         out["twilight_up" if key.endswith("Morning") else "twilight_down"] = _TWILIGHT[lower]
+        return True
+    if key == "ASC_advStartDate":
+        if lower not in _ADVENT_START:
+            return False
+        out["advent_start"] = _ADVENT_START[lower]
+        return True
+    if key == "ASC_advEndDate":
+        if lower not in _ADVENT_END:
+            return False
+        out["advent_end"] = _ADVENT_END[lower]
+        return True
+    if key == "ASC_ShuttersPlace":
+        if lower in ("window", "eg_window"):
+            # Ordinary window: nothing to change
+            return True
+        if lower not in _PLACE:
+            return False
+        setting, option = _PLACE[lower]
+        out[setting] = option
+        return True
+    if key == "ASC_Shading_InOutAzimuth":
+        numbers = _numbers(value)
+        out["shading_azimuth_start"] = int(round(numbers[0])) % 360
+        out["shading_azimuth_end"] = int(round(numbers[1])) % 360
         return True
     if key == "ASC_Time_Up_WE_Holiday":
         out["time_up_early_free"] = _time(value)
@@ -300,7 +371,7 @@ def _convert_one(key: str, value: str, out: dict[str, Any]) -> bool:  # noqa: C9
     if key == "ASC_rainSensor":
         parts = value.split()
         out["rain_sensor"] = _device(parts[0])
-        if len(parts) > 1:
+        if len(parts) > 1 and _is_numbers(parts[1]):
             numbers = _numbers(parts[1])
             out["rain_threshold"] = numbers[0]
             if len(numbers) > 1:
@@ -351,7 +422,13 @@ def convert(text: str, *, loose: bool = False) -> FhemImport:
     asc, attrs, _types = read(text)
     result = FhemImport(asc_device=asc)
     if asc is not None:
-        _convert(attrs.get(asc, {}), result.global_settings, result.not_transferred, asc)
+        _convert(
+            attrs.get(asc, {}),
+            result.global_settings,
+            result.not_transferred,
+            asc,
+            result.switches,
+        )
         _sun_range(result.global_settings)
     for name, values in attrs.items():
         if name == asc:
